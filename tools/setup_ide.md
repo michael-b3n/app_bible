@@ -18,8 +18,6 @@
 -  **Boost** run `pacman -S mingw-w64-x86_64-boost` in `msys2_shell.cmd`
 -  **Spdlog** run `pacman -S mingw-w64-x86_64-spdlog` in `msys2_shell.cmd`
 -  **Fmt** run `pacman -S mingw-w64-x86_64-fmt` in `msys2_shell.cmd`
--  **WebUI** download binaries [link](https://github.com/webui-dev/webui/releases) (to `libs_external/webui`)
--  **OpenSSL for WebUI** download curl [link](https://curl.se/windows/) (to `C:/lib/`)
 -  **Inno Setup** download and install [link](https://jrsoftware.org/isdl.php)
 
 ### Build
