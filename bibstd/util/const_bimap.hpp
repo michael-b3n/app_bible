@@ -2,10 +2,10 @@
 
 #include "meta/pack.hpp"
 #include "meta/type_traits.hpp"
+#include "util/exception.hpp"
 
 #include <algorithm>
 #include <array>
-#include <stdexcept>
 #include <type_traits>
 #include <utility>
 
@@ -121,11 +121,11 @@ constexpr const_bimap<T>::const_bimap(P&&... p)
     {
       if(std::ranges::count_if(map_, [&](const auto e) { return e.first == p.first; }) != 1)
       {
-        throw(std::logic_error("Duplicates in first elements."));
+        THROW_EXCEPTION(util::exception("Duplicates in first elements."));
       }
       if(std::ranges::count_if(map_, [&](const auto e) { return e.second == p.second; }) != 1)
       {
-        throw(std::logic_error("Duplicates in second elements."));
+        THROW_EXCEPTION(util::exception("Duplicates in second elements."));
       }
     });
 }
@@ -134,9 +134,9 @@ constexpr const_bimap<T>::const_bimap(P&&... p)
 ///
 template<typename T>
   requires detail::is_valid_bimap_type<T>
-template<typename F>
-constexpr auto const_bimap<T>::contains(const F& first) const -> bool
-  requires detail::explicit_if_similar<F, first_type, second_type> && std::equality_comparable_with<F, first_type>
+           template<typename F>
+           constexpr auto const_bimap<T>::contains(const F& first) const -> bool
+             requires detail::explicit_if_similar<F, first_type, second_type> && std::equality_comparable_with<F, first_type>
 {
   const auto iter = std::ranges::find_if(map_, [&](const auto& e) { return first == e.first; });
   return iter == std::cend(map_);
@@ -146,9 +146,9 @@ constexpr auto const_bimap<T>::contains(const F& first) const -> bool
 ///
 template<typename T>
   requires detail::is_valid_bimap_type<T>
-template<typename S>
-constexpr auto const_bimap<T>::contains(const S& second) const -> bool
-  requires detail::explicit_if_similar<S, second_type, first_type> && std::equality_comparable_with<S, second_type>
+           template<typename S>
+           constexpr auto const_bimap<T>::contains(const S& second) const -> bool
+             requires detail::explicit_if_similar<S, second_type, first_type> && std::equality_comparable_with<S, second_type>
 {
   const auto iter = std::ranges::find_if(map_, [&](const auto& e) { return second == e.second; });
   return iter == std::cend(map_);
@@ -158,14 +158,14 @@ constexpr auto const_bimap<T>::contains(const S& second) const -> bool
 ///
 template<typename T>
   requires detail::is_valid_bimap_type<T>
-template<typename F>
-constexpr auto const_bimap<T>::at(const F& first) const -> const second_type&
-  requires detail::explicit_if_similar<F, first_type, second_type> && std::equality_comparable_with<F, first_type>
+           template<typename F>
+           constexpr auto const_bimap<T>::at(const F& first) const -> const second_type&
+             requires detail::explicit_if_similar<F, first_type, second_type> && std::equality_comparable_with<F, first_type>
 {
   const auto iter = std::ranges::find_if(map_, [&](const auto& e) { return first == e.first; });
   if(iter == std::cend(map_))
   {
-    throw(std::out_of_range("First out of range."));
+    THROW_EXCEPTION(util::exception("First out of range."));
   }
   return iter->second;
 }
@@ -174,14 +174,14 @@ constexpr auto const_bimap<T>::at(const F& first) const -> const second_type&
 ///
 template<typename T>
   requires detail::is_valid_bimap_type<T>
-template<typename S>
-constexpr auto const_bimap<T>::at(const S& second) const -> const first_type&
-  requires detail::explicit_if_similar<S, second_type, first_type> && std::equality_comparable_with<S, second_type>
+           template<typename S>
+           constexpr auto const_bimap<T>::at(const S& second) const -> const first_type&
+             requires detail::explicit_if_similar<S, second_type, first_type> && std::equality_comparable_with<S, second_type>
 {
   const auto iter = std::ranges::find_if(map_, [&](const auto& e) { return second == e.second; });
   if(iter == std::cend(map_))
   {
-    throw(std::out_of_range("Second out of range."));
+    THROW_EXCEPTION(util::exception("Second out of range."));
   }
   return iter->first;
 }

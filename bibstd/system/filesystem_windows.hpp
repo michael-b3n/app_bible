@@ -1,6 +1,7 @@
 #pragma once
 
 #include "system/filesystem_base.hpp"
+#include "util/exception.hpp"
 
 #include <filesystem>
 #include <optional>
@@ -27,7 +28,7 @@ inline auto filesystem::local_data_folder() -> std::filesystem::path
   auto appdata = std::getenv("LOCALAPPDATA");
   if(!appdata)
   {
-    throw std::runtime_error("local appdata not found");
+    THROW_EXCEPTION(util::exception("local appdata not found"));
   }
   return std::filesystem::path(appdata) / executable_location().stem();
 }

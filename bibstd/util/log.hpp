@@ -65,19 +65,19 @@ struct logger final
 // clang-format off
 #define INT_LOG_INTERNAL_FMT_STR(CHANNEL, LEVEL, FMT_STR, ...)                                                                                       \
   {                                                                                                                                                  \
-    if(LEVEL >= ::bibstd::util::global_log_level())                                                                                        \
+    if(LEVEL >= ::bibstd::util::global_log_level())                                                                                                  \
     {                                                                                                                                                \
       try                                                                                                                                            \
       {                                                                                                                                              \
-        const auto log_string = std::format("[{}] " FMT_STR, CHANNEL, __VA_ARGS__);                                                                   \
-        if      constexpr(LEVEL == ::bibstd::util::logger_level::debug)   { ::bibstd::util::log_debug(log_string); }             \
-        else if constexpr(LEVEL == ::bibstd::util::logger_level::info)    { ::bibstd::util::log_info(log_string);  }             \
-        else if constexpr(LEVEL == ::bibstd::util::logger_level::warning) { ::bibstd::util::log_warn(log_string);  }             \
-        else if constexpr(LEVEL == ::bibstd::util::logger_level::error)   { ::bibstd::util::log_error(log_string); }             \
+        const auto log_string = std::format("[{}] " FMT_STR, CHANNEL, __VA_ARGS__);                                                                  \
+        if      constexpr(LEVEL == ::bibstd::util::logger_level::debug)   { ::bibstd::util::log_debug(log_string); }                                 \
+        else if constexpr(LEVEL == ::bibstd::util::logger_level::info)    { ::bibstd::util::log_info(log_string);  }                                 \
+        else if constexpr(LEVEL == ::bibstd::util::logger_level::warning) { ::bibstd::util::log_warn(log_string);  }                                 \
+        else if constexpr(LEVEL == ::bibstd::util::logger_level::error)   { ::bibstd::util::log_error(log_string); }                                 \
       }                                                                                                                                              \
       catch(std::format_error& exception)                                                                                                            \
       {                                                                                                                                              \
-        ::bibstd::util::log_error(std::format("INTERNAL_FMT_STR format error: {}.", exception.what()));                                    \
+        ::bibstd::util::log_error(std::format("INTERNAL_FMT_STR format error: {}.", exception.what()));                                              \
       }                                                                                                                                              \
     }                                                                                                                                                \
   }
