@@ -3,32 +3,28 @@
 
 namespace bibstd::app_framework
 {
-namespace detail
-{
-
-///
-/// Calls task wrapped into a try catch block.
-/// \param task that shall be called
-///
-auto call_task(task_queue::task_type& task) -> void
-{
-  try
-  {
-    task();
-  }
-  catch(const std::exception& e)
-  {
-    LOG_ERROR(task_queue::log_channel, "Task queue error: {}", e.what());
-  }
-}
-
-} // namespace detail
 
 ///
 ///
 task_queue::~task_queue() noexcept
 {
   shutdown();
+}
+
+///
+///
+auto task_queue::empty() const -> bool
+{
+  const auto lock = std::lock_guard(queue_mtx_);
+  return task_queue_.empty();
+}
+
+///
+///
+auto task_queue::size() const -> std::size_t
+{
+  const auto lock = std::lock_guard(queue_mtx_);
+  return task_queue_.size();
 }
 
 ///
@@ -41,17 +37,27 @@ auto task_queue::queue(task_type&& task) -> void
 
 ///
 ///
-auto task_queue::try_do_task() noexcept -> void
+auto task_queue::try_do_tasks() noexcept -> void
 {
-  std::unique_lock<std::mutex> queue_lock(queue_mtx_, std::defer_lock);
-  const auto queue_locked = queue_lock.try_lock();
-  if(queue_locked && !task_queue_.empty())
+  try
   {
-    decltype(auto) task = std::move(task_queue_.front());
-    task_queue_.pop();
-    queue_lock.unlock();
-    const auto task_lock = std::lock_guard(task_mtx_);
-    detail::call_task(task);
+    while(!empty())
+    {
+      std::unique_lock<std::mutex> queue_lock(queue_mtx_, std::defer_lock);
+      const auto queue_locked = queue_lock.try_lock();
+      if(queue_locked && !task_queue_.empty())
+      {
+        decltype(auto) task = std::move(task_queue_.front());
+        task_queue_.pop();
+        queue_lock.unlock();
+        const auto task_lock = std::lock_guard(task_mtx_);
+        task();
+      }
+    }
+  }
+  catch(const std::exception& e)
+  {
+    LOG_ERROR(task_queue::log_channel, "Task queue error: {}", e.what());
   }
 }
 

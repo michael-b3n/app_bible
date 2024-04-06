@@ -30,6 +30,7 @@ target_include_directories(libbible PUBLIC ${fmt_INCLUDE_DIRS})
 # Link libraries.
 #
 target_link_libraries(libbible
+  PUBLIC atomic
   PUBLIC fmt
   PUBLIC Boost::filesystem
   PUBLIC libs_external::all

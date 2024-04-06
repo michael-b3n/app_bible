@@ -14,7 +14,7 @@ namespace bibstd::app_framework
 class task_queue final
 {
 public: // Typedefs
-  using task_type = std::move_only_function<void()>;
+  using task_type = std::function<void()>;
 
 public: // Constants
   static constexpr std::string_view log_channel = "task_queue";
@@ -30,6 +30,19 @@ public: // Constructor
   ///
   ~task_queue() noexcept;
 
+public: // Accessor
+  ///
+  /// Check if task queue is empty.
+  /// \return true if empty, false otherwise
+  ///
+  auto empty() const -> bool;
+
+  ///
+  /// Get the count of all the tasks in queue.
+  /// \return size of task queue
+  ///
+  auto size() const -> std::size_t;
+
 public: // Modifiers
   ///
   /// Add task to queue.
@@ -40,7 +53,7 @@ public: // Modifiers
   ///
   /// Try to do one task in queue.
   ///
-  auto try_do_task() noexcept -> void;
+  auto try_do_tasks() noexcept -> void;
 
 private: // Implementation
   auto shutdown() noexcept -> void;
