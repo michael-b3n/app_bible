@@ -219,4 +219,14 @@ void Tray::Tray::run()
     }
 }
 
+void Tray::Tray::main_iteration_do()
+{
+    static MSG msg;
+    if(GetMessage(&msg, hwnd, 0, 0))
+    {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+}
+
 #endif
