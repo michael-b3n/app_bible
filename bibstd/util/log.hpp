@@ -77,7 +77,7 @@ struct logger final
       }                                                                                                                                              \
       catch(std::format_error& exception)                                                                                                            \
       {                                                                                                                                              \
-        ::bibstd::util::log_error(std::format("INTERNAL_FMT_STR format error: {}.", exception.what()));                                              \
+        ::bibstd::util::log_error(std::format("[INTERNAL_FMT_STR] format error: {}.", exception.what()));                                              \
       }                                                                                                                                              \
     }                                                                                                                                                \
   }

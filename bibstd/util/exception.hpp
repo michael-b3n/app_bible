@@ -60,7 +60,7 @@ struct std::formatter<bibstd::util::exception> : std::formatter<std::string>
 ///
 #define THROW_EXCEPTION(EX)                                                                                                                          \
   {                                                                                                                                                  \
-    static_assert(std::is_base_of_v<::bibstd::util::exception, decltype(EX)>);                                                                       \
-    LOG_ERROR("exception", "{}", EX);                                                                                                                \
+    constexpr auto loc = std::source_location::current();                                                                                            \
+    LOG_ERROR("exception", "{}\n  file: {}:{}:{}\n  function: {}", EX.what(), loc.file_name(), loc.line(), loc.column(), loc.function_name());       \
     throw(EX);                                                                                                                                       \
   }
