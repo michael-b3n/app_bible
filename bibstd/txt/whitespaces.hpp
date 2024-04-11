@@ -7,18 +7,18 @@
 #include <string>
 #include <string_view>
 
-namespace bibstd::util
+namespace bibstd::txt
 {
 
 ///
 /// \brief Common definitions and helpers for strings.
 ///
-struct characters final
+struct whitespaces final
 {
   ///
   /// @brief All whitespaces in utf-8 encoding.
   ///
-  static constexpr auto whitespaces = std::array{
+  static constexpr auto list = std::array{
     std::string_view("\x09"),         // character tabulation
     std::string_view("\x0A"),         // line feed
     std::string_view("\x0B"),         // line tabulation
@@ -51,7 +51,7 @@ struct characters final
     std::string_view("\xE3\x80\x80"), // ideographic space
     std::string_view("\xEF\xBB\xBF"), // zero width non-breaking space
   };
-  using whitespaces_type = decltype(whitespaces);
+  using list_type = decltype(list);
 
   ///
   /// \brief Checks if char in string at given index is of whitespace type.
@@ -59,41 +59,29 @@ struct characters final
   /// \param index to check the character
   /// \return iterator to element of whitespaces
   ///
-  static constexpr auto is_whitespace(const std::string_view& string_view, std::size_t index) noexcept
-    -> whitespaces_type::const_iterator;
-
-  // auto next_no_whitespace_idx(const std::string_view& string, std::size_t index) -> std::size_t
-  // {
-  //   if(index == string.size())
-  //   {
-  //     return index;
-  //   }
-  //   assert(index < string.size());
-
-  //   const auto new_idx = skip_if_white_space(string, index);
-  //   if(new_idx != index)
-  //   {
-  //     return next_no_whitespace_idx(string, new_idx);
-  //   }
-  //   return index;
-  // }
+  static constexpr auto is_whitespace(const std::string_view& string_view, std::size_t index) noexcept -> list_type::const_iterator;
 };
 
 ///
 ///
-constexpr auto characters::is_whitespace(const std::string_view& string_view, std::size_t index) noexcept
-  -> whitespaces_type::const_iterator
+constexpr auto whitespaces::is_whitespace(const std::string_view& string_view, std::size_t index) noexcept -> list_type::const_iterator
 {
-  assert(index < string_view.size());
-  const auto string_size = string_view.size();
-  const auto iter = std::ranges::find_if(
-    whitespaces,
-    [&](const auto& e)
-    {
-      const auto size = std::min(e.size(), string_size - index);
-      return create_substring_view(string_view, index, size) == e;
-    });
-  return iter;
+  if(index < string_view.size())
+  {
+    const auto string_size = string_view.size();
+    const auto iter = std::ranges::find_if(
+      list,
+      [&](const auto& e)
+      {
+        const auto size = std::min(e.size(), string_size - index);
+        return util::create_substring_view(string_view, index, size) == e;
+      });
+    return iter;
+  }
+  else
+  {
+    return std::ranges::cend(list);
+  }
 }
 
-} // namespace bibstd::util
+} // namespace bibstd::txt
