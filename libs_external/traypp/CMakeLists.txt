@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.26)
 project(tray VERSION 0.2 DESCRIPTION "A cross-platform C++ system tray library")
 
 file(GLOB src
@@ -34,3 +34,5 @@ set_target_properties(tray PROPERTIES
 
 set_target_properties(tray PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(tray PROPERTIES PROJECT_NAME ${PROJECT_NAME})
+
+add_library(tray::tray ALIAS tray)
