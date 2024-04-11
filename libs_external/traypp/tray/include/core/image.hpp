@@ -1,38 +1,40 @@
 #pragma once
 #include <string>
 #if defined(_WIN32)
-#include "icon.hpp"
-#include <Windows.h>
+  #include "icon.hpp"
+  #include <Windows.h>
 #elif defined(__linux__)
-#include <gtk/gtk.h>
+  #include <gtk/gtk.h>
 #endif
 
 namespace Tray
 {
+
 #if defined(__linux__)
-    class Image
-    {
-        GtkWidget *image;
+class Image
+{
+  GtkWidget* image;
 
-      public:
-        Image(GtkWidget *image);
-        Image(const char *path);
-        Image(const std::string &path);
+public:
+  Image(GtkWidget* image);
+  Image(const char* path);
+  Image(const std::string& path);
 
-        operator GtkWidget *();
-    };
+  operator GtkWidget*();
+};
 #elif defined(_WIN32)
-    class Image
-    {
-        HBITMAP image;
+class Image
+{
+  HBITMAP image;
 
-      public:
-        Image(HBITMAP image);
-        Image(WORD resource);
-        Image(const char *path);
-        Image(const std::string &path);
+public:
+  Image(HBITMAP image);
+  Image(WORD resource);
+  Image(const char* path);
+  Image(const std::string& path);
 
-        operator HBITMAP();
-    };
+  operator HBITMAP();
+};
 #endif
+
 } // namespace Tray

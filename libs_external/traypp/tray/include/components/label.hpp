@@ -4,10 +4,12 @@
 
 namespace Tray
 {
-    class Label : public TrayEntry
-    {
-      public:
-        Label(std::string text);
-        ~Label() override = default;
-    };
+
+class Label : public TrayEntry
+{
+public:
+  Label(std::string text);
+  ~Label() override = default;
+};
+
 } // namespace Tray

@@ -3,25 +3,27 @@
 
 namespace Tray
 {
-    class BaseTray;
-    class TrayEntry
-    {
-      protected:
-        std::string text;
-        bool disabled = false;
-        BaseTray *parent = nullptr;
 
-      public:
-        TrayEntry(std::string text);
-        virtual ~TrayEntry() = default;
+class BaseTray;
+class TrayEntry
+{
+protected:
+  std::string text;
+  bool disabled = false;
+  BaseTray* parent = nullptr;
 
-        BaseTray *getParent();
-        void setParent(BaseTray *);
+public:
+  TrayEntry(std::string text);
+  virtual ~TrayEntry() = default;
 
-        std::string getText();
-        void setText(std::string);
+  BaseTray* getParent();
+  void setParent(BaseTray*);
 
-        void setDisabled(bool);
-        bool isDisabled() const;
-    };
+  std::string getText();
+  void setText(std::string);
+
+  void setDisabled(bool);
+  bool isDisabled() const;
+};
+
 } // namespace Tray

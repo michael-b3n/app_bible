@@ -15,6 +15,8 @@
 static constexpr auto WM_TRAY = WM_USER + 1;
 std::map<HWND, std::reference_wrapper<Tray::Tray>> Tray::Tray::trayList;
 
+///
+///
 Tray::Tray::Tray(std::string identifier, Icon icon)
   : BaseTray(std::move(identifier), icon)
 {
@@ -54,10 +56,16 @@ Tray::Tray::Tray(std::string identifier, Icon icon)
   }
   trayList.insert({hwnd, *this});
 }
+
+///
+///
 Tray::Tray::~Tray()
 {
   allocations.clear();
 }
+
+///
+///
 void Tray::Tray::exit()
 {
   Shell_NotifyIcon(NIM_DELETE, &notifyData);
@@ -72,6 +80,8 @@ void Tray::Tray::exit()
   trayList.erase(hwnd);
 }
 
+///
+///
 void Tray::Tray::update()
 {
   DestroyMenu(menu);
@@ -84,6 +94,8 @@ void Tray::Tray::update()
   SendMessage(hwnd, WM_INITMENUPOPUP, reinterpret_cast<WPARAM>(menu), 0);
 }
 
+///
+///
 HMENU Tray::Tray::construct(const std::vector<std::shared_ptr<TrayEntry>>& entries, Tray* parent, bool cleanup)
 {
   static auto id = 0;
@@ -164,6 +176,8 @@ HMENU Tray::Tray::construct(const std::vector<std::shared_ptr<TrayEntry>>& entri
   return menu;
 }
 
+///
+///
 LRESULT CALLBACK Tray::Tray::wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   switch(msg)
@@ -209,6 +223,8 @@ LRESULT CALLBACK Tray::Tray::wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
   return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
+///
+///
 void Tray::Tray::run()
 {
   static MSG msg;
@@ -219,6 +235,8 @@ void Tray::Tray::run()
   }
 }
 
+///
+///
 void Tray::Tray::main_iteration_do()
 {
   static MSG msg;

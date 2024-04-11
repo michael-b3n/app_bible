@@ -11,6 +11,8 @@
   #include <components/syncedtoggle.hpp>
   #include <components/toggle.hpp>
 
+///
+///
 Tray::Tray::Tray(std::string identifier, Icon icon)
   : BaseTray(std::move(identifier), std::move(icon))
 {
@@ -24,6 +26,8 @@ Tray::Tray::Tray(std::string identifier, Icon icon)
   app_indicator_set_status(appIndicator, APP_INDICATOR_STATUS_ACTIVE);
 }
 
+///
+///
 void Tray::Tray::exit()
 {
   g_idle_add(
@@ -37,6 +41,8 @@ void Tray::Tray::exit()
     this);
 }
 
+///
+///
 void Tray::Tray::update()
 {
   if(appIndicator)
@@ -45,6 +51,8 @@ void Tray::Tray::update()
   }
 }
 
+///
+///
 GtkMenuShell* Tray::Tray::construct(const std::vector<std::shared_ptr<TrayEntry>>& entries, Tray* parent)
 {
   auto* menu = reinterpret_cast<GtkMenuShell*>(gtk_menu_new());
@@ -142,6 +150,8 @@ GtkMenuShell* Tray::Tray::construct(const std::vector<std::shared_ptr<TrayEntry>
   return menu;
 }
 
+///
+///
 void Tray::Tray::callback([[maybe_unused]] GtkWidget* widget, gpointer data)
 {
   auto* item = reinterpret_cast<TrayEntry*>(data);
@@ -160,6 +170,8 @@ void Tray::Tray::callback([[maybe_unused]] GtkWidget* widget, gpointer data)
   }
 }
 
+///
+///
 void Tray::Tray::run()
 {
   while(appIndicator)
@@ -168,6 +180,8 @@ void Tray::Tray::run()
   }
 }
 
+///
+///
 void Tray::Tray::main_iteration_do()
 {
   if(appIndicator)

@@ -4,17 +4,18 @@
 
 namespace Tray
 {
-    class Toggle : public TrayEntry
-    {
-        bool toggled;
-        std::function<void(bool)> callback;
 
-      public:
-        ~Toggle() override = default;
-        Toggle(
-            std::string text, bool state, std::function<void(bool)> callback = [](bool /**/) {});
+class Toggle : public TrayEntry
+{
+  bool toggled;
+  std::function<void(bool)> callback;
 
-        void onToggled();
-        bool isToggled() const;
-    };
+public:
+  ~Toggle() override = default;
+  Toggle(std::string text, bool state, std::function<void(bool)> callback = [](bool /**/) {});
+
+  void onToggled();
+  bool isToggled() const;
+};
+
 } // namespace Tray
