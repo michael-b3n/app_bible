@@ -2,7 +2,10 @@
 #include "util/const_bimap.hpp"
 #include "util/enum_helpers.hpp"
 
-#include <Windows.h>
+#ifndef WIN32_LEAN_AND_MEAN
+  #define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
 
 namespace bibstd::io
 {

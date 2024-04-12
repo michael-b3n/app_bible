@@ -1,7 +1,10 @@
 #pragma once
 #include <string>
 #if defined(_WIN32)
-  #include <Windows.h>
+  #ifndef WIN32_LEAN_AND_MEAN
+    #define WIN32_LEAN_AND_MEAN
+  #endif
+  #include <windows.h>
 #endif
 
 namespace Tray

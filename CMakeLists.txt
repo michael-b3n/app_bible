@@ -34,7 +34,7 @@ add_compile_options(-Wall -Wpedantic -Werror)
 #
 # Add compile flag
 #
-add_definitions(-DWINDOWS)
+# add_definitions(-DWINDOWS)
 # add_definitions(-DMORE)
 
 #

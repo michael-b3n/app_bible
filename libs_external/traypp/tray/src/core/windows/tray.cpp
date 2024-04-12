@@ -2,7 +2,6 @@
   #include <core/entry.hpp>
   #include <core/windows/tray.hpp>
   #include <stdexcept>
-  #include <Windows.h>
 
   #include <components/button.hpp>
   #include <components/imagebutton.hpp>
