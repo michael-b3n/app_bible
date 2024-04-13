@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <functional>
 #include <mutex>
 #include <queue>
@@ -15,9 +16,6 @@ class task_queue final
 {
 public: // Typedefs
   using task_type = std::function<void()>;
-
-public: // Constants
-  static constexpr std::string_view log_channel = "task_queue";
 
 public: // Constructor
   ///
@@ -53,10 +51,17 @@ public: // Modifiers
   ///
   /// Try to do one task in queue.
   ///
-  auto try_do_tasks() noexcept -> void;
+  auto try_do_task() -> void;
 
-private: // Implementation
-  auto shutdown() noexcept -> void;
+  ///
+  /// Do all queued tasks.
+  ///
+  auto do_tasks() -> void;
+
+  ///
+  /// Clear queue.
+  ///
+  auto clear() -> void;
 
 private: // Variables
   mutable std::mutex queue_mtx_;

@@ -20,8 +20,6 @@ namespace bibstd::app_framework
 class single_worker final
 {
 public: // Typedefs
-  using task_type = std::function<void()>;
-
   ///
   /// Guard helper class for shutdown on destruction.
   ///
@@ -44,13 +42,13 @@ public: // Modifiers
   ///
   /// Start main worker thread.
   ///
-  [[nodiscard]] static auto start() -> guard;
+  [[nodiscard]] static auto start() noexcept -> guard;
 
   ///
   /// Run task in worker thread.
   /// \param task Task that shall be run in worker thread.
   ///
-  static auto queue_task(task_type&& task) -> void;
+  static auto queue_task(task_queue::task_type&& task) -> void;
 
 private: // Implementation
   ///
@@ -68,6 +66,6 @@ private: // Variables
 /// Move task to worker thread queue.
 /// \param task Task that shall be executed in worker thread
 ///
-auto run_in_worker_thread(single_worker::task_type&& task) -> void;
+auto run_in_worker_thread(task_queue::task_type&& task) -> void;
 
 } // namespace bibstd::app_framework

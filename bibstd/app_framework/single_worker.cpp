@@ -22,21 +22,28 @@ auto single_worker::worker_id() -> std::optional<std::thread::id>
 
 ///
 ///
-auto single_worker::start() -> guard
+auto single_worker::start() noexcept -> guard
 {
   worker_ = std::jthread(
     [](std::stop_token stop_token) mutable
     {
-      try
+      while(!stop_token.stop_requested())
       {
-        while(!stop_token.stop_requested())
+        try
         {
-          worker_queue_->empty() ? std::this_thread::sleep_for(std::chrono::milliseconds(10)) : worker_queue_->try_do_tasks();
+          while(!stop_token.stop_requested())
+          {
+            worker_queue_->empty() ? std::this_thread::sleep_for(std::chrono::milliseconds(10)) : worker_queue_->do_tasks();
+          }
         }
-      }
-      catch(const std::exception& e)
-      {
-        LOG_ERROR(log_channel, "Exit single worker due to unknown exception: {}", e.what());
+        catch(const std::exception& e)
+        {
+          LOG_ERROR(single_worker::log_channel, "Worker queue error: {}", e.what());
+        }
+        catch(...)
+        {
+          LOG_ERROR(single_worker::log_channel, "Worker queue error: {}", "unknown exception");
+        }
       }
     });
   worker_id_ = worker_.get_id();
@@ -54,19 +61,19 @@ auto single_worker::shutdown() noexcept -> void
   worker_id_ = std::nullopt;
   worker_.request_stop();
   worker_.join();
-  worker_queue_ = std::make_unique<task_queue>();
+  worker_queue_->clear();
 }
 
 ///
 ///
-auto single_worker::queue_task(task_type&& task) -> void
+auto single_worker::queue_task(task_queue::task_type&& task) -> void
 {
   worker_queue_->queue(std::forward<decltype(task)>(task));
 }
 
 ///
 ///
-auto run_in_worker_thread(single_worker::task_type&& task) -> void
+auto run_in_worker_thread(task_queue::task_type&& task) -> void
 {
   if(std::this_thread::get_id() == single_worker::worker_id())
   {
