@@ -8,7 +8,7 @@ namespace bibstd::app_framework
 
 ///
 ///
-single_worker::guard::~guard() noexcept
+single_worker::scoped_guard::~scoped_guard() noexcept
 {
   single_worker::shutdown();
 }
@@ -22,7 +22,7 @@ auto single_worker::worker_id() -> std::optional<std::thread::id>
 
 ///
 ///
-auto single_worker::start() noexcept -> guard
+auto single_worker::start() noexcept -> scoped_guard
 {
   worker_ = std::jthread(
     [](std::stop_token stop_token) mutable
@@ -33,7 +33,7 @@ auto single_worker::start() noexcept -> guard
         {
           while(!stop_token.stop_requested())
           {
-            worker_queue_->empty() ? std::this_thread::sleep_for(std::chrono::milliseconds(10)) : worker_queue_->do_tasks();
+            worker_queue_->empty() ? std::this_thread::sleep_for(std::chrono::milliseconds(10)) : worker_queue_->try_do_task();
           }
         }
         catch(const std::exception& e)
@@ -49,7 +49,7 @@ auto single_worker::start() noexcept -> guard
   worker_id_ = worker_.get_id();
   LOG_INFO(log_channel, "Init worker thread: id={}", "not_implemented" /*worker_.get_id()*/);
   assert(std::this_thread::get_id() != worker_.get_id());
-  return guard{};
+  return scoped_guard{};
 }
 
 ///

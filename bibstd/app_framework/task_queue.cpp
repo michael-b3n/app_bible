@@ -43,29 +43,11 @@ auto task_queue::try_do_task() -> void
   const auto queue_locked = queue_lock.try_lock();
   if(queue_locked && !task_queue_.empty())
   {
-    const auto task_lock = std::lock_guard(task_mtx_);
     decltype(auto) task = std::move(task_queue_.front());
     task_queue_.pop();
     queue_lock.unlock();
+    const auto task_lock = std::lock_guard(task_mtx_);
     task();
-  }
-}
-
-///
-///
-auto task_queue::do_tasks() -> void
-{
-  while(!empty())
-  {
-    auto queue_lock = std::unique_lock<std::mutex>(queue_mtx_);
-    if(!task_queue_.empty())
-    {
-      const auto task_lock = std::lock_guard(task_mtx_);
-      decltype(auto) task = std::move(task_queue_.front());
-      task_queue_.pop();
-      queue_lock.unlock();
-      task();
-    }
   }
 }
 
@@ -73,8 +55,8 @@ auto task_queue::do_tasks() -> void
 ///
 auto task_queue::clear() -> void
 {
-  const auto queue_lock = std::lock_guard(queue_mtx_);
   {
+    const auto queue_lock = std::lock_guard(queue_mtx_);
     std::queue<task_type> empty_queue;
     std::swap(task_queue_, empty_queue);
   }

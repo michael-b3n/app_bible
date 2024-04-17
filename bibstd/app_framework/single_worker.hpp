@@ -1,7 +1,6 @@
 #pragma once
 
 #include "app_framework/task_queue.hpp"
-#include "util/non_copyable.hpp"
 
 #include <atomic>
 #include <functional>
@@ -23,9 +22,10 @@ public: // Typedefs
   ///
   /// Guard helper class for shutdown on destruction.
   ///
-  struct guard : public util::non_copyable
+  struct scoped_guard final
   {
-    ~guard() noexcept;
+    ~scoped_guard() noexcept;
+    scoped_guard& operator=(scoped_guard&&) = delete;
   };
 
 public: // Constants
@@ -42,7 +42,7 @@ public: // Modifiers
   ///
   /// Start main worker thread.
   ///
-  [[nodiscard]] static auto start() noexcept -> guard;
+  [[nodiscard]] static auto start() noexcept -> scoped_guard;
 
   ///
   /// Run task in worker thread.

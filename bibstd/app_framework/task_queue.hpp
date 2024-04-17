@@ -50,13 +50,9 @@ public: // Modifiers
 
   ///
   /// Try to do one task in queue.
+  /// If the queue lock can't be acquired immediately, no task is executed.
   ///
   auto try_do_task() -> void;
-
-  ///
-  /// Do all queued tasks.
-  ///
-  auto do_tasks() -> void;
 
   ///
   /// Clear queue.

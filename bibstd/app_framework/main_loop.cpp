@@ -36,14 +36,10 @@ auto main_loop::run(task_queue::task_type&& iteration_task) -> void
 
 ///
 ///
-auto main_loop::exit(task_queue::task_type&& do_on_exit) noexcept -> void
+auto main_loop::exit() noexcept -> void
 {
   running_ = false;
   main_queue_->clear();
-  if(do_on_exit)
-  {
-    do_on_exit();
-  }
 }
 
 ///

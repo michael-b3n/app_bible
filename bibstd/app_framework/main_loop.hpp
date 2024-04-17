@@ -26,7 +26,7 @@ public: // Modifiers
   ///
   /// Exit main loop.
   ///
-  static auto exit(task_queue::task_type&& do_on_exit) noexcept -> void;
+  static auto exit() noexcept -> void;
 
   ///
   /// Run task in main thread.
