@@ -37,8 +37,6 @@ public:
     return std::dynamic_pointer_cast<std::decay_t<T>>(back);
   }
 
-  virtual void run() = 0;
-  virtual void main_iteration_do() = 0;
   virtual void exit() = 0;
   virtual void update() = 0;
   std::vector<std::shared_ptr<TrayEntry>> getEntries();

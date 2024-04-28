@@ -32,13 +32,6 @@ tray::~tray() noexcept
 
 ///
 ///
-auto tray::main_iteration_do() -> void
-{
-  tray_->main_iteration_do();
-}
-
-///
-///
 auto tray::exit() -> void
 {
   tray_->exit();

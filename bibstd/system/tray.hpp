@@ -41,7 +41,6 @@ public: // Structors
   ~tray() noexcept;
 
 public: // Operations
-  auto main_iteration_do() -> void;
   auto exit() -> void;
   auto update() -> void;
 

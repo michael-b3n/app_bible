@@ -1,6 +1,6 @@
 #if defined(_WIN32)
   #include <core/entry.hpp>
-  #include <core/windows/tray.hpp>
+  #include <core/tray.hpp>
   #include <stdexcept>
 
   #include <components/button.hpp>
@@ -220,30 +220,6 @@ LRESULT CALLBACK Tray::Tray::wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
     break;
   }
   return DefWindowProc(hwnd, msg, wParam, lParam);
-}
-
-///
-///
-void Tray::Tray::run()
-{
-  static MSG msg;
-  while(GetMessage(&msg, hwnd, 0, 0))
-  {
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
-  }
-}
-
-///
-///
-void Tray::Tray::main_iteration_do()
-{
-  static MSG msg;
-  if(GetMessage(&msg, hwnd, 0, 0))
-  {
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
-  }
 }
 
 #endif
