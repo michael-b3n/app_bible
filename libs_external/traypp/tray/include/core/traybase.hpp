@@ -11,6 +11,9 @@
 namespace Tray
 {
 
+///
+/// Tray base class.
+///
 class BaseTray
 {
 protected:

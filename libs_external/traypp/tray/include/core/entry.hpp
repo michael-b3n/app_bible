@@ -1,10 +1,15 @@
 #pragma once
+
 #include <string>
 
 namespace Tray
 {
-
+// Forward declaration
 class BaseTray;
+
+///
+/// Tray entry base class.
+///
 class TrayEntry
 {
 protected:

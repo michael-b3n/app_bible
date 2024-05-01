@@ -1,10 +1,14 @@
 #pragma once
+
 #include <core/entry.hpp>
 #include <functional>
 
 namespace Tray
 {
 
+///
+/// Button component class.
+///
 class Button : public TrayEntry
 {
   std::function<void()> callback;

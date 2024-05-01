@@ -11,6 +11,8 @@
   #include <components/syncedtoggle.hpp>
   #include <components/toggle.hpp>
 
+///
+///
 static constexpr auto WM_TRAY = WM_USER + 1;
 std::map<HWND, std::reference_wrapper<Tray::Tray>> Tray::Tray::trayList;
 

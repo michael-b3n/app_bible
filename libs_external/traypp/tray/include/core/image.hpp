@@ -1,4 +1,5 @@
 #pragma once
+
 #include <string>
 #if defined(_WIN32)
   #ifndef WIN32_LEAN_AND_MEAN
@@ -6,26 +7,13 @@
   #endif
   #include "icon.hpp"
   #include <windows.h>
-#elif defined(__linux__)
-  #include <gtk/gtk.h>
-#endif
 
 namespace Tray
 {
 
-#if defined(__linux__)
-class Image
-{
-  GtkWidget* image;
-
-public:
-  Image(GtkWidget* image);
-  Image(const char* path);
-  Image(const std::string& path);
-
-  operator GtkWidget*();
-};
-#elif defined(_WIN32)
+///
+/// Windows image class.
+///
 class Image
 {
   HBITMAP image;
@@ -38,6 +26,7 @@ public:
 
   operator HBITMAP();
 };
-#endif
 
 } // namespace Tray
+
+#endif

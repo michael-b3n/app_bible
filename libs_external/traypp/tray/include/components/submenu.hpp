@@ -1,4 +1,5 @@
 #pragma once
+
 #include <core/entry.hpp>
 #include <core/traybase.hpp>
 #include <memory>
@@ -8,6 +9,9 @@
 namespace Tray
 {
 
+///
+/// Submenu component class.
+///
 class Submenu : public TrayEntry
 {
   std::vector<std::shared_ptr<TrayEntry>> entries;
