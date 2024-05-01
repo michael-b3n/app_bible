@@ -1,6 +1,7 @@
 #include "util/log.hpp"
 #include "system/filesystem.hpp"
 #include "util/date.hpp"
+#include "util/string.hpp"
 #include "util/string_view.hpp"
 
 #include <filesystem>
@@ -19,17 +20,6 @@ namespace detail
 /// Constants
 ///
 static const auto logger_name = std::string{"main"};
-
-///
-/// Convert u8 string view to normal string.
-/// \warning Normal strings are encoded in utf-8.
-/// \param u8string that shall be converted
-/// \return string with content of string
-///
-auto to_string(const std::u8string& u8string) -> std::string
-{
-  return std::string{u8string.begin(), u8string.end()};
-}
 
 ///
 /// Lock logger mutex.
@@ -55,12 +45,12 @@ inline auto init_log() -> void
   const auto log_file = log_directory_name / log_filename;
   const auto log_file_latest = log_directory_name / std::string{"latest.log"};
 
-  const auto log_file_str = detail::to_string(log_file.u8string());
+  const auto log_file_str = to_string(log_file.u8string());
   const auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_file_str, true);
   file_sink->set_level(spdlog::level::info);
   file_sink->set_pattern(util::to_string(log_pattern));
 
-  const auto file_sink_latest = std::make_shared<spdlog::sinks::basic_file_sink_mt>(detail::to_string(log_file_latest.u8string()), true);
+  const auto file_sink_latest = std::make_shared<spdlog::sinks::basic_file_sink_mt>(to_string(log_file_latest.u8string()), true);
   file_sink_latest->set_level(spdlog::level::debug);
   file_sink_latest->set_pattern(util::to_string(log_pattern));
 

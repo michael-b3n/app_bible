@@ -9,7 +9,8 @@
 #include <components/toggle.hpp>
 
 #if defined(_WIN32)
-  #include <core/windows/tray.hpp>
-#elif defined(__linux__)
-  #include <core/linux/tray.hpp>
+  #ifndef WIN32_LEAN_AND_MEAN
+    #define WIN32_LEAN_AND_MEAN
+  #endif
+  #include <core/tray.hpp>
 #endif

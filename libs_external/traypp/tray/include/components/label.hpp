@@ -1,10 +1,14 @@
 #pragma once
+
 #include <core/entry.hpp>
 #include <functional>
 
 namespace Tray
 {
 
+///
+/// Label component class.
+///
 class Label : public TrayEntry
 {
 public:

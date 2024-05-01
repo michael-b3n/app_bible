@@ -1,10 +1,14 @@
 #pragma once
+
 #include "button.hpp"
 #include <core/image.hpp>
 
 namespace Tray
 {
 
+///
+/// Image button component class.
+///
 class ImageButton : public Button
 {
   Image image;

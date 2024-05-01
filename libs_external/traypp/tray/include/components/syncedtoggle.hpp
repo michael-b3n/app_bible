@@ -1,10 +1,14 @@
 #pragma once
+
 #include <core/entry.hpp>
 #include <functional>
 
 namespace Tray
 {
 
+///
+/// Synced toggle component class.
+///
 class SyncedToggle : public TrayEntry
 {
   bool& toggled;

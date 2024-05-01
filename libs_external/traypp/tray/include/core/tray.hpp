@@ -12,6 +12,9 @@
 namespace Tray
 {
 
+///
+/// Windows tray implementation class.
+///
 class Tray : public BaseTray
 {
   HWND hwnd = nullptr;
@@ -34,11 +37,10 @@ public:
     addEntries(entries...);
   }
 
-  void run() override;
-  void main_iteration_do() override;
   void exit() override;
   void update() override;
 };
 
 } // namespace Tray
+
 #endif

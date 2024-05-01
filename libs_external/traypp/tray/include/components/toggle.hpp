@@ -1,10 +1,14 @@
 #pragma once
+
 #include <core/entry.hpp>
 #include <functional>
 
 namespace Tray
 {
 
+///
+/// Toggle component class.
+///
 class Toggle : public TrayEntry
 {
   bool toggled;
