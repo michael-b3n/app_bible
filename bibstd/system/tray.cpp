@@ -36,8 +36,11 @@ tray::~tray() noexcept
 auto tray::reset() -> void
 {
   const auto lock = std::lock_guard(mtx_);
-  tray_->exit();
-  tray_.reset();
+  if(tray_)
+  {
+    tray_->exit();
+    tray_.reset();
+  }
 }
 
 ///
