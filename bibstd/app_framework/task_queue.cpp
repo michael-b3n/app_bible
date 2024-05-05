@@ -43,7 +43,7 @@ auto task_queue::try_do_task() -> void
   const auto queue_locked = queue_lock.try_lock();
   if(queue_locked && !task_queue_.empty())
   {
-    decltype(auto) task = std::move(task_queue_.front());
+    auto task = std::move(task_queue_.front());
     task_queue_.pop();
     queue_lock.unlock();
     const auto task_lock = std::lock_guard(task_mtx_);
