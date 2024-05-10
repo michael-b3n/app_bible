@@ -57,6 +57,7 @@ inline auto init_log() -> void
   const auto sinks = std::vector<spdlog::sink_ptr>{file_sink, file_sink_latest};
   auto logger = std::make_shared<spdlog::logger>(logger_name, sinks.begin(), sinks.end());
   logger->set_level(spdlog::level::debug);
+  logger->flush_on(spdlog::level::warn);
   spdlog::register_logger(logger);
 
   log_debug(std::format("Init logger: file={}.", log_file_str));

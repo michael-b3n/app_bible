@@ -32,7 +32,7 @@ auto task_queue::size() const -> std::size_t
 auto task_queue::queue(task_type&& task) -> void
 {
   const auto lock = std::lock_guard(queue_mtx_);
-  task_queue_.emplace(std::move(task));
+  task_queue_.emplace(std::forward<decltype(task)>(task));
 }
 
 ///

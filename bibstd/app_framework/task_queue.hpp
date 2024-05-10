@@ -15,7 +15,7 @@ namespace bibstd::app_framework
 class task_queue final
 {
 public: // Typedefs
-  using task_type = std::function<void()>;
+  using task_type = std::move_only_function<void()>;
 
 public: // Constructor
   ///

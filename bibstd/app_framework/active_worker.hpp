@@ -41,7 +41,7 @@ public: // Modifiers
   /// \param init Initial task to run in worker thread.
   /// \return guard to cleanup worker on guards destruction
   ///
-  [[nodiscard]] static auto start(std::move_only_function<void()>&& init = nullptr) -> util::scoped_guard;
+  [[nodiscard]] static auto start(task_queue::task_type&& init = nullptr) -> util::scoped_guard;
 
   ///
   /// Queue task in active_worker thread.
@@ -84,7 +84,7 @@ auto active_worker<ID>::worker_id() -> std::optional<std::thread::id>
 ///
 ///
 template<std::size_t ID>
-auto active_worker<ID>::start(std::move_only_function<void()>&& init) -> util::scoped_guard
+auto active_worker<ID>::start(task_queue::task_type&& init) -> util::scoped_guard
 {
   std::promise<void> thread_initialized;
   auto future = thread_initialized.get_future();
@@ -115,9 +115,9 @@ auto active_worker<ID>::start(std::move_only_function<void()>&& init) -> util::s
         }
       }
     });
-  future.get();
   worker_id_ = worker_.get_id();
-  LOG_INFO(log_channel, "Init active_worker thread: id={}", "not_implemented" /*worker_.get_id()*/);
+  future.get();
+  LOG_INFO(log_channel, "Init active_worker<{}> thread: id={}", ID, "not_implemented" /*worker_.get_id()*/);
   assert(std::this_thread::get_id() != worker_.get_id());
   return util::scoped_guard([]() { shutdown(); });
 }
@@ -135,13 +135,13 @@ auto active_worker<ID>::queue_task(task_queue::task_type&& task) -> void
 template<std::size_t ID>
 auto active_worker<ID>::run_task(task_queue::task_type&& task) -> void
 {
-  if(std::this_thread::get_id() == active_worker::worker_id())
+  if(std::this_thread::get_id() == active_worker<ID>::worker_id())
   {
     task();
   }
   else
   {
-    active_worker::queue_task(std::forward<decltype(task)>(task));
+    active_worker<ID>::queue_task(std::forward<decltype(task)>(task));
   }
 }
 
@@ -151,7 +151,7 @@ template<std::size_t ID>
 auto active_worker<ID>::shutdown() -> void
 {
   assert(std::this_thread::get_id() != worker_.get_id());
-  LOG_INFO(log_channel, "Stop active_worker thread: id={}", "not_implemented" /*worker_.get_id()*/);
+  LOG_INFO(log_channel, "Stop active_worker<{}> thread: id={}", ID, "not_implemented" /*worker_.get_id()*/);
   worker_id_ = std::nullopt;
   worker_.request_stop();
   worker_.join();

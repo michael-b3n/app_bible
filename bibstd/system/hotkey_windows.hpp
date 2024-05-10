@@ -1,11 +1,10 @@
 #pragma once
 
 #include "app_framework/active_worker.hpp"
+#include "app_framework/task_queue.hpp"
 #include "system/hotkey_base.hpp"
-#include "system/message_handler.hpp"
 #include "util/const_bimap.hpp"
 #include "util/enum_helpers.hpp"
-#include "util/exception.hpp"
 #include "util/log.hpp"
 #ifndef WIN32_LEAN_AND_MEAN
   #define WIN32_LEAN_AND_MEAN
@@ -15,7 +14,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
-#include <future>
+#include <functional>
 #include <mutex>
 #include <ranges>
 
@@ -74,14 +73,15 @@ private: // Constants
     std::pair{key_modifier::control_shift, MOD_CONTROL | MOD_SHIFT});
 
 private: // Static helpers
-  static auto next_hotkey_id() -> int;
-  static auto get_message() -> void;
-  static auto message_handler(const MSG& msg) -> void;
+  static inline auto next_hotkey_id() -> int;
+  static inline auto get_message() -> void;
+  static inline auto message_handler(const MSG& msg) -> void;
 
 private:
   inline static std::atomic_int hotkey_id_{0};
   inline static std::atomic_bool listen_to_msg_{true};
   inline static std::atomic<std::optional<DWORD>> windows_thread_id_{std::nullopt};
+  inline static app_framework::task_queue register_queue{};
   inline static std::map<int, std::function<void()>> callback_map_{};
   inline static std::map<std::pair<key, key_modifier>, int> id_map_{};
 };
@@ -112,7 +112,7 @@ inline auto hotkey::register_callback(const key key, const key_modifier mod, std
 {
   assert(windows_thread_id_.load().has_value());
   const auto hotkey_id = next_hotkey_id();
-  active_worker_type::run_task(
+  register_queue.queue(
     [key, mod, hotkey_id, callback]()
     {
       callback_map_[hotkey_id] = callback;
@@ -130,7 +130,7 @@ inline auto hotkey::register_callback(const key key, const key_modifier mod, std
 inline auto hotkey::unregister_callback(const key key, const key_modifier mod) -> void
 {
   assert(windows_thread_id_.load().has_value());
-  active_worker_type::run_task(
+  register_queue.queue(
     [key, mod]()
     {
       const auto key_id = id_map_.at({key, mod});
@@ -143,14 +143,14 @@ inline auto hotkey::unregister_callback(const key key, const key_modifier mod) -
 
 ///
 ///
-auto hotkey::next_hotkey_id() -> int
+inline auto hotkey::next_hotkey_id() -> int
 {
   return hotkey_id_.fetch_add(1);
 }
 
 ///
 ///
-auto hotkey::get_message() -> void
+inline auto hotkey::get_message() -> void
 {
   static MSG msg;
   if(listen_to_msg_)
@@ -163,6 +163,10 @@ auto hotkey::get_message() -> void
       }
       else
       {
+        while(!register_queue.empty())
+        {
+          register_queue.try_do_task();
+        }
         TranslateMessage(&msg);
         message_handler(msg);
         DispatchMessage(&msg);
@@ -174,7 +178,7 @@ auto hotkey::get_message() -> void
 
 ///
 ///
-auto hotkey::message_handler(const MSG& msg) -> void
+inline auto hotkey::message_handler(const MSG& msg) -> void
 {
   if(msg.message == WM_HOTKEY)
   {

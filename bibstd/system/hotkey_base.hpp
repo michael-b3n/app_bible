@@ -2,8 +2,6 @@
 
 #include "util/scoped_guard.hpp"
 
-#include <functional>
-
 namespace bibstd::system
 {
 
