@@ -15,7 +15,6 @@
 #include <atomic>
 #include <cassert>
 #include <functional>
-#include <mutex>
 #include <ranges>
 
 namespace bibstd::system
@@ -114,7 +113,7 @@ private:
   inline static std::atomic_int hotkey_id_{0};
   inline static std::atomic_bool listen_to_msg_{true};
   inline static std::atomic<std::optional<DWORD>> windows_thread_id_{std::nullopt};
-  inline static app_framework::task_queue register_queue{};
+  inline static app_framework::task_queue register_queue_{};
   inline static std::map<int, std::function<void()>> callback_map_{};
   inline static std::map<std::pair<key, key_modifier>, int> id_map_{};
 };
@@ -145,7 +144,7 @@ inline auto hotkey::register_callback(const key key, const key_modifier mod, std
 {
   assert(windows_thread_id_.load().has_value());
   const auto hotkey_id = next_hotkey_id();
-  register_queue.queue(
+  register_queue_.queue(
     [key, mod, hotkey_id, callback]()
     {
       callback_map_[hotkey_id] = callback;
@@ -163,7 +162,7 @@ inline auto hotkey::register_callback(const key key, const key_modifier mod, std
 inline auto hotkey::unregister_callback(const key key, const key_modifier mod) -> void
 {
   assert(windows_thread_id_.load().has_value());
-  register_queue.queue(
+  register_queue_.queue(
     [key, mod]()
     {
       const auto key_id = id_map_.at({key, mod});
@@ -196,9 +195,9 @@ inline auto hotkey::get_message() -> void
       }
       else
       {
-        while(!register_queue.empty())
+        while(!register_queue_.empty())
         {
-          register_queue.try_do_task();
+          register_queue_.try_do_task();
         }
         TranslateMessage(&msg);
         message_handler(msg);
