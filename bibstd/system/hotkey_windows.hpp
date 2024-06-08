@@ -145,9 +145,9 @@ inline auto hotkey::register_callback(const key key, const key_modifier mod, std
   assert(windows_thread_id_.load().has_value());
   const auto hotkey_id = next_hotkey_id();
   register_queue_.queue(
-    [key, mod, hotkey_id, callback]()
+    [key, mod, hotkey_id, c = std::forward<decltype(callback)>(callback)]() mutable
     {
-      callback_map_[hotkey_id] = callback;
+      callback_map_[hotkey_id] = std::move(c);
       id_map_[std::pair{key, mod}] = hotkey_id;
       if(!RegisterHotKey(nullptr, hotkey_id, key_modifier_map.at(mod), key_map.at(key)))
       {
