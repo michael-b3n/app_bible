@@ -18,6 +18,7 @@
 -  **Boost** run `pacman -S mingw-w64-x86_64-boost` in `msys2_shell.cmd`
 -  **Spdlog** run `pacman -S mingw-w64-x86_64-spdlog` in `msys2_shell.cmd`
 -  **Fmt** run `pacman -S mingw-w64-x86_64-fmt` in `msys2_shell.cmd`
+-  **Tesseract** run `pacman -S mingw-w64-x86_64-tesseract-ocr` in `msys2_shell.cmd`
 -  **Inno Setup** download and install [link](https://jrsoftware.org/isdl.php)
 
 ### Build

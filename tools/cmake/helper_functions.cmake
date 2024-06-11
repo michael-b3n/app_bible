@@ -1,8 +1,8 @@
 #
 # Function to copy a file as post_build command
 # \param target the target on which post_build command shall be appended
-# \param dts the dst folder
-# \param file  the file that shall be copied
+# \param dst the destination folder
+# \param file the file that shall be copied
 # \param optional new-file name
 #
 function(copy_file target dst file)
@@ -18,6 +18,20 @@ function(copy_file target dst file)
     DEPENDS ${dummy_target_name}
   )
 endfunction(copy_file)
+
+#
+# Function to copy files as post_build command
+# \param target the target on which post_build command shall be appended
+# \param dst the destination folder
+# \param src the source folder
+#
+function(copy_files target dst src)
+  file(GLOB files "${src}/*")
+
+  foreach(file ${files})
+    copy_file(${target} ${dst} ${file})
+  endforeach()
+endfunction(copy_files)
 
 #
 # Function will create post_build the setup

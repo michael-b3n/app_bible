@@ -26,6 +26,12 @@ target_include_directories(libbible INTERFACE ${spdlog_INCLUDE_DIRS})
 find_package(fmt REQUIRED)
 target_include_directories(libbible PUBLIC ${fmt_INCLUDE_DIRS})
 
+find_package(PkgConfig REQUIRED)
+pkg_search_module(TESSERACT REQUIRED tesseract)
+pkg_search_module(LEPTONICA REQUIRED lept)
+include_directories(${TESSERACT_INCLUDE_DIRS})
+include_directories(${LEPTONICA_INCLUDE_DIRS})
+
 #
 # Link libraries.
 #
@@ -34,6 +40,8 @@ target_link_libraries(libbible
   PUBLIC fmt
   PUBLIC Boost::filesystem
   PUBLIC libs_external::all
+  ${TESSERACT_LIBRARIES}
+  ${LEPTONICA_LIBRARIES}
 )
 
 #

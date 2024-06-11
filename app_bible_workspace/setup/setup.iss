@@ -45,16 +45,17 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 ;;
 ;; Executables
 ;;
-Source: "*.exe";  Excludes: "${INNO_SETUP_OUTPUT_NAME}.exe";  DestDir: "{app}";         Flags: ignoreversion recursesubdirs
+Source: "*.exe"; Excludes: "${INNO_SETUP_OUTPUT_NAME}.exe"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 ;;
 ;; libs
 ;;
-Source: "*.dll";                   DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+Source: "*.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 ;;
 ;; Config files
 ;;
+Source: "*.traineddata"; DestDir: "{app}\tesseract"; Flags: ignoreversion recursesubdirs
 ;Source: "*.par";                  DestDir: "{app}"; Flags: ignoreversion
 ;Source: "*.stagex";               DestDir: "{app}"; Flags: ignoreversion
 ;Source: "*.chart";                DestDir: "{app}"; Flags: ignoreversion
