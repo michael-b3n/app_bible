@@ -21,7 +21,7 @@ namespace bibstd::system
 {
 
 ///
-/// Key input class for windows implementation.
+/// Hotkey class for windows implementation.
 ///
 class hotkey final : public hotkey_base
 {

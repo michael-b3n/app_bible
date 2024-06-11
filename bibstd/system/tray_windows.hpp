@@ -19,7 +19,7 @@ namespace bibstd::system
 {
 
 ///
-/// Key input class for windows implementation.
+/// Tray class for windows implementation.
 ///
 class tray final : public tray_base
 {

@@ -8,7 +8,7 @@ namespace bibstd::system
 {
 
 ///
-/// Key input base class for all system implementations.
+/// Tray base class for all system implementations.
 ///
 struct tray_base
 {

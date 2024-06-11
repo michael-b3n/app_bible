@@ -6,7 +6,7 @@ namespace bibstd::system
 {
 
 ///
-/// Key input base class for all system implementations.
+/// Hotkey base class for all system implementations.
 ///
 struct hotkey_base
 {
