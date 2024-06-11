@@ -6,6 +6,12 @@ include(install_app_bible_workspace)
 set(app_bible_workspace_VERSION_NUMBER 0.0)
 set(app_bible_workspace_VERSION_NAME "0.0")
 
+list(GET CMAKE_SYSTEM_LIBRARY_PATH 1 MINGW_LIB_DIRECTORY)
+cmake_path(GET MINGW_LIB_DIRECTORY PARENT_PATH MINGW_ROOT_DIRECTORY)
+message(STATUS "Found mingw64 directory: " ${MINGW_ROOT_DIRECTORY})
+set(MINGW_SHARE_DIRECTORY "${MINGW_ROOT_DIRECTORY}/share")
+
+
 project(
   app_bible_workspace
   VERSION ${app_bible_workspace_VERSION_NUMBER}
@@ -52,7 +58,7 @@ target_link_libraries(app_bible_workspace
 #
 # Copy files needed by binary
 #
-copy_files(app_bible_workspace "${CMAKE_CURRENT_BINARY_DIR}/tesseract" "${CMAKE_CURRENT_LIST_DIR}/res/tesseract")
+copy_folder(app_bible_workspace "${CMAKE_CURRENT_BINARY_DIR}/tessdata" "${MINGW_SHARE_DIRECTORY}/tessdata")
 
 #
 # Create Setup
@@ -69,11 +75,8 @@ add_custom_target(app_bible_workspace_setup
 #
 # Copy executable, needed *.dll's and other files.
 #
-list(GET CMAKE_SYSTEM_LIBRARY_PATH 1 MINGW_LIB_DIRECTORY)
-cmake_path(GET MINGW_LIB_DIRECTORY PARENT_PATH MINGW_ROOT_DIRECTORY)
-message(STATUS "Found mingw64 directory: " ${MINGW_ROOT_DIRECTORY})
 copy_target_files(app_bible_workspace_setup ${TARGET_DEPLOY_DIR} ${MINGW_ROOT_DIRECTORY})
-copy_files(app_bible_workspace_setup ${TARGET_DEPLOY_DIR} "${CMAKE_CURRENT_LIST_DIR}/res/tesseract")
+copy_folder(app_bible_workspace_setup ${TARGET_DEPLOY_DIR}/tessdata ${MINGW_SHARE_DIRECTORY}/tessdata)
 
 include(FindInnoSetup)
 

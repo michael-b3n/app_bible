@@ -1,4 +1,17 @@
 #
+# Function to copy a folder as post_build command
+# \param target the target on which post_build command shall be appended
+# \param dst the destination folder
+# \param folder the file that shall be copied
+#
+function(copy_folder target dst folder)
+  add_custom_command(
+    TARGET ${target} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E echo "Copy ${folder} to ${dst}"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${folder} ${dst})
+endfunction(copy_folder)
+
+#
 # Function to copy a file as post_build command
 # \param target the target on which post_build command shall be appended
 # \param dst the destination folder
