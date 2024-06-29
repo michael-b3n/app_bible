@@ -3,13 +3,10 @@
 #include "app_framework/active_worker.hpp"
 #include "app_framework/task_queue.hpp"
 #include "system/hotkey_base.hpp"
+#include "system/windows.hpp"
 #include "util/const_bimap.hpp"
 #include "util/enum_helpers.hpp"
 #include "util/log.hpp"
-#ifndef WIN32_LEAN_AND_MEAN
-  #define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
 
 #include <algorithm>
 #include <atomic>

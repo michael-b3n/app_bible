@@ -1,12 +1,28 @@
 #pragma once
 
 #include <array>
+#include <expected>
 #include <map>
 #include <type_traits>
 #include <utility>
 
 namespace bibstd::meta
 {
+
+///
+/// std::expected type trait.
+///
+template<typename T>
+struct is_expected : std::false_type
+{};
+template<typename T1, typename T2>
+struct is_expected<std::expected<T1, T2>> : std::true_type
+{};
+template<typename T>
+constexpr bool is_expected_v = is_expected<T>::value;
+
+template<typename T>
+concept expected_type = is_expected_v<T>;
 
 ///
 /// std::pair type trait.
