@@ -52,6 +52,8 @@ public: // Static accessors
 ///
 inline auto screen::metrics() -> screen_rect_type
 {
+  // This should be set with a application manifest. This did not work
+  // We set the Dpi awareness explicitly for this process.
   SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
   const auto x = GetSystemMetrics(SM_XVIRTUALSCREEN);
   const auto y = GetSystemMetrics(SM_YVIRTUALSCREEN);
@@ -65,6 +67,8 @@ inline auto screen::metrics() -> screen_rect_type
 inline auto screen::cursor_position() -> screen_coordinates_type
 {
   POINT point;
+  // This should be set with a application manifest. This did not work
+  // We set the Dpi awareness explicitly for this process.
   SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
   if(!GetCursorPos(&point))
   {

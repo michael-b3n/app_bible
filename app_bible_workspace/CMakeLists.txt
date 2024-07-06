@@ -11,7 +11,6 @@ cmake_path(GET MINGW_LIB_DIRECTORY PARENT_PATH MINGW_ROOT_DIRECTORY)
 message(STATUS "Found mingw64 directory: " ${MINGW_ROOT_DIRECTORY})
 set(MINGW_SHARE_DIRECTORY "${MINGW_ROOT_DIRECTORY}/share")
 
-
 project(
   app_bible_workspace
   VERSION ${app_bible_workspace_VERSION_NUMBER}
@@ -42,10 +41,18 @@ target_include_directories(app_bible_workspace
 )
 
 #
+# Setup resource compiler.
+#
+set(CMAKE_RC_COMPILER_INIT windres)
+enable_language(RC)
+set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>")
+
+#
 # Set target sources.
 #
 target_sources(app_bible_workspace
   PRIVATE ${app_bible_workspace_CPP_FILES}
+  PRIVATE ${CMAKE_CURRENT_LIST_DIR}/res/resource.rc
 )
 
 #
@@ -88,6 +95,6 @@ set(INNO_SETUP_APP_VERSION_NUMBER ${app_bible_workspace_VERSION_NUMBER})
 set(INNO_SETUP_APP_VERSION_NAME ${app_bible_workspace_VERSION_NAME})
 set(INNO_SETUP_APP_INSTALL_FOLDER "${INNO_SETUP_APP_LONG_NAME}")
 set(INNO_SETUP_OUTPUT_NAME "setup_bible_workspace")
-set(INNO_SETUP_OUTPUT_ICON "${CMAKE_CURRENT_LIST_DIR}/res/icon/${app_bible_workspace_EXE_NAME}.ico")
+set(INNO_SETUP_OUTPUT_ICON "${CMAKE_CURRENT_LIST_DIR}/res/icon.ico")
 
 generate_inno_setup(app_bible_workspace_setup app_bible_workspace ${CMAKE_CURRENT_LIST_DIR}/setup/setup.iss ${TARGET_DEPLOY_DIR})
