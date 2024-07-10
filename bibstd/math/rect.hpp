@@ -28,8 +28,19 @@ public: // Static functions
   ///
   static constexpr auto overlap(const rect<value_type>& first, const rect<value_type>& second) -> rect<value_type>;
 
+  ///
+  /// Check if subrectangle is contained by another rectangle.
+  /// \param rectangle Rectangle
+  /// \param subrectangle Subrectangle
+  /// \return true if subrectangle is contained in rectangle, false otherwise
+  ///
+  static constexpr auto contains(const rect<value_type>& rectangle, const rect<value_type>& subrectangle) -> bool;
+
 public: // Constructors
   constexpr rect(coordinates_type first, coordinates_type second);
+
+public: // Operators
+  constexpr auto operator==(const rect&) const -> bool = default;
 
 public: // Accessors
   ///
@@ -91,6 +102,18 @@ constexpr auto rect<ValueType>::overlap(const rect<value_type>& first, const rec
   const auto x_overlap = value_range<value_type>::overlap(first_x_range, second_x_range);
   const auto y_overlap = value_range<value_type>::overlap(first_y_range, second_y_range);
   return rect<value_type>(coordinates_type(x_overlap.from, y_overlap.from), coordinates_type(x_overlap.to, y_overlap.to));
+}
+
+///
+///
+template<arithmetic_type ValueType>
+constexpr auto rect<ValueType>::contains(const rect<value_type>& rectangle, const rect<value_type>& subrectangle) -> bool
+{
+  const auto left_lower_contained = rectangle.left_lower_coordinates().axis_value(0) <= subrectangle.left_lower_coordinates().axis_value(0) &&
+                                    rectangle.left_lower_coordinates().axis_value(1) <= subrectangle.left_lower_coordinates().axis_value(1);
+  const auto right_upper_contained = rectangle.right_upper_coordinates().axis_value(0) >= subrectangle.right_upper_coordinates().axis_value(0) &&
+                                     rectangle.right_upper_coordinates().axis_value(1) >= subrectangle.right_upper_coordinates().axis_value(1);
+  return left_lower_contained && right_upper_contained;
 }
 
 ///
