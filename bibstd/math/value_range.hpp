@@ -103,7 +103,7 @@ auto value_range<ValueType>::overlaps(const value_range& first, const value_rang
 template<arithmetic_type ValueType>
 auto value_range<ValueType>::overlap(const value_range& first, const value_range& second) -> value_range
 {
-  const auto begin = std::max(second.begin, first.begin);
+  const auto begin = std::max(second.from, first.from);
   const auto to = std::min(second.to, first.to);
   return value_range{begin, to};
 }

@@ -120,18 +120,26 @@ inline auto screen::capture(const screen_rect_type rect) -> std::expected<util::
   ReleaseDC(nullptr, hdc);
 
   assert(info.bmiHeader.biBitCount >= 24);
-  const auto size = static_cast<std::size_t>(info.bmiHeader.biWidth * info.bmiHeader.biHeight);
+  const auto height = static_cast<std::size_t>(info.bmiHeader.biHeight);
+  const auto width = static_cast<std::size_t>(info.bmiHeader.biWidth);
   const auto byte_count = info.bmiHeader.biBitCount / 8;
-  util::bitmap::data_type pixels(size);
+  util::bitmap::data_type pixels(height * width);
+  // The loaded pixel bytes are saved to a list of pixels in a row reversed order.
+  // This order makes the bitmap data directly compatible with tesseract.
   std::ranges::for_each(
-    std::views::iota(std::size_t{0}, size),
-    [&](const auto index)
+    std::views::iota(std::size_t{0}, height) | std::views::reverse,
+    [&, counter = 0u](const auto row_idx) mutable
     {
-      const auto i = index * byte_count;
-      auto& pix = pixels.at(index);
-      pix.blue = static_cast<std::uint8_t>(pixels_bytes.get()[i + 0]);
-      pix.green = static_cast<std::uint8_t>(pixels_bytes.get()[i + 1]);
-      pix.red = static_cast<std::uint8_t>(pixels_bytes.get()[i + 2]);
+      std::ranges::for_each(
+        std::views::iota(width * row_idx, width * (row_idx + 1)),
+        [&](const auto index)
+        {
+          const auto i = counter++ * byte_count;
+          auto& pix = pixels.at(index);
+          pix.blue = static_cast<std::uint8_t>(pixels_bytes.get()[i + 0]);
+          pix.green = static_cast<std::uint8_t>(pixels_bytes.get()[i + 1]);
+          pix.red = static_cast<std::uint8_t>(pixels_bytes.get()[i + 2]);
+        });
     });
   auto bmp = util::bitmap();
   bmp.data(info.bmiHeader.biWidth, info.bmiHeader.biHeight, std::move(pixels));
