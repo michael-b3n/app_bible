@@ -232,7 +232,15 @@ struct pack_size;
 template<template<typename...> typename P, typename... Args>
 struct pack_size<P<Args...>>
 {
-  static constexpr auto size = sizeof...(Args);
+  static constexpr auto value = sizeof...(Args);
 };
+
+///
+/// Get sizeof...(Args) of generic pack P<Args...>.
+/// \tparam P pack type containing generic types
+/// \return sizeof...(Args) in pack P<Args...>
+///
+template<pack_type P>
+constexpr std::size_t pack_size_v = pack_size<P>::value;
 
 } // namespace bibstd::meta

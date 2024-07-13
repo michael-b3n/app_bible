@@ -19,6 +19,7 @@ target_sources(libbible
 )
 
 # find_package(Boost REQUIRED asio)
+find_package(Boost REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem)
 target_include_directories(libbible PUBLIC ${Boost_INCLUDE_DIRS})
 find_package(spdlog REQUIRED)
