@@ -28,7 +28,7 @@ public: // Typedefs
   using active_worker_type = app_framework::active_worker<BOOST_PP_COUNTER>;
 
 public: // Static modifiers
-  static inline auto init(std::filesystem::path&& icon_path, std::vector<entry_type>&& entries) -> util::scoped_guard;
+  static inline auto init(icon_buffer icon, std::vector<entry_type>&& entries) -> util::scoped_guard;
 
 private: // Static helpers
   static auto get_message() -> void;
@@ -40,10 +40,10 @@ private:
 
 ///
 ///
-inline auto tray::init(std::filesystem::path&& icon_path, std::vector<entry_type>&& entries) -> util::scoped_guard
+inline auto tray::init(const icon_buffer icon, std::vector<entry_type>&& entries) -> util::scoped_guard
 {
   decltype(auto) worker_guard = active_worker_type::start(
-    [icon_path, entries]()
+    [icon, entries]()
     {
       const auto void_callback_wrapper = [](const auto& callback)
       {
@@ -61,7 +61,7 @@ inline auto tray::init(std::filesystem::path&& icon_path, std::vector<entry_type
           app_framework::active_worker_main::run_task(std::move(f));
         };
       };
-      tray_ = std::make_unique<Tray::Tray>("system_tray_identifier", util::to_string(icon_path.generic_u8string()));
+      tray_ = std::make_unique<Tray::Tray>("system_tray_identifier", Tray::Icon(icon.buffer));
       std::ranges::for_each(
         entries,
         [&](const auto& entry)

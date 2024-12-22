@@ -2,6 +2,8 @@
 
 #include "util/scoped_guard.hpp"
 
+#include <cstddef>
+#include <span>
 #include <variant>
 
 namespace bibstd::system
@@ -13,6 +15,15 @@ namespace bibstd::system
 struct tray_base
 {
   // Typedefs
+  ///
+  /// Icon file loaded into memory.
+  /// \param buffer Byte buffer view on a `*.ico` file
+  ///
+  struct icon_buffer final
+  {
+    std::span<const std::byte> buffer;
+  };
+
   // clang-format off
   struct button final { std::string text; std::function<void()> callback; };
   struct label final { std::string text; };

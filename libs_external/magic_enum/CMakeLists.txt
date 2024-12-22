@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.30)
 project(magic_enum VERSION 0.9.6)
 
 add_library(magic_enum INTERFACE)

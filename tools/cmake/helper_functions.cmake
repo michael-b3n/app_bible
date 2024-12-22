@@ -28,7 +28,6 @@ function(copy_file target dst file)
     COMMAND "${CMAKE_COMMAND}" -E echo "Copy ${file} to ${dst}/${dst_file_name}"
     COMMAND "${CMAKE_COMMAND}" -E make_directory ${dst}/
     COMMAND "${CMAKE_COMMAND}" -E copy ${file} ${dst}/${dst_file_name}
-    DEPENDS ${dummy_target_name}
   )
 endfunction(copy_file)
 

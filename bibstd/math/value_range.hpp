@@ -1,6 +1,10 @@
 #pragma once
 
 #include "math/arithmetic.hpp"
+#include "math/is_equal.hpp"
+#include "util/enum.hpp"
+
+#include <optional>
 
 namespace bibstd::math
 {
@@ -16,11 +20,11 @@ struct value_range final
 
   // Static functions
   ///
-  /// Checks if a `value_range` is empty.
+  /// Get the size (defined as `size = to - from` where `to > from`) of a `value_range`.
   /// \param range Range object
-  /// \return true, if `value_range` is emtpy
+  /// \return size of `value_range`
   ///
-  static auto empty(const value_range& range) -> bool;
+  static constexpr auto size(const value_range& range) -> value_type;
 
   ///
   /// Checks if `subrange` is fully contained in `range`.
@@ -28,7 +32,7 @@ struct value_range final
   /// \param subrange Subrange that might be contained in `range`
   /// \return true, if `subrange` is fully contained in `range`
   ///
-  static auto contains(const value_range& range, const value_range& subrange) -> bool;
+  static constexpr auto contains(const value_range& range, const value_range& subrange) -> bool;
 
   ///
   /// Checks if two ranges overlap.
@@ -36,15 +40,15 @@ struct value_range final
   /// \param second Second range
   /// \return true, if two ranges overlap, false otherwise
   ///
-  static auto overlaps(const value_range& first, const value_range& second) -> bool;
+  static constexpr auto overlaps(const value_range& first, const value_range& second) -> bool;
 
   ///
   /// Get the range identifying an overlap between two ranges.
   /// \param first First range
   /// \param second Second range
-  /// \return range describing overlap of `first` and `second`
+  /// \return optional range describing overlap of `first` and `second`, std::nullopt if no overlap is present
   ///
-  static auto overlap(const value_range& first, const value_range& second) -> value_range;
+  static constexpr auto overlap(const value_range& first, const value_range& second) -> std::optional<value_range>;
 
   ///
   /// Checks if two ranges are adjacent to another.
@@ -52,13 +56,13 @@ struct value_range final
   /// \param second Second range
   /// \return true if adjacent, false otherwise
   ///
-  static auto adjacent(const value_range& first, const value_range& second) -> bool;
+  static constexpr auto adjacent(const value_range& first, const value_range& second) -> bool;
 
   // Constructor
   constexpr value_range(value_type begin, value_type size);
 
   // Operators
-  constexpr auto operator==(const value_range&) const -> bool = default;
+  constexpr auto operator==(const value_range& other) const -> bool;
 
   // Variables
   value_type from;
@@ -68,24 +72,15 @@ struct value_range final
 ///
 ///
 template<arithmetic_type ValueType>
-constexpr value_range<ValueType>::value_range(value_type from_, value_type to_)
-  : from{std::min(from_, to_)}
-  , to{std::max(from_, to_)}
+constexpr auto value_range<ValueType>::size(const value_range& range) -> value_type
 {
+  return range.to - range.from;
 }
 
 ///
 ///
 template<arithmetic_type ValueType>
-auto value_range<ValueType>::empty(const value_range& range) -> bool
-{
-  return range.from == range.to;
-}
-
-///
-///
-template<arithmetic_type ValueType>
-auto value_range<ValueType>::contains(const value_range& range, const value_range& subrange) -> bool
+constexpr auto value_range<ValueType>::contains(const value_range& range, const value_range& subrange) -> bool
 {
   return range.from <= subrange.from && range.to >= subrange.to;
 }
@@ -93,7 +88,7 @@ auto value_range<ValueType>::contains(const value_range& range, const value_rang
 ///
 ///
 template<arithmetic_type ValueType>
-auto value_range<ValueType>::overlaps(const value_range& first, const value_range& second) -> bool
+constexpr auto value_range<ValueType>::overlaps(const value_range& first, const value_range& second) -> bool
 {
   return first.from <= second.to && second.from <= first.to;
 }
@@ -101,19 +96,46 @@ auto value_range<ValueType>::overlaps(const value_range& first, const value_rang
 ///
 ///
 template<arithmetic_type ValueType>
-auto value_range<ValueType>::overlap(const value_range& first, const value_range& second) -> value_range
+constexpr auto value_range<ValueType>::overlap(const value_range& first, const value_range& second)
+  -> std::optional<value_range>
 {
-  const auto begin = std::max(second.from, first.from);
-  const auto to = std::min(second.to, first.to);
-  return value_range{begin, to};
+  if(overlaps(first, second))
+  {
+    const auto begin = std::max(second.from, first.from);
+    const auto to = std::min(second.to, first.to);
+    return value_range{begin, to};
+  }
+  return std::nullopt;
 }
 
 ///
 ///
 template<arithmetic_type ValueType>
-auto value_range<ValueType>::adjacent(const value_range& first, const value_range& second) -> bool
+constexpr auto value_range<ValueType>::adjacent(const value_range& first, const value_range& second) -> bool
 {
-  return first.begin == second.to || second.begin == first.to;
+  return is_equal(first.from, second.to) || is_equal(second.from, first.to);
+}
+
+///
+///
+template<arithmetic_type ValueType>
+constexpr value_range<ValueType>::value_range(value_type from_, value_type to_)
+  : from{std::min(from_, to_)}
+  , to{std::max(from_, to_)}
+{
+  const auto size = arithmetic::subtract(to, from);
+  if(!size.has_value())
+  {
+    THROW_EXCEPTION(util::exception(std::format("Invalid value_range size: {}", util::to_string_view(size.error()))));
+  }
+}
+
+///
+///
+template<arithmetic_type ValueType>
+constexpr auto value_range<ValueType>::operator==(const value_range& other) const -> bool
+{
+  return is_equal(from, other.from) && is_equal(to, other.to);
 }
 
 } // namespace bibstd::math

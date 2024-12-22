@@ -6,14 +6,14 @@ namespace bibstd::meta
 {
 
 ///
-/// Convert type T to R if T is same type as S.
+/// Convert type T to R if `B == true`.
 ///
-template<typename T, typename S, typename R>
+template<bool B, typename T, typename R>
 struct convert_if
 {
-  using type = std::conditional_t<std::is_same_v<T, S>, R, T>;
+  using type = std::conditional_t<B, R, T>;
 };
-template<typename T, typename S, typename R>
-using convert_if_t = typename convert_if<T, S, R>::type;
+template<bool B, typename T, typename R>
+using convert_if_t = typename convert_if<B, T, R>::type;
 
 } // namespace bibstd::meta

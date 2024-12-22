@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.30)
 
 #
 # Add the folder tools/cmake  to the CMAKE_MODULE_PATH
@@ -19,7 +19,7 @@ project(app_bible)
 #
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
@@ -59,4 +59,5 @@ set_property(GLOBAL APPEND
 enable_testing()
 add_subdirectory(libs_external)
 add_subdirectory(bibstd)
+add_subdirectory(bibstd_test)
 add_subdirectory(app_bible_workspace)

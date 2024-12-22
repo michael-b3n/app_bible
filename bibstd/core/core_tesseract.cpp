@@ -1,5 +1,5 @@
 #include "core/core_tesseract.hpp"
-#include "system/filesystem.hpp"
+#include "util/log.hpp"
 
 #include <leptonica/allheaders.h>
 #include <tesseract/baseapi.h>
@@ -12,8 +12,7 @@ namespace bibstd::core
 core_tesseract::core_tesseract(const std::string_view language)
   : tesseract_(new tesseract::TessBaseAPI())
 {
-  const auto tessdata = system::filesystem::executable_folder() / "tessdata";
-  const auto tessdata_string = tessdata.generic_string();
+  const auto tessdata_string = tessdata_folder_path.generic_string();
   tesseract_->Init(tessdata_string.data(), language.data(), tesseract::OEM_LSTM_ONLY);
 }
 
@@ -26,14 +25,14 @@ core_tesseract::~core_tesseract() noexcept
 
 ///
 ///
-auto core_tesseract::load(util::bitmap&& bitmap) -> void
+auto core_tesseract::set_image(util::bitmap&& bitmap) -> void
 {
   bitmap_ = std::move(bitmap);
 }
 
 ///
 ///
-auto core_tesseract::text() -> std::string
+auto core_tesseract::for_each_word(std::function<void(std::string_view, const bounding_box_type&)> callback) -> void
 {
   const auto rect = bitmap_.dimension();
   tesseract_->SetImage(
@@ -43,7 +42,7 @@ auto core_tesseract::text() -> std::string
     util::bitmap::bytes_per_pixel,
     util::bitmap::bytes_per_pixel * static_cast<int>(rect.horizontal_range()));
   tesseract_->Recognize(nullptr);
-  tesseract::ResultIterator* ri = tesseract_->GetIterator();
+  std::unique_ptr<tesseract::ResultIterator> ri(tesseract_->GetIterator());
   tesseract::PageIteratorLevel level = tesseract::RIL_WORD;
   if(ri)
   {
@@ -52,18 +51,22 @@ auto core_tesseract::text() -> std::string
       std::unique_ptr<char[]> word(ri->GetUTF8Text(level));
       if(word)
       {
-        LOG_WARN("main", "Test Text: {}", std::string{word.get()});
-        tesseract::ChoiceIterator ci(*ri);
-        do
+        using rect_type = math::rect<std::uint32_t>;
+        int left, top, right, bottom;
+        ri->BoundingBox(level, &left, &top, &right, &bottom);
+        if(left >= 0 && top >= 0 && right >= 1 && bottom >= 1)
         {
-          [[maybe_unused]] const char* choice = ci.GetUTF8Text();
+          const auto bounding_box = rect_type(rect_type::coordinates_type(left, top), rect_type::coordinates_type(right - 1, bottom - 1));
+          callback(std::string_view(word.get()), bounding_box);
         }
-        while(ci.Next());
+        else
+        {
+          LOG_WARN(log_channel, "Invalid bounding box values: word={}", word.get());
+        }
       }
     }
     while((ri->Next(level)));
   }
-  return {};
 }
 
 } // namespace bibstd::core

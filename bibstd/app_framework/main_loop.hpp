@@ -21,7 +21,7 @@ public: // Modifiers
   ///
   /// Run main loop.
   ///
-  static auto run(task_queue::task_type&& iteration_task) -> void;
+  static auto run() -> void;
 
   ///
   /// Exit main loop.
@@ -38,11 +38,5 @@ private: // Variables
   inline static std::atomic_bool running_ = false;
   inline static std::unique_ptr<task_queue> main_queue_ = std::make_unique<task_queue>();
 };
-
-///
-/// Move task to main thread queue.
-/// \param task Task that shall be executed in main thread
-///
-auto run_in_main_thread(task_queue::task_type&& task) -> void;
 
 } // namespace bibstd::app_framework

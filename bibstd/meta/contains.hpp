@@ -1,7 +1,6 @@
 #pragma once
 
 #include "meta/pack.hpp"
-#include "meta/type_traits.hpp"
 
 namespace bibstd::meta
 {

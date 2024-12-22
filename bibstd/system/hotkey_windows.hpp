@@ -5,7 +5,7 @@
 #include "system/hotkey_base.hpp"
 #include "system/windows.hpp"
 #include "util/const_bimap.hpp"
-#include "util/enum_helpers.hpp"
+#include "util/enum.hpp"
 #include "util/log.hpp"
 
 #include <algorithm>

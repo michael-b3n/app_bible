@@ -3,8 +3,10 @@
 #include "math/arithmetic.hpp"
 #include "math/coordinates.hpp"
 #include "math/value_range.hpp"
+#include "util/enum.hpp"
 
 #include <cassert>
+#include <optional>
 
 namespace bibstd::math
 {
@@ -26,7 +28,7 @@ public: // Static functions
   /// \param second Second rectangle
   /// \return the overlap of two rectangles as a rectangle
   ///
-  static constexpr auto overlap(const rect<value_type>& first, const rect<value_type>& second) -> rect<value_type>;
+  static constexpr auto overlap(const rect<value_type>& first, const rect<value_type>& second) -> std::optional<rect<value_type>>;
 
   ///
   /// Check if subrectangle is contained by another rectangle.
@@ -93,7 +95,7 @@ private: // Variables
 ///
 ///
 template<arithmetic_type ValueType>
-constexpr auto rect<ValueType>::overlap(const rect<value_type>& first, const rect<value_type>& second) -> rect<value_type>
+constexpr auto rect<ValueType>::overlap(const rect<value_type>& first, const rect<value_type>& second) -> std::optional<rect<value_type>>
 {
   const auto first_x_range = value_range<value_type>(first.left_lower_coordinates().axis_value(0), first.right_lower_coordinates().axis_value(0));
   const auto first_y_range = value_range<value_type>(first.left_lower_coordinates().axis_value(1), first.left_upper_coordinates().axis_value(1));
@@ -101,7 +103,11 @@ constexpr auto rect<ValueType>::overlap(const rect<value_type>& first, const rec
   const auto second_y_range = value_range<value_type>(second.left_lower_coordinates().axis_value(1), second.left_upper_coordinates().axis_value(1));
   const auto x_overlap = value_range<value_type>::overlap(first_x_range, second_x_range);
   const auto y_overlap = value_range<value_type>::overlap(first_y_range, second_y_range);
-  return rect<value_type>(coordinates_type(x_overlap.from, y_overlap.from), coordinates_type(x_overlap.to, y_overlap.to));
+  if(x_overlap && y_overlap)
+  {
+    return rect<value_type>(coordinates_type(x_overlap->from, y_overlap->from), coordinates_type(x_overlap->to, y_overlap->to));
+  }
+  return std::nullopt;
 }
 
 ///
@@ -127,9 +133,10 @@ constexpr rect<ValueType>::rect(coordinates_type first, coordinates_type second)
   const auto x2 = right_upper_coord_.axis_value(0);
   const auto y1 = left_lower_coord_.axis_value(1);
   const auto y2 = right_upper_coord_.axis_value(1);
-  if(!arithmetic::multiply(arithmetic::subtract(x2, x1), arithmetic::subtract(y2, y1)).has_value())
+  const auto area = arithmetic::multiply(arithmetic::subtract(x2, x1), arithmetic::subtract(y2, y1));
+  if(!area.has_value())
   {
-    THROW_EXCEPTION(util::exception("Invalid rect size: overflow"));
+    THROW_EXCEPTION(util::exception(std::format("Invalid rect size: {}", util::to_string_view(area.error()))));
   }
 }
 

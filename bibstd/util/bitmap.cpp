@@ -46,6 +46,10 @@ struct bmp_file_dib_info final
 ///
 auto bitmap::save(const std::filesystem::path& path) const -> void
 {
+  if(path.extension() != "bmp")
+  {
+    LOG_ERROR(log_channel, "Invalid file extension: {}", path.extension().string());
+  }
   std::ofstream file(path, std::ios::out | std::ios::binary);
   if(file.fail())
   {
@@ -53,7 +57,7 @@ auto bitmap::save(const std::filesystem::path& path) const -> void
   }
   else if(empty())
   {
-    LOG_WARN(log_channel, "Empty bitmap not be saved to {}", path.string());
+    LOG_INFO(log_channel, "Empty bitmap not be saved to {}", path.string());
   }
   else
   {
@@ -151,12 +155,15 @@ auto create_subarea_bitmap(const bitmap& bitmap_source, bitmap::rect_type rect) 
 {
   using rect_type = bitmap::rect_type;
   const auto overlap_rect = rect_type::overlap(bitmap_source.dimension(), rect);
-  const auto x_begin = overlap_rect.left_lower_coordinates().axis_value(0);
-  const auto x_end = overlap_rect.right_upper_coordinates().axis_value(0);
-  const auto y_begin = overlap_rect.left_lower_coordinates().axis_value(1);
-  const auto y_end = overlap_rect.right_upper_coordinates().axis_value(1);
-
-  auto result_pixels = bitmap::data_type(overlap_rect.area());
+  if(!overlap_rect)
+  {
+    return {};
+  }
+  const auto x_begin = overlap_rect->left_lower_coordinates().axis_value(0);
+  const auto x_end = overlap_rect->right_upper_coordinates().axis_value(0);
+  const auto y_begin = overlap_rect->left_lower_coordinates().axis_value(1);
+  const auto y_end = overlap_rect->right_upper_coordinates().axis_value(1);
+  auto result_pixels = bitmap::data_type(overlap_rect->area());
   decltype(auto) src = bitmap_source.pixels();
   std::size_t counter{0};
   std::ranges::for_each(
@@ -167,7 +174,7 @@ auto create_subarea_bitmap(const bitmap& bitmap_source, bitmap::rect_type rect) 
       std::ranges::for_each(std::views::iota(offset + x_begin, offset + x_end + 1), [&](const auto i) { result_pixels.at(counter++) = src.at(i); });
     });
   bitmap result;
-  result.data(overlap_rect.horizontal_range(), overlap_rect.vertical_range(), std::move(result_pixels));
+  result.data(overlap_rect->horizontal_range(), overlap_rect->vertical_range(), std::move(result_pixels));
   return result;
 }
 

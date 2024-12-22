@@ -14,6 +14,7 @@
 
 #### Add Dependencies
 
+-  **Catch2** run `pacman -S mingw-w64-x86_64-catch` in `msys2_shell.cmd`
 -  **Boost** run `pacman -S mingw-w64-x86_64-boost` in `msys2_shell.cmd`
 -  **Spdlog** run `pacman -S mingw-w64-x86_64-spdlog` in `msys2_shell.cmd`
 -  **Fmt** run `pacman -S mingw-w64-x86_64-fmt` in `msys2_shell.cmd`

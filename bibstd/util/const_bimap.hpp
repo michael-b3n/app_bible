@@ -16,9 +16,27 @@ namespace detail
 {
 
 template<typename T>
+struct is_pair : std::false_type
+{};
+template<typename T1, typename T2>
+struct is_pair<std::pair<T1, T2>> : std::true_type
+{};
+template<typename T>
+constexpr bool is_pair_v = is_pair<T>::value;
+
+template<typename T>
+struct is_array : std::false_type
+{};
+template<typename T, std::size_t N>
+struct is_array<std::array<T, N>> : std::true_type
+{};
+template<typename T>
+constexpr bool is_array_v = is_array<T>::value;
+
+template<typename T>
 concept is_valid_bimap_type = requires {
-  requires meta::is_array_v<T>;
-  requires meta::is_pair_v<typename T::value_type>;
+  requires is_array_v<T>;
+  requires is_pair_v<typename T::value_type>;
   requires !std::is_same_v<typename T::value_type::first_type, typename T::value_type::second_type>;
   requires std::equality_comparable<typename T::value_type::first_type>;
   requires std::equality_comparable<typename T::value_type::second_type>;
@@ -133,8 +151,28 @@ private: // Variables
   const T map_;
 };
 
+///
+/// Const bimap type check.
+///
+template<typename T>
+struct is_const_bimap : std::false_type
+{};
+template<typename T>
+struct is_const_bimap<const_bimap<T>> : std::true_type
+{};
+template<typename T>
+constexpr bool is_const_bimap_v = is_const_bimap<T>::value;
+
+///
+/// Const bimap type concept.
+///
+template<typename T>
+concept const_bimap_type = is_const_bimap_v<T>;
+
+///
+///
 template<typename... P>
-  requires meta::are_same_v<P...> && meta::is_pair_v<typename meta::pack<P...>::first_type>
+  requires meta::are_same_v<P...> && detail::is_pair_v<typename meta::pack<P...>::first_type>
 const_bimap(P&&... p) -> const_bimap<typename std::array<typename meta::pack<P...>::first_type, sizeof...(P)>>;
 
 ///

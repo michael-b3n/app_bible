@@ -22,6 +22,21 @@ struct index_t
 } // namespace detail
 
 ///
+/// pack_type trait.
+///
+template<typename T>
+struct is_pack : std::false_type
+{};
+template<template<typename...> typename T, typename... Args>
+struct is_pack<T<Args...>> : std::true_type
+{};
+template<typename T>
+constexpr bool is_pack_v = is_pack<T>::value;
+
+template<typename T>
+concept pack_type = is_pack_v<T>;
+
+///
 /// Unpack all types in pack like type P into template T.
 ///
 template<template<typename...> typename T, pack_type P>

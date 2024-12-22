@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstddef>
+#include <span>
 #include <string>
+
 #if defined(_WIN32)
   #ifndef WIN32_LEAN_AND_MEAN
     #define WIN32_LEAN_AND_MEAN
@@ -18,10 +21,8 @@ class Icon
   HICON hIcon;
 
 public:
+  Icon(std::span<const std::byte> icon_buffer);
   Icon(HICON icon);
-  Icon(WORD resource);
-  Icon(const char* path);
-  Icon(const std::string& path);
 
   operator HICON();
 };

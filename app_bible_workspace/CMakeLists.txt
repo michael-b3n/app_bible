@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.30)
 
 include(helper_functions)
 include(install_app_bible_workspace)
@@ -36,6 +36,7 @@ set_target_properties(app_bible_workspace PROPERTIES OUTPUT_NAME ${app_bible_wor
 # Include directories.
 #
 target_include_directories(app_bible_workspace
+  PUBLIC ${CMAKE_CURRENT_LIST_DIR}
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/src
   PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
 )
@@ -59,7 +60,7 @@ target_sources(app_bible_workspace
 # Link against external dependencies
 #
 target_link_libraries(app_bible_workspace
-  PRIVATE libbible
+  PRIVATE bibstd
 )
 
 #

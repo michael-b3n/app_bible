@@ -102,7 +102,7 @@ auto active_worker<ID>::start(task_queue::task_type&& init) -> util::scoped_guar
         {
           while(!stop_token.stop_requested())
           {
-            worker_queue_->empty() ? std::this_thread::sleep_for(std::chrono::milliseconds(10)) : worker_queue_->try_do_task();
+            worker_queue_->empty() ? std::this_thread::sleep_for(std::chrono::milliseconds(100)) : worker_queue_->try_do_task();
           }
         }
         catch(const std::exception& e)
@@ -117,7 +117,7 @@ auto active_worker<ID>::start(task_queue::task_type&& init) -> util::scoped_guar
     });
   worker_id_ = worker_.get_id();
   future.get();
-  LOG_INFO(log_channel, "Init active_worker<{}> thread: id={}", ID, "not_implemented" /*worker_.get_id()*/);
+  LOG_INFO(log_channel, "Init active_worker<{}> thread: id={}", ID, worker_.get_id());
   assert(std::this_thread::get_id() != worker_.get_id());
   return util::scoped_guard([]() { shutdown(); });
 }
@@ -151,7 +151,7 @@ template<std::size_t ID>
 auto active_worker<ID>::shutdown() -> void
 {
   assert(std::this_thread::get_id() != worker_.get_id());
-  LOG_INFO(log_channel, "Stop active_worker<{}> thread: id={}", ID, "not_implemented" /*worker_.get_id()*/);
+  LOG_INFO(log_channel, "Stop active_worker<{}> thread: id={}", ID, worker_.get_id());
   worker_id_ = std::nullopt;
   worker_.request_stop();
   worker_.join();
