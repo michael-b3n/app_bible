@@ -1,7 +1,9 @@
 #pragma once
 
-#include <array>
-#include <string>
+#include "util/enum.hpp"
+
+#include <cstdint>
+#include <optional>
 
 namespace bibstd::bible
 {
@@ -9,7 +11,7 @@ namespace bibstd::bible
 ///
 /// Bible books.
 ///
-enum class book
+enum class book_id
 {
   BEGIN = 0,
   genesis = 0,
@@ -46,7 +48,7 @@ enum class book
   jonah,
   micah,
   nahum,
-  habbakuk,
+  habakkuk,
   zephaniah,
   haggai,
   zechariah,
@@ -84,7 +86,7 @@ enum class book
 ///
 /// Bible testaments.
 ///
-enum class testament
+enum class testament_id
 {
   BEGIN = 0,
   ot = 0,
@@ -92,4 +94,30 @@ enum class testament
   END
 };
 
+///
+/// Get the count of chapters in a book.
+/// \param book The book to get the chapter count of
+/// \return the chapter count
+///
+auto chapter_count(book_id book) -> std::optional<std::uint32_t>;
+
+///
+/// Get the count of verses in a chapter.
+/// \param book The book to get the chapter count of
+/// \param chapter_number The chapter to get the verse count of
+/// \return the verse count
+///
+auto verse_count(book_id book, std::uint32_t chapter_number) -> std::optional<std::uint32_t>;
+
 } // namespace bibstd::bible
+
+///
+///
+template<>
+struct std::formatter<bibstd::bible::book_id> : std::formatter<std::string>
+{
+  auto format(const bibstd::bible::book_id e, std::format_context& ctx) const
+  {
+    return formatter<std::string>::format(std::format("{}", bibstd::util::to_string_view(e)), ctx);
+  }
+};

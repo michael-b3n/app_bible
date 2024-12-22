@@ -1,0 +1,119 @@
+#pragma once
+
+#include "bible/common.hpp"
+#include "util/string_view.hpp"
+
+#include <algorithm>
+#include <array>
+#include <ranges>
+#include <tuple>
+#include <utility>
+
+namespace bibstd::bible
+{
+
+///
+/// Holds all german bible book name variants corresponding to book id.
+///
+struct book_name_variants_de final
+{
+  // Constants
+  ///
+  /// All german bible book name variants listed with corresponding book id.
+  ///
+  static constexpr auto name_variants = std::tuple{
+    // clang-format off
+    std::pair{        book_id::genesis,                        util::to_array("1.Mose", "1Mose", "Genesis", "Gen")},
+    std::pair{         book_id::exodus,                          util::to_array("2.Mose", "2Mose", "Exodus", "Ex")},
+    std::pair{      book_id::leviticus,                      util::to_array("3.Mose", "3Mose", "Levitikus", "Lev")},
+    std::pair{        book_id::numbers,                         util::to_array("4.Mose", "4Mose", "Numeri", "Num")},
+    std::pair{    book_id::deuteronomy,                  util::to_array("5.Mose", "5Mose", "Deuteronomium", "Dtn")},
+    std::pair{         book_id::joshua,                                             util::to_array("Josua", "Jos")},
+    std::pair{         book_id::judges,                                            util::to_array("Richter", "Ri")},
+    std::pair{           book_id::ruth,                                                      util::to_array("Rut")},
+    std::pair{        book_id::samuel1,                     util::to_array("1.Samuel", "1Samuel", "1.Sam", "1Sam")},
+    std::pair{        book_id::samuel2,                     util::to_array("2.Samuel", "2Samuel", "2.Sam", "2Sam")},
+    std::pair{         book_id::kings1,                     util::to_array("1.Könige", "1Könige", "1.Kön", "1Kön")},
+    std::pair{         book_id::kings2,                     util::to_array("2.Könige", "2Könige", "2.Kön", "2Kön")},
+    std::pair{    book_id::chronicles1,                   util::to_array("1.Chronik", "1Chronik", "1.Chr", "1Chr")},
+    std::pair{    book_id::chronicles2,                   util::to_array("2.Chronik", "2Chronik", "2.Chr", "2Chr")},
+    std::pair{           book_id::ezra,                                                     util::to_array("Esra")},
+    std::pair{       book_id::nehemiah,                                           util::to_array("Nehemia", "Neh")},
+    std::pair{         book_id::esther,                                             util::to_array("Ester", "Est")},
+    std::pair{            book_id::job,                                               util::to_array("Hiob", "Hi")},
+    std::pair{         book_id::psalms,                                              util::to_array("Psalm", "Ps")},
+    std::pair{       book_id::proverbs,                                           util::to_array("Sprüche", "Spr")},
+    std::pair{   book_id::ecclesiastes,                                         util::to_array("Prediger", "Pred")},
+    std::pair{book_id::song_of_solomon,                                          util::to_array("Hohelied", "Hld")},
+    std::pair{         book_id::isaiah,                                            util::to_array("Jesaja", "Jes")},
+    std::pair{       book_id::jeremiah,                                           util::to_array("Jeremia", "Jer")},
+    std::pair{   book_id::lamentations,                                      util::to_array("Klagelieder", "Klgl")},
+    std::pair{        book_id::ezekiel,                                          util::to_array("Hesekiel", "Hes")},
+    std::pair{         book_id::daniel,                                            util::to_array("Daniel", "Dan")},
+    std::pair{          book_id::hosea,                                             util::to_array("Hosea", "Hos")},
+    std::pair{           book_id::joel,                                                     util::to_array("Joel")},
+    std::pair{           book_id::amos,                                               util::to_array("Amos", "Am")},
+    std::pair{        book_id::obadiah,                                            util::to_array("Obadja", "Obd")},
+    std::pair{          book_id::jonah,                                                     util::to_array("Jona")},
+    std::pair{          book_id::micah,                                              util::to_array("Micha", "Mi")},
+    std::pair{          book_id::nahum,                                             util::to_array("Nahum", "Nah")},
+    std::pair{       book_id::habakkuk,                                           util::to_array("Habakuk", "Hab")},
+    std::pair{      book_id::zephaniah,                                           util::to_array("Zefanja", "Zef")},
+    std::pair{         book_id::haggai,                                            util::to_array("Haggai", "Hag")},
+    std::pair{      book_id::zechariah,                                         util::to_array("Sacharja", "Sach")},
+    std::pair{        book_id::malachi,                                          util::to_array("Maleachi", "Mal")},
+    std::pair{        book_id::matthew,                                           util::to_array("Matthäus", "Mt")},
+    std::pair{           book_id::mark,                                             util::to_array("Markus", "Mk")},
+    std::pair{           book_id::luke,                                              util::to_array("Lukas", "Lk")},
+    std::pair{           book_id::john,                                          util::to_array("Johannes", "Joh")},
+    std::pair{           book_id::acts,                                 util::to_array("Apostelgeschichte", "Apg")},
+    std::pair{         book_id::romans,                                             util::to_array("Römer", "Röm")},
+    std::pair{   book_id::corinthians1,               util::to_array("1.Korinther", "1Korinther", "1.Kor", "1Kor")},
+    std::pair{   book_id::corinthians2,               util::to_array("2.Korinther", "2Korinther", "2.Kor", "2Kor")},
+    std::pair{      book_id::galatians,                                           util::to_array("Galater", "Gal")},
+    std::pair{      book_id::ephesians,                                           util::to_array("Epheser", "Eph")},
+    std::pair{    book_id::philippians,                                        util::to_array("Philipper", "Phil")},
+    std::pair{     book_id::colossians,                                          util::to_array("Kolosser", "Kol")},
+    std::pair{ book_id::thessalonians1, util::to_array("1.Thessalonicher", "1Thessalonicher", "1.Thess", "1Thess")},
+    std::pair{ book_id::thessalonians2, util::to_array("2.Thessalonicher", "2Thessalonicher", "2.Thess", "2Thess")},
+    std::pair{       book_id::timothy1,               util::to_array("1.Timotheus", "1Timotheus", "1.Tim", "1Tim")},
+    std::pair{       book_id::timothy2,               util::to_array("2.Timotheus", "2Timotheus", "2.Tim", "2Tim")},
+    std::pair{          book_id::titus,                                             util::to_array("Titus", "Tit")},
+    std::pair{       book_id::philemon,                                         util::to_array("Philemon", "Phlm")},
+    std::pair{        book_id::hebrews,                                          util::to_array("Hebräer", "Hebr")},
+    std::pair{          book_id::james,                                           util::to_array("Jakobus", "Jak")},
+    std::pair{         book_id::peter1,                   util::to_array("1.Petrus", "1Petrus", "1.Petr", "1Petr")},
+    std::pair{         book_id::peter2,                   util::to_array("2.Petrus", "2Petrus", "2.Petr", "2Petr")},
+    std::pair{          book_id::john1,                 util::to_array("1.Johannes", "1Johannes", "1.Joh", "1Joh")},
+    std::pair{          book_id::john2,                 util::to_array("2.Johannes", "2Johannes", "2.Joh", "2Joh")},
+    std::pair{          book_id::john3,                 util::to_array("3.Johannes", "3Johannes", "3.Joh", "3Joh")},
+    std::pair{           book_id::jude,                                             util::to_array("Judas", "Jud")},
+    std::pair{     book_id::revelation,                                      util::to_array("Offenbarung", "Offb")}
+    // clang-format on
+  };
+
+  ///
+  /// Concatenated list of all bible book name variants.
+  ///
+  static constexpr auto name_variants_list = []()
+  {
+    constexpr auto get = [&]<std::size_t I>()
+    {
+      const auto element = std::get<I>(name_variants);
+      constexpr auto size = std::tuple_size_v<decltype(element.second)>;
+      std::array<std::pair<book_id, std::string_view>, size> result;
+      std::ranges::for_each(
+        std::views::iota(decltype(size){0}, size), [&](const auto i) { result.at(i) = std::pair{element.first, element.second.at(i)}; });
+      return result;
+    };
+    constexpr auto to_array = [](auto&& tuple)
+    {
+      constexpr auto get_array = [](auto&&... e) { return std::array{std::forward<decltype(e)>(e)...}; };
+      return std::apply(get_array, std::forward<decltype(tuple)>(tuple));
+    };
+    return [&]<std::size_t... I>(std::index_sequence<I...>)
+    { return to_array(std::tuple_cat(get.template operator()<I>()...)); }(std::make_index_sequence<std::tuple_size_v<decltype(name_variants)>>{});
+  }();
+};
+
+} // namespace bibstd::bible
