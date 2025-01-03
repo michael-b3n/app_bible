@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cctype>
+#include <concepts>
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -41,6 +42,8 @@ public: // Constants
   /// All whitespace chars in an array.
   ///
   static constexpr auto whitespaces = std::array{
+    std::string_view("\x20"),         // space
+    std::string_view("\x09"),         // character tabulation
     std::string_view("\x09"),         // character tabulation
     std::string_view("\x0A"),         // line feed
     std::string_view("\x0B"),         // line tabulation
@@ -101,6 +104,19 @@ public: // Constants
     -> std::optional<std::string_view>;
 
   ///
+  /// Check if char sequence is contained in a list of string_views.
+  /// \tparam T List type with a value type which is equality comparable with std::string_view
+  /// \param chars List of string_views comparable types
+  /// \param string_view String view that shall be checked
+  /// \param index Index in string view to check for
+  /// \return optional string_view of the char or std::nullopt if char is not in list
+  ///
+  template<typename T>
+    requires std::equality_comparable_with<typename T::value_type, std::string_view>
+  static constexpr auto contains(const T& chars, std::string_view string_view, std::size_t index)
+    -> std::optional<std::string_view>;
+
+  ///
   /// Determines the category of the char in string at given index.
   /// \param string_view String view
   /// \param index to check the character
@@ -121,9 +137,6 @@ private: // Constants
   static constexpr std::string_view log_channel = "txt::chars";
 
 private: // Implementation
-  template<typename T>
-  static constexpr auto is_char_impl(const T& chars, std::string_view string_view, std::size_t index)
-    -> std::optional<std::string_view>;
   static constexpr auto is_digit_impl(std::string_view string_view, std::size_t index) -> std::optional<std::string_view>;
 };
 
@@ -136,12 +149,37 @@ constexpr auto chars::is_char(const std::string_view string_view, const std::siz
   {
     switch(char_category)
     {
-    case category::whitespace: return is_char_impl(whitespaces, string_view, index);
-    case category::line: return is_char_impl(lines, string_view, index);
+    case category::whitespace: return contains(whitespaces, string_view, index);
+    case category::line: return contains(lines, string_view, index);
     case category::digit: return is_digit_impl(string_view, index);
     case category::other: return string_view.substr(index, 1);
     default: return std::nullopt;
     }
+  }
+  else
+  {
+    return std::nullopt;
+  }
+}
+
+///
+///
+template<typename T>
+  requires std::equality_comparable_with<typename T::value_type, std::string_view>
+constexpr auto chars::contains(const T& chars, const std::string_view string_view, const std::size_t index)
+  -> std::optional<std::string_view>
+{
+  if(index < string_view.size())
+  {
+    const auto string_size = string_view.size();
+    const auto iter = std::ranges::find_if(
+      chars,
+      [&](const auto& e)
+      {
+        const auto size = std::min(e.size(), string_size - index);
+        return util::make_substring_view(string_view, index, size) == e;
+      });
+    return iter != std::ranges::cend(chars) ? std::make_optional(*iter) : std::nullopt;
   }
   else
   {
@@ -172,7 +210,7 @@ constexpr auto chars::for_each_char(const std::string_view string_view, Function
   std::ranges::for_each(
     std::views::iota(std::size_t{0}, string_view.size()) |
       std::views::take_while([&](const auto i) { return counter < string_view.size(); }),
-    [&](const auto i)
+    [&]([[maybe_unused]] const auto)
     {
       const auto data = char_info(string_view, counter);
       if(data)
@@ -186,30 +224,6 @@ constexpr auto chars::for_each_char(const std::string_view string_view, Function
         ++counter;
       }
     });
-}
-
-///
-///
-template<typename T>
-constexpr auto chars::is_char_impl(const T& chars, const std::string_view string_view, const std::size_t index)
-  -> std::optional<std::string_view>
-{
-  if(index < string_view.size())
-  {
-    const auto string_size = string_view.size();
-    const auto iter = std::ranges::find_if(
-      chars,
-      [&](const auto& e)
-      {
-        const auto size = std::min(e.size(), string_size - index);
-        return util::make_substring_view(string_view, index, size) == e;
-      });
-    return iter != std::ranges::cend(chars) ? std::make_optional(*iter) : std::nullopt;
-  }
-  else
-  {
-    return std::nullopt;
-  }
 }
 
 ///

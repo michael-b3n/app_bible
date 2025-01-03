@@ -15,10 +15,18 @@ public: // Typedefs
   using verse_type = reference::verse_type;
 
 public: // Constructor
-  reference_range(reference first_and_last);
+  explicit reference_range(reference first_and_last);
   reference_range(reference first, reference second);
 
+public: // Operators
+  auto operator==(const reference_range&) const -> bool = default;
+
 public: // Accessors
+  ///
+  /// Get the size of all references in the range.
+  ///
+  auto size() const -> std::uint32_t;
+
   ///
   /// Get the first reference in the range.
   /// \return the first reference.

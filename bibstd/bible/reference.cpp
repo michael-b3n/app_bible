@@ -24,7 +24,7 @@ reference::reference(book_id book, chapter_type chapter, verse_type verse)
   : book_{book}
   , chapter_{chapter}
   , verse_{verse}
-  , chapter_count_{chapter_count(book).value()}
+  , chapter_count_{chapter_count(book)}
   , verse_count_{verse_count(book, chapter.value).value()}
 {
 }
@@ -103,7 +103,7 @@ auto reference::increment() -> void
     book_ = util::next(book_);
     chapter_ = chapter_type{1};
     verse_ = verse_type{1};
-    chapter_count_ = chapter_count(book_).value();
+    chapter_count_ = chapter_count(book_);
     verse_count_ = verse_count(book_, chapter_.value).value();
   }
 }
@@ -124,7 +124,7 @@ auto reference::decrement() -> void
   }
   else if(book_ > util::next(book_id::BEGIN))
   {
-    chapter_count_ = chapter_count(book_).value();
+    chapter_count_ = chapter_count(book_);
     verse_count_ = verse_count(book_, chapter_count_).value();
     book_ = util::prev(book_);
     chapter_ = chapter_type{chapter_count_};

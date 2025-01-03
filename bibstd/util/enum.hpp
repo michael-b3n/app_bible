@@ -108,7 +108,6 @@ constexpr auto prev(const E e) -> E
 template<enum_type E>
 constexpr auto valid(E e) -> bool
 {
-  constexpr std::size_t enum_count = magic_enum::enum_count<E>();
   return magic_enum::enum_cast<E>(to_integral(e)).has_value();
 }
 

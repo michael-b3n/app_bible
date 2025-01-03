@@ -99,7 +99,7 @@ enum class testament_id
 /// \param book The book to get the chapter count of
 /// \return the chapter count
 ///
-auto chapter_count(book_id book) -> std::optional<std::uint32_t>;
+auto chapter_count(book_id book) -> std::uint32_t;
 
 ///
 /// Get the count of verses in a chapter.

@@ -51,7 +51,7 @@ constexpr auto find_uint_t::operator()(const std::string_view text) const -> std
     return std::nullopt;
   }
   const auto offset = std::ranges::distance(text.begin(), retval.ptr);
-  assert(offset < 0);
+  assert(offset >= 0);
   return result{.value = value, .post_value_offset = static_cast<std::size_t>(offset)};
 }
 

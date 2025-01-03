@@ -95,9 +95,13 @@ auto books() -> const std::map<book_id, std::vector<std::uint32_t>>&
 
 ///
 ///
-auto chapter_count(book_id book) -> std::optional<std::uint32_t>
+auto chapter_count(book_id book) -> std::uint32_t
 {
-  return books().contains(book) ? books().at(book).size() : std::optional<std::uint32_t>{std::nullopt};
+  if(!util::valid(book))
+  {
+    THROW_EXCEPTION(std::invalid_argument("invalid book"));
+  }
+  return books().at(book).size();
 }
 
 ///
@@ -108,7 +112,7 @@ auto verse_count(book_id book, std::uint32_t chapter_number) -> std::optional<st
   {
     return std::nullopt;
   }
-  if(const auto count = chapter_count(book); count && count.value() <= chapter_number)
+  if(const auto count = chapter_count(book); chapter_number <= count)
   {
     return books().at(book).at(chapter_number - 1);
   }
