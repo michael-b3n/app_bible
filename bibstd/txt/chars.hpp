@@ -1,13 +1,15 @@
 #pragma once
 
 #include "util/exception.hpp"
-#include "util/string_view.hpp"
+#include "util/string.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cctype>
 #include <concepts>
 #include <cstdint>
 #include <optional>
+#include <ranges>
 #include <string_view>
 #include <type_traits>
 
@@ -25,6 +27,7 @@ public: // Typedefs
   ///
   enum class category
   {
+    letter,
     whitespace,
     line,
     digit,
@@ -38,6 +41,24 @@ public: // Typedefs
   };
 
 public: // Constants
+  ///
+  /// All alphabet letter chars in an array.
+  ///
+  static constexpr auto letters = std::array{
+    std::string_view("A"), std::string_view("a"), std::string_view("B"), std::string_view("b"), std::string_view("C"),
+    std::string_view("c"), std::string_view("D"), std::string_view("d"), std::string_view("E"), std::string_view("e"),
+    std::string_view("F"), std::string_view("f"), std::string_view("G"), std::string_view("g"), std::string_view("H"),
+    std::string_view("h"), std::string_view("I"), std::string_view("i"), std::string_view("J"), std::string_view("j"),
+    std::string_view("K"), std::string_view("k"), std::string_view("L"), std::string_view("l"), std::string_view("M"),
+    std::string_view("m"), std::string_view("N"), std::string_view("n"), std::string_view("O"), std::string_view("o"),
+    std::string_view("P"), std::string_view("p"), std::string_view("Q"), std::string_view("q"), std::string_view("R"),
+    std::string_view("r"), std::string_view("S"), std::string_view("s"), std::string_view("T"), std::string_view("t"),
+    std::string_view("U"), std::string_view("u"), std::string_view("V"), std::string_view("v"), std::string_view("W"),
+    std::string_view("w"), std::string_view("X"), std::string_view("x"), std::string_view("Y"), std::string_view("y"),
+    std::string_view("Z"), std::string_view("z"), std::string_view("Ä"), std::string_view("ä"), std::string_view("Ö"),
+    std::string_view("ö"), std::string_view("Ü"), std::string_view("ü"),
+  };
+
   ///
   /// All whitespace chars in an array.
   ///
@@ -98,7 +119,7 @@ public: // Constants
   /// \param string_view String view
   /// \param index to check the character
   /// \param char_category Category of char that shall be checked
-  /// \return optional stringview of the char or std::nullopt if category does not match
+  /// \return optional string view of the char or std::nullopt if category does not match
   ///
   static constexpr auto is_char(std::string_view string_view, std::size_t index, category char_category)
     -> std::optional<std::string_view>;
@@ -130,8 +151,17 @@ public: // Constants
   /// \param function Function to call for each char of specified category
   ///
   template<typename Function>
-    requires(std::is_invocable_v<Function, const std::string_view, const category>)
+    requires(std::is_invocable_v<Function, const std::string_view, const std::size_t, const category>)
   static constexpr auto for_each_char(std::string_view string_view, Function&& function) -> void;
+
+  ///
+  /// Calls function for each char in string_view. The char is classified to a category and passed to the function.
+  /// \param string_view String view to iterate over
+  /// \param function Function to call for each char of specified category
+  ///
+  template<typename Function>
+    requires(std::is_invocable_r_v<bool, Function, const std::string_view, const std::size_t, const category>)
+  static constexpr auto for_each_char_while(std::string_view string_view, Function&& function) -> void;
 
 private: // Constants
   static constexpr std::string_view log_channel = "txt::chars";
@@ -149,6 +179,7 @@ constexpr auto chars::is_char(const std::string_view string_view, const std::siz
   {
     switch(char_category)
     {
+    case category::letter: return contains(letters, string_view, index);
     case category::whitespace: return contains(whitespaces, string_view, index);
     case category::line: return contains(lines, string_view, index);
     case category::digit: return is_digit_impl(string_view, index);
@@ -178,7 +209,8 @@ constexpr auto chars::contains(const T& chars, const std::string_view string_vie
       {
         const auto size = std::min(e.size(), string_size - index);
         return util::make_substring_view(string_view, index, size) == e;
-      });
+      }
+    );
     return iter != std::ranges::cend(chars) ? std::make_optional(*iter) : std::nullopt;
   }
   else
@@ -192,6 +224,7 @@ constexpr auto chars::contains(const T& chars, const std::string_view string_vie
 constexpr auto chars::char_info(std::string_view string_view, std::size_t index) -> std::optional<char_data>
 {
   // clang-format off
+  if(const auto result = is_char(string_view, index, category::letter); result) { return char_data{category::letter, result->size()}; }
   if(const auto result = is_char(string_view, index, category::whitespace); result) { return char_data{category::whitespace, result->size()}; }
   if(const auto result = is_char(string_view, index, category::line); result) { return char_data{category::line, result->size()}; }
   if(const auto result = is_char(string_view, index, category::digit); result) { return char_data{category::digit, result->size()}; }
@@ -203,7 +236,7 @@ constexpr auto chars::char_info(std::string_view string_view, std::size_t index)
 ///
 ///
 template<typename Function>
-  requires(std::is_invocable_v<Function, const std::string_view, const chars::category>)
+  requires(std::is_invocable_v<Function, const std::string_view, const std::size_t, const chars::category>)
 constexpr auto chars::for_each_char(const std::string_view string_view, Function&& function) -> void
 {
   auto counter = std::size_t{0};
@@ -215,7 +248,7 @@ constexpr auto chars::for_each_char(const std::string_view string_view, Function
       const auto data = char_info(string_view, counter);
       if(data)
       {
-        function(string_view.substr(counter, data->char_size), data->char_category);
+        function(string_view.substr(counter, data->char_size), counter, data->char_category);
         counter += data->char_size;
       }
       else
@@ -223,7 +256,41 @@ constexpr auto chars::for_each_char(const std::string_view string_view, Function
         LOG_ERROR(log_channel, "Error getting char info: char=\'{}\'", string_view.at(counter));
         ++counter;
       }
-    });
+    }
+  );
+}
+
+///
+///
+template<typename Function>
+  requires(std::is_invocable_r_v<bool, Function, const std::string_view, const std::size_t, const chars::category>)
+constexpr auto chars::for_each_char_while(const std::string_view string_view, Function&& function) -> void
+{
+  auto counter = std::size_t{0};
+  std::ranges::for_each(
+    std::views::iota(std::size_t{0}, string_view.size()) |
+      std::views::take_while([&](const auto i) { return counter < string_view.size(); }),
+    [&]([[maybe_unused]] const auto)
+    {
+      const auto data = char_info(string_view, counter);
+      if(data)
+      {
+        if(function(string_view.substr(counter, data->char_size), counter, data->char_category))
+        {
+          counter += data->char_size;
+        }
+        else
+        {
+          counter = string_view.size();
+        }
+      }
+      else
+      {
+        LOG_ERROR(log_channel, "Error getting char info: char=\'{}\'", string_view.at(counter));
+        ++counter;
+      }
+    }
+  );
 }
 
 ///

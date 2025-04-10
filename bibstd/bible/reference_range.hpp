@@ -45,3 +45,14 @@ private: // Variables
 };
 
 } // namespace bibstd::bible
+
+///
+///
+template<>
+struct std::formatter<bibstd::bible::reference_range> : std::formatter<bibstd::bible::reference>
+{
+  auto format(const bibstd::bible::reference_range e, std::format_context& ctx) const
+  {
+    return formatter<std::string>::format(std::format("{} - {}", e.begin(), e.end()), ctx);
+  }
+};

@@ -20,8 +20,8 @@ class property_tree final : public std::enable_shared_from_this<property_tree>
 {
 public: // Typedefs
   using sptr_type = std::shared_ptr<property_tree>;
-  using tree_type = basic_property_tree_type;
-  using path_type = basic_property_path_type;
+  using tree_type = property_tree_type;
+  using path_type = property_path_type;
 
 public: // Constants
   static constexpr std::string_view log_channel = "property_tree";
@@ -49,28 +49,29 @@ public: // Modifiers
   /// \return the newly created property
   ///
   template<typename T>
-  [[nodiscard]] auto create_property(const basic_property_path_type& path, T&& default_value) -> property<T>;
+  [[nodiscard]] auto create_property(const property_path_type& path, T&& default_value) -> property<T>;
 
 private: // Variables
   inline static std::mutex trees_mtx_{};
   inline static std::vector<std::weak_ptr<property_tree>> trees_{};
   mutable std::mutex mtx_;
   std::filesystem::path tree_file_path_;
-  basic_property_tree_type tree_;
+  property_tree_type tree_;
 };
 
 ///
 ///
 template<typename T>
-auto property_tree::create_property(const basic_property_path_type& path, T&& default_value) -> property<T>
+auto property_tree::create_property(const property_path_type& path, T&& default_value) -> property<T>
 {
   const auto lock = std::lock_guard(mtx_);
   if(path.empty())
   {
-    THROW_EXCEPTION(exception("Register property failed: empty path"));
+    THROW_EXCEPTION(exception("register property failed: empty path"));
   }
-  auto prop = property<T>(property_parser::read(path, tree_, std::forward<decltype(default_value)>(default_value)));
-  prop.property_tree_update_ = [sptr = shared_from_this(), path](const T& value) { property_parser::write(path, sptr->tree_, value); };
+  auto prop = property<T>(property_parser::read<T>(path, tree_).value_or(std::forward<decltype(default_value)>(default_value)));
+  prop.property_tree_update_ = [sptr = shared_from_this(), path](const T& value)
+  { property_parser::write(path, sptr->tree_, value); };
   prop.property_tree_update_(prop.value());
   return prop;
 }

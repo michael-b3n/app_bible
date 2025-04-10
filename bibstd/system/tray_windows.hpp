@@ -1,6 +1,7 @@
 #pragma once
 
 #include "app_framework/active_worker.hpp"
+#include "app_framework/thread_pool.hpp"
 #include "system/tray_base.hpp"
 #include "util/log.hpp"
 #include "util/string.hpp"
@@ -23,10 +24,6 @@ namespace bibstd::system
 ///
 class tray final : public tray_base
 {
-public: // Typedefs
-#include BOOST_PP_UPDATE_COUNTER()
-  using active_worker_type = app_framework::active_worker<BOOST_PP_COUNTER>;
-
 public: // Static modifiers
   static inline auto init(icon_buffer icon, std::vector<entry_type>&& entries) -> util::scoped_guard;
 
@@ -34,6 +31,7 @@ private: // Static helpers
   static auto get_message() -> void;
 
 private:
+  inline static std::unique_ptr<app_framework::active_worker> worker_{};
   inline static std::unique_ptr<Tray::Tray> tray_{nullptr};
   inline static std::map<int, std::function<void()>> callback_map_{};
 };
@@ -42,15 +40,18 @@ private:
 ///
 inline auto tray::init(const icon_buffer icon, std::vector<entry_type>&& entries) -> util::scoped_guard
 {
-  decltype(auto) worker_guard = active_worker_type::start(
-    [icon, entries]()
+  worker_ = std::make_unique<app_framework::active_worker>();
+  std::promise<void> promise{};
+  auto future = promise.get_future();
+  worker_->queue_task(
+    [&]
     {
       const auto void_callback_wrapper = [](const auto& callback)
       {
         return [callback]()
         {
           auto f = callback;
-          app_framework::active_worker_main::run_task(std::move(f));
+          app_framework::thread_pool::queue_task(std::move(f));
         };
       };
       const auto toggle_callback_wrapper = [](const auto& callback)
@@ -58,7 +59,7 @@ inline auto tray::init(const icon_buffer icon, std::vector<entry_type>&& entries
         return [callback](bool flag)
         {
           auto f = callback(flag);
-          app_framework::active_worker_main::run_task(std::move(f));
+          app_framework::thread_pool::queue_task(std::move(f));
         };
       };
       tray_ = std::make_unique<Tray::Tray>("system_tray_identifier", Tray::Icon(icon.buffer));
@@ -84,18 +85,28 @@ inline auto tray::init(const icon_buffer icon, std::vector<entry_type>&& entries
                     [&](const button& v) { submenu_sptr->addEntry(Tray::Button(v.text, void_callback_wrapper(v.callback))); },
                     [&](const label& v) { submenu_sptr->addEntry(Tray::Label(v.text)); },
                     [&](const separator& v) { submenu_sptr->addEntry(Tray::Separator()); },
-                    [&](const toggle& v) { submenu_sptr->addEntry(Tray::Toggle(v.text, v.state, toggle_callback_wrapper(v.callback))); });
-                });
-            });
-        });
-      active_worker_type::queue_task(get_message);
-    });
+                    [&](const toggle& v)
+                    { submenu_sptr->addEntry(Tray::Toggle(v.text, v.state, toggle_callback_wrapper(v.callback))); }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
+      promise.set_value();
+      worker_->queue_task(get_message);
+    }
+  );
+  future.get();
   return util::scoped_guard(
-    [guard = std::move(worker_guard)]()
+    []()
     {
       tray_->exit();
       tray_.reset();
-    });
+      worker_.reset();
+    }
+  );
 }
 
 ///
@@ -115,7 +126,7 @@ auto tray::get_message() -> void
       TranslateMessage(&msg);
       DispatchMessage(&msg);
     }
-    active_worker_type::queue_task(get_message);
+    worker_->queue_task(get_message);
   }
 }
 

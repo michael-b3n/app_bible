@@ -46,8 +46,11 @@ auto task_queue::try_do_task() -> void
     auto task = std::move(task_queue_.front());
     task_queue_.pop();
     queue_lock.unlock();
-    const auto task_lock = std::lock_guard(task_mtx_);
-    task();
+    if(task)
+    {
+      const auto task_lock = std::lock_guard(task_mtx_);
+      task();
+    }
   }
 }
 

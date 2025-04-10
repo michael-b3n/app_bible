@@ -33,7 +33,7 @@ public: // Accessor
   /// Get property value.
   /// \return value of property
   ///
-  auto value() -> value_type;
+  auto value() const -> value_type;
 
 public: // Modifiers
   ///
@@ -119,7 +119,7 @@ auto property<T>::operator==(const property<value_type>& other) const -> bool
 ///
 ///
 template<typename T>
-auto property<T>::value() -> value_type
+auto property<T>::value() const -> value_type
 {
   const auto lock = std::lock_guard(mtx_);
   return value_;

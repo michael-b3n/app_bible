@@ -259,7 +259,7 @@ constexpr auto arithmetic::clamp(expected_type<T> value) -> std::optional<T>
     case error_code::overflow: return std::numeric_limits<T>::max();
     case error_code::underflow: return std::numeric_limits<T>::lowest();
     case error_code::undefined: return std::nullopt;
-    default: THROW_EXCEPTION(util::exception("Unknown error code")); return T{0};
+    default: THROW_EXCEPTION(util::exception("unknown error code")); return T{0};
     }
   }
 }

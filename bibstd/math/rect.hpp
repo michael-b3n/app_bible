@@ -3,6 +3,7 @@
 #include "math/arithmetic.hpp"
 #include "math/coordinates.hpp"
 #include "math/value_range.hpp"
+#include "util/boost_numeric_cast.hpp"
 #include "util/enum.hpp"
 
 #include <cassert>
@@ -13,6 +14,8 @@ namespace bibstd::math
 
 ///
 /// Rectangle in a 2D plane on basis of an arithmetic value type.
+/// Horizontal and vertical range definition for integer types: `[begin, end)`
+/// Horizontal and vertical range definition for floating point: `[begin, end]`
 ///
 template<arithmetic_type ValueType>
 class rect final
@@ -28,7 +31,8 @@ public: // Static functions
   /// \param second Second rectangle
   /// \return the overlap of two rectangles as a rectangle
   ///
-  static constexpr auto overlap(const rect<value_type>& first, const rect<value_type>& second) -> std::optional<rect<value_type>>;
+  static constexpr auto overlap(const rect<value_type>& first, const rect<value_type>& second)
+    -> std::optional<rect<value_type>>;
 
   ///
   /// Check if subrectangle is contained by another rectangle.
@@ -38,7 +42,16 @@ public: // Static functions
   ///
   static constexpr auto contains(const rect<value_type>& rectangle, const rect<value_type>& subrectangle) -> bool;
 
+  ///
+  /// Check if coordinates are contained by another rectangle.
+  /// \param rectangle Rectangle
+  /// \param coordinates Coordinates that shall be checked
+  /// \return true if coordinates are contained in rectangle, false otherwise
+  ///
+  static constexpr auto contains(const rect<value_type>& rectangle, const coordinates_type& coordinates) -> bool;
+
 public: // Constructors
+  constexpr rect(coordinates_type origin, value_type width, value_type height);
   constexpr rect(coordinates_type first, coordinates_type second);
 
 public: // Operators
@@ -67,45 +80,35 @@ public: // Accessors
   /// Get the lower left coordinates of the rectangle.
   /// \return coordinates at lower left position
   ///
-  constexpr auto left_lower_coordinates() const -> coordinates_type;
+  constexpr auto origin() const -> coordinates_type;
 
   ///
-  /// Get the lower right coordinates of the rectangle.
-  /// \return coordinates at lower right position
+  /// Get the center coordinates of the rectangle.
+  /// If there is no exact center, the closest lower left coordinates are returned.
+  /// \return center coordinates
   ///
-  constexpr auto right_lower_coordinates() const -> coordinates_type;
-
-  ///
-  /// Get the upper left coordinates of the rectangle.
-  /// \return coordinates at upper left position
-  ///
-  constexpr auto left_upper_coordinates() const -> coordinates_type;
-
-  ///
-  /// Get the upper right coordinates of the rectangle.
-  /// \return coordinates at upper right position
-  ///
-  constexpr auto right_upper_coordinates() const -> coordinates_type;
+  constexpr auto center() const -> coordinates_type;
 
 private: // Variables
-  coordinates_type left_lower_coord_;
-  coordinates_type right_upper_coord_;
+  value_range<value_type> horizontal_range_;
+  value_range<value_type> vertical_range_;
 };
 
 ///
 ///
 template<arithmetic_type ValueType>
-constexpr auto rect<ValueType>::overlap(const rect<value_type>& first, const rect<value_type>& second) -> std::optional<rect<value_type>>
+constexpr auto rect<ValueType>::overlap(const rect<value_type>& first, const rect<value_type>& second)
+  -> std::optional<rect<value_type>>
 {
-  const auto first_x_range = value_range<value_type>(first.left_lower_coordinates().axis_value(0), first.right_lower_coordinates().axis_value(0));
-  const auto first_y_range = value_range<value_type>(first.left_lower_coordinates().axis_value(1), first.left_upper_coordinates().axis_value(1));
-  const auto second_x_range = value_range<value_type>(second.left_lower_coordinates().axis_value(0), second.right_lower_coordinates().axis_value(0));
-  const auto second_y_range = value_range<value_type>(second.left_lower_coordinates().axis_value(1), second.left_upper_coordinates().axis_value(1));
-  const auto x_overlap = value_range<value_type>::overlap(first_x_range, second_x_range);
-  const auto y_overlap = value_range<value_type>::overlap(first_y_range, second_y_range);
+  const auto x_overlap = value_range<value_type>::overlap(first.horizontal_range_, second.horizontal_range_);
+  const auto y_overlap = value_range<value_type>::overlap(first.vertical_range_, second.vertical_range_);
   if(x_overlap && y_overlap)
   {
-    return rect<value_type>(coordinates_type(x_overlap->from, y_overlap->from), coordinates_type(x_overlap->to, y_overlap->to));
+    return rect<value_type>(
+      coordinates_type(x_overlap->begin, y_overlap->begin),
+      value_range<value_type>::size(*x_overlap),
+      value_range<value_type>::size(*y_overlap)
+    );
   }
   return std::nullopt;
 }
@@ -115,29 +118,64 @@ constexpr auto rect<ValueType>::overlap(const rect<value_type>& first, const rec
 template<arithmetic_type ValueType>
 constexpr auto rect<ValueType>::contains(const rect<value_type>& rectangle, const rect<value_type>& subrectangle) -> bool
 {
-  const auto left_lower_contained = rectangle.left_lower_coordinates().axis_value(0) <= subrectangle.left_lower_coordinates().axis_value(0) &&
-                                    rectangle.left_lower_coordinates().axis_value(1) <= subrectangle.left_lower_coordinates().axis_value(1);
-  const auto right_upper_contained = rectangle.right_upper_coordinates().axis_value(0) >= subrectangle.right_upper_coordinates().axis_value(0) &&
-                                     rectangle.right_upper_coordinates().axis_value(1) >= subrectangle.right_upper_coordinates().axis_value(1);
-  return left_lower_contained && right_upper_contained;
+  const auto x_contains = value_range<value_type>::contains(rectangle.horizontal_range_, subrectangle.horizontal_range_);
+  const auto y_contains = value_range<value_type>::contains(rectangle.vertical_range_, subrectangle.vertical_range_);
+  return x_contains && y_contains;
 }
 
 ///
 ///
 template<arithmetic_type ValueType>
-constexpr rect<ValueType>::rect(coordinates_type first, coordinates_type second)
-  : left_lower_coord_{std::min(first.axis_value(0), second.axis_value(0)), std::min(first.axis_value(1), second.axis_value(1))}
-  , right_upper_coord_{std::max(first.axis_value(0), second.axis_value(0)), std::max(first.axis_value(1), second.axis_value(1))}
+constexpr auto rect<ValueType>::contains(const rect<value_type>& rectangle, const coordinates_type& coordinates) -> bool
 {
-  const auto x1 = left_lower_coord_.axis_value(0);
-  const auto x2 = right_upper_coord_.axis_value(0);
-  const auto y1 = left_lower_coord_.axis_value(1);
-  const auto y2 = right_upper_coord_.axis_value(1);
-  const auto area = arithmetic::multiply(arithmetic::subtract(x2, x1), arithmetic::subtract(y2, y1));
-  if(!area.has_value())
+  const auto x_contains = value_range<value_type>::contains(rectangle.horizontal_range_, coordinates.x());
+  const auto y_contains = value_range<value_type>::contains(rectangle.vertical_range_, coordinates.y());
+  return x_contains && y_contains;
+}
+
+///
+///
+template<arithmetic_type ValueType>
+constexpr rect<ValueType>::rect(const coordinates_type origin, const value_type width, const value_type height)
+  : horizontal_range_{origin.x(), arithmetic::add(origin.x(), width).value_or(0)}
+  , vertical_range_{origin.y(), arithmetic::add(origin.y(), height).value_or(0)}
+{
+  const auto area =
+    arithmetic::multiply(value_range<value_type>::size(horizontal_range_), value_range<value_type>::size(vertical_range_));
+  if(!area.has_value() || !math::is_equal(area.value(), math::arithmetic::multiply(width, height)))
   {
-    THROW_EXCEPTION(util::exception(std::format("Invalid rect size: {}", util::to_string_view(area.error()))));
+    THROW_EXCEPTION(util::exception(std::format("invalid rect size: {}", util::to_string_view(area.error()))));
   }
+}
+
+///
+///
+template<arithmetic_type ValueType>
+constexpr rect<ValueType>::rect(const coordinates_type first, const coordinates_type second)
+  : horizontal_range_{ // clang-format off
+      [&]
+      {
+        const auto min_x = std::min(first.x(), second.x());
+        const auto max_x = arithmetic::add(std::max(first.x(), second.x()), value_type{1});
+        if(!max_x.has_value())
+        {
+          THROW_EXCEPTION(util::exception(std::format("invalid max width: {}", util::to_string_view(max_x.error()))));
+        }
+        return value_range<value_type>(min_x, max_x.value());
+      }()}
+  , vertical_range_{
+      [&]
+      {
+        const auto min_y = std::min(first.y(), second.y());
+        const auto max_y = arithmetic::add(std::max(first.y(), second.y()), value_type{1});
+        if(!max_y.has_value())
+        {
+          THROW_EXCEPTION(util::exception(std::format("invalid max height: {}", util::to_string_view(max_y.error()))));
+        }
+        return value_range<value_type>(min_y, max_y.value());
+      }()
+    } // clang-format on
+{
 }
 
 ///
@@ -145,10 +183,7 @@ constexpr rect<ValueType>::rect(coordinates_type first, coordinates_type second)
 template<arithmetic_type ValueType>
 constexpr auto rect<ValueType>::horizontal_range() const -> value_type
 {
-  const auto x1 = left_lower_coord_.axis_value(0);
-  const auto x2 = right_upper_coord_.axis_value(0);
-  assert(x2 >= x1);
-  return x2 - x1;
+  return value_range<value_type>::size(horizontal_range_);
 }
 
 ///
@@ -156,10 +191,7 @@ constexpr auto rect<ValueType>::horizontal_range() const -> value_type
 template<arithmetic_type ValueType>
 constexpr auto rect<ValueType>::vertical_range() const -> value_type
 {
-  const auto y1 = left_lower_coord_.axis_value(1);
-  const auto y2 = right_upper_coord_.axis_value(1);
-  assert(y2 >= y1);
-  return y2 - y1;
+  return value_range<value_type>::size(vertical_range_);
 }
 
 ///
@@ -173,33 +205,21 @@ constexpr auto rect<ValueType>::area() const -> value_type
 ///
 ///
 template<arithmetic_type ValueType>
-constexpr auto rect<ValueType>::left_lower_coordinates() const -> coordinates_type
+constexpr auto rect<ValueType>::origin() const -> coordinates_type
 {
-  return left_lower_coord_;
+  return coordinates_type{horizontal_range_.begin, vertical_range_.begin};
 }
 
 ///
 ///
 template<arithmetic_type ValueType>
-constexpr auto rect<ValueType>::right_lower_coordinates() const -> coordinates_type
+constexpr auto rect<ValueType>::center() const -> coordinates_type
 {
-  return coordinates_type{right_upper_coord_.axis_value(0), left_lower_coord_.axis_value(1)};
-}
-
-///
-///
-template<arithmetic_type ValueType>
-constexpr auto rect<ValueType>::left_upper_coordinates() const -> coordinates_type
-{
-  return coordinates_type{left_lower_coord_.axis_value(0), right_upper_coord_.axis_value(1)};
-}
-
-///
-///
-template<arithmetic_type ValueType>
-constexpr auto rect<ValueType>::right_upper_coordinates() const -> coordinates_type
-{
-  return right_upper_coord_;
+  const auto horizontal_size = value_range<value_type>::size(horizontal_range_);
+  const auto horizontal_offset = boost::numeric_cast<value_type>(horizontal_size / decltype(horizontal_size){2});
+  const auto vertical_size = value_range<value_type>::size(vertical_range_);
+  const auto vertical_offset = boost::numeric_cast<value_type>(vertical_size / decltype(vertical_size){2});
+  return coordinates_type{horizontal_range_.begin + horizontal_offset, vertical_range_.begin + vertical_offset};
 }
 
 } // namespace bibstd::math

@@ -2,7 +2,7 @@
 Language: Cpp
 BasedOnStyle:  LLVM
 AccessModifierOffset: -2
-AlignAfterOpenBracket: AlwaysBreak
+AlignAfterOpenBracket: BlockIndent
 AlignArrayOfStructures: Right
 AlignConsecutiveAssignments: false
 AlignConsecutiveBitFields: false
@@ -14,10 +14,10 @@ AlignTrailingComments: true
 AllowAllArgumentsOnNextLine: true
 AllowAllConstructorInitializersOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
-AllowShortBlocksOnASingleLine: Always
+AllowShortBlocksOnASingleLine: Empty
 AllowShortCaseLabelsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: InlineOnly
-AllowShortIfStatementsOnASingleLine: Never
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 AllowShortEnumsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AllowShortLambdasOnASingleLine: All
@@ -112,8 +112,8 @@ PPIndentWidth: -1
 PackConstructorInitializers: Never
 PenaltyBreakAssignment: 2
 PenaltyBreakBeforeFirstCallParameter: 30
-PenaltyBreakComment: 300
-PenaltyBreakFirstLessLess: 120
+PenaltyBreakComment: 120
+PenaltyBreakFirstLessLess: 100
 PenaltyBreakString: 10000
 PenaltyBreakTemplateDeclaration: 10
 PenaltyBreakOpenParenthesis: 60

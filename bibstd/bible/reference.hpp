@@ -12,17 +12,16 @@ namespace bibstd::bible
 ///
 class reference final
 {
-protected: // Typedefs
+public: // Typedefs
   template<typename T>
-  struct typesafe_number_template
+  struct __typesafe_number_template final
   {
     std::uint32_t value;
-    constexpr auto operator<=>(const typesafe_number_template<T>&) const = default;
+    constexpr auto operator<=>(const __typesafe_number_template<T>&) const = default;
   };
 
-public: // Typedefs
-  using chapter_type = typesafe_number_template<struct chapter_tag>;
-  using verse_type = typesafe_number_template<struct verse_tag>;
+  using chapter_type = __typesafe_number_template<struct chapter_tag>;
+  using verse_type = __typesafe_number_template<struct verse_tag>;
 
 public: // Static constructor
   ///
@@ -76,3 +75,27 @@ auto reference::create(const book_id book, const C chapter, const V verse) -> st
 }
 
 } // namespace bibstd::bible
+
+///
+///
+template<typename T>
+struct std::formatter<bibstd::bible::reference::__typesafe_number_template<T>> : std::formatter<std::string>
+{
+  auto format(const bibstd::bible::reference::__typesafe_number_template<T> e, std::format_context& ctx) const
+  {
+    return formatter<std::string>::format(std::format("{}", e.value), ctx);
+  }
+};
+
+///
+///
+template<>
+struct std::formatter<bibstd::bible::reference> : std::formatter<std::string>
+{
+  auto format(const bibstd::bible::reference e, std::format_context& ctx) const
+  {
+    return formatter<std::string>::format(
+      std::format("{} {}, {}", bibstd::util::to_string_view(e.book()), e.chapter(), e.verse()), ctx
+    );
+  }
+};

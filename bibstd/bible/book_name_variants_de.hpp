@@ -1,12 +1,15 @@
 #pragma once
 
 #include "bible/common.hpp"
-#include "util/string_view.hpp"
+#include "util/const_bimap.hpp"
+#include "util/enum.hpp"
+#include "util/string.hpp"
 
 #include <algorithm>
 #include <array>
 #include <ranges>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 
 namespace bibstd::bible
@@ -15,24 +18,28 @@ namespace bibstd::bible
 ///
 /// Holds all german bible book name variants corresponding to book id.
 ///
-struct book_name_variants_de final
+class book_name_variants_de final
 {
-  // Constants
+private: // Typedefs
+  using book_name_type = std::pair<book_id, std::string_view>;
+
+public: // Constants
   ///
   /// All german bible book name variants listed with corresponding book id.
+  /// Whitespaces and chars other than letters and digits are ignored.
   ///
+  // clang-format off
   static constexpr auto name_variants = std::tuple{
-    // clang-format off
-    std::pair{        book_id::genesis,                        util::to_array("1.Mose", "1Mose", "Genesis", "Gen")},
-    std::pair{         book_id::exodus,                          util::to_array("2.Mose", "2Mose", "Exodus", "Ex")},
-    std::pair{      book_id::leviticus,                      util::to_array("3.Mose", "3Mose", "Levitikus", "Lev")},
-    std::pair{        book_id::numbers,                         util::to_array("4.Mose", "4Mose", "Numeri", "Num")},
-    std::pair{    book_id::deuteronomy,                  util::to_array("5.Mose", "5Mose", "Deuteronomium", "Dtn")},
+    std::pair{        book_id::genesis,                                  util::to_array("1Mose", "Genesis", "Gen")},
+    std::pair{         book_id::exodus,                                    util::to_array("2Mose", "Exodus", "Ex")},
+    std::pair{      book_id::leviticus,                                util::to_array("3Mose", "Levitikus", "Lev")},
+    std::pair{        book_id::numbers,                                   util::to_array("4Mose", "Numeri", "Num")},
+    std::pair{    book_id::deuteronomy,                            util::to_array("5Mose", "Deuteronomium", "Dtn")},
     std::pair{         book_id::joshua,                                             util::to_array("Josua", "Jos")},
     std::pair{         book_id::judges,                                            util::to_array("Richter", "Ri")},
     std::pair{           book_id::ruth,                                                      util::to_array("Rut")},
-    std::pair{        book_id::samuel1,                     util::to_array("1.Samuel", "1Samuel", "1.Sam", "1Sam")},
-    std::pair{        book_id::samuel2,                     util::to_array("2.Samuel", "2Samuel", "2.Sam", "2Sam")},
+    std::pair{        book_id::samuel1,                                          util::to_array("1Samuel", "1Sam")},
+    std::pair{        book_id::samuel2,                                          util::to_array("2Samuel", "2Sam")},
     std::pair{         book_id::kings1,                     util::to_array("1.Könige", "1Könige", "1.Kön", "1Kön")},
     std::pair{         book_id::kings2,                     util::to_array("2.Könige", "2Könige", "2.Kön", "2Kön")},
     std::pair{    book_id::chronicles1,                   util::to_array("1.Chronik", "1Chronik", "1.Chr", "1Chr")},
@@ -89,8 +96,81 @@ struct book_name_variants_de final
     std::pair{          book_id::john3,                 util::to_array("3.Johannes", "3Johannes", "3.Joh", "3Joh")},
     std::pair{           book_id::jude,                                             util::to_array("Judas", "Jud")},
     std::pair{     book_id::revelation,                                      util::to_array("Offenbarung", "Offb")}
-    // clang-format on
   };
+  // clang-format on
+  static_assert(std::tuple_size_v<decltype(name_variants)> == util::to_integral(book_id::END));
+
+  // clang-format off
+  static constexpr auto pretty_names = util::const_bimap(
+    book_name_type{book_id::genesis,            "1.Mose"},
+    book_name_type{book_id::exodus,             "2.Mose"},
+    book_name_type{book_id::leviticus,          "3.Mose"},
+    book_name_type{book_id::numbers,            "4.Mose"},
+    book_name_type{book_id::deuteronomy,        "5.Mose"},
+    book_name_type{book_id::joshua,             "Josua"},
+    book_name_type{book_id::judges,             "Richter"},
+    book_name_type{book_id::ruth,               "Rut"},
+    book_name_type{book_id::samuel1,            "1.Samuel"},
+    book_name_type{book_id::samuel2,            "2.Samuel"},
+    book_name_type{book_id::kings1,             "1.Könige"},
+    book_name_type{book_id::kings2,             "2.Könige"},
+    book_name_type{book_id::chronicles1,        "1.Chronik"},
+    book_name_type{book_id::chronicles2,        "2.Chronik"},
+    book_name_type{book_id::ezra,               "Esra"},
+    book_name_type{book_id::nehemiah,           "Nehemia"},
+    book_name_type{book_id::esther,             "Ester"},
+    book_name_type{book_id::job,                "Hiob"},
+    book_name_type{book_id::psalms,             "Psalm"},
+    book_name_type{book_id::proverbs,           "Sprüche"},
+    book_name_type{book_id::ecclesiastes,       "Prediger"},
+    book_name_type{book_id::song_of_solomon,    "Hoheslied"},
+    book_name_type{book_id::isaiah,             "Jesaja"},
+    book_name_type{book_id::jeremiah,           "Jeremia"},
+    book_name_type{book_id::lamentations,       "Klagelieder"},
+    book_name_type{book_id::ezekiel,            "Hesekiel"},
+    book_name_type{book_id::daniel,             "Daniel"},
+    book_name_type{book_id::hosea,              "Hosea"},
+    book_name_type{book_id::joel,               "Joel"},
+    book_name_type{book_id::amos,               "Amos"},
+    book_name_type{book_id::obadiah,            "Obadja"},
+    book_name_type{book_id::jonah,              "Jona"},
+    book_name_type{book_id::micah,              "Micha"},
+    book_name_type{book_id::nahum,              "Nahum"},
+    book_name_type{book_id::habakkuk,           "Habakuk"},
+    book_name_type{book_id::zephaniah,          "Zefanja"},
+    book_name_type{book_id::haggai,             "Haggai"},
+    book_name_type{book_id::zechariah,          "Sacharja"},
+    book_name_type{book_id::malachi,            "Maleachi"},
+    book_name_type{book_id::matthew,            "Matthäus"},
+    book_name_type{book_id::mark,               "Markus"},
+    book_name_type{book_id::luke,               "Lukas"},
+    book_name_type{book_id::john,               "Johannes"},
+    book_name_type{book_id::acts,               "Apostelgeschichte"},
+    book_name_type{book_id::romans,             "Römer"},
+    book_name_type{book_id::corinthians1,       "1.Korinther"},
+    book_name_type{book_id::corinthians2,       "2.Korinther"},
+    book_name_type{book_id::galatians,          "Galater"},
+    book_name_type{book_id::ephesians,          "Epheser"},
+    book_name_type{book_id::philippians,        "Philipper"},
+    book_name_type{book_id::colossians,         "Kolosser"},
+    book_name_type{book_id::thessalonians1,     "1.Thessalonicher"},
+    book_name_type{book_id::thessalonians2,     "2.Thessalonicher"},
+    book_name_type{book_id::timothy1,           "1.Timotheus"},
+    book_name_type{book_id::timothy2,           "2.Timotheus"},
+    book_name_type{book_id::titus,              "Titus"},
+    book_name_type{book_id::philemon,           "Philemon"},
+    book_name_type{book_id::hebrews,            "Hebräer"},
+    book_name_type{book_id::james,              "Jakobus"},
+    book_name_type{book_id::peter1,             "1.Petrus"},
+    book_name_type{book_id::peter2,             "2.Petrus"},
+    book_name_type{book_id::john1,              "1.Johannes"},
+    book_name_type{book_id::john2,              "2.Johannes"},
+    book_name_type{book_id::john3,              "3.Johannes"},
+    book_name_type{book_id::jude,               "Judas"},
+    book_name_type{book_id::revelation,         "Offenbarung"}
+  );
+  // clang-format on
+  static_assert(pretty_names.size() == util::to_integral(book_id::END));
 
   ///
   /// Concatenated list of all bible book name variants.
@@ -103,7 +183,9 @@ struct book_name_variants_de final
       constexpr auto size = std::tuple_size_v<decltype(element.second)>;
       std::array<std::pair<book_id, std::string_view>, size> result;
       std::ranges::for_each(
-        std::views::iota(decltype(size){0}, size), [&](const auto i) { result.at(i) = std::pair{element.first, element.second.at(i)}; });
+        std::views::iota(decltype(size){0}, size),
+        [&](const auto i) { result.at(i) = std::pair{element.first, element.second.at(i)}; }
+      );
       return result;
     };
     constexpr auto to_array = [](auto&& tuple)
@@ -112,7 +194,9 @@ struct book_name_variants_de final
       return std::apply(get_array, std::forward<decltype(tuple)>(tuple));
     };
     return [&]<std::size_t... I>(std::index_sequence<I...>)
-    { return to_array(std::tuple_cat(get.template operator()<I>()...)); }(std::make_index_sequence<std::tuple_size_v<decltype(name_variants)>>{});
+    {
+      return to_array(std::tuple_cat(get.template operator()<I>()...));
+    }(std::make_index_sequence<std::tuple_size_v<decltype(name_variants)>>{});
   }();
 };
 

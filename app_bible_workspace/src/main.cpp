@@ -2,19 +2,26 @@
 /// Main file.
 ///
 
+#include <app_framework/active_worker.hpp>
+#include <app_framework/main_loop.hpp>
 #include <system/filesystem.hpp>
+#include <system/hotkey.hpp>
+#include <system/tray.hpp>
 #include <util/date.hpp>
+#include <util/incbin.hpp>
 #include <util/log.hpp>
-#include <util/string_view.hpp>
+#include <util/string.hpp>
 
-#include <bible/bible_book_name_variants_de.hpp>
-#include <io/key_input_handler.hpp>
-#include <util/exception.hpp>
+#include <workflow/workflow_bible_reference_ocr.hpp>
 
 #include <filesystem>
 #include <format>
 
-#include <webui.hpp>
+INC_RESOURCE(icon, "res/icon.ico");
+const auto icon_view = bibstd::util::incbin::to_span<std::byte>(res_icon_data, res_icon_size);
+
+INC_RESOURCE(main_html, "html/main.html");
+const auto main_html_view = bibstd::util::incbin::to_string_view(res_main_html_data, res_main_html_size);
 
 ///
 /// Main function.
@@ -24,30 +31,37 @@ int main()
   const auto logger = bibstd::util::logger();
   LOG_INFO("main", "Executable: {}", bibstd::system::filesystem::executable_location().string());
 
-  try
-  {
-    THROW_EXCEPTION(bibstd::util::exception("test_error"));
-  }
-  catch(bibstd::util::exception& ex)
-  {
-    LOG_ERROR("main", "test exception: {}", ex.what());
-  }
+  // Init backend
+  auto workflow_reference_finder = bibstd::workflow::workflow_bible_reference_ocr(bibstd::workflow::workflow_bible_reference_ocr::language::de);
 
-  // auto key_input = bibstd::io::key_input_handler();
-  // key_input.register_global_key(
-  //   0x46, bibstd::io::key_input_handler::key_modifier::alt, []() { bibstd::util::log_debug("PRESSED!"); });
-  [[maybe_unused]] constexpr auto name_variant_list = bibstd::bible::bible_book_name_variants_de::name_variants_list;
+  // Init settings
+  auto workflow_reference_finder_settings = std::make_shared<bibstd::workflow::workflow_bible_reference_ocr_settings>();
 
-  // Create a new window
-  // webui::window my_window;
+  // Start system hotkey manager.
+  const auto hotkey_guard = bibstd::system::hotkey::init();
+  const auto pool_guard = bibstd::app_framework::thread_pool::init();
 
-  // Show a new window
-  // my_window.show_browser("<html><head><script src=\"webui.js\"></script></head> C++ Hello World ! </html>", NoBrowser);
-  // const auto current_url = my_window.get_url();
-  // std::system(std::format("start microsoft-edge:{}", current_url).data());
+  const auto do_on_exit = [&]() { bibstd::app_framework::main_loop::exit(); };
 
-  // Wait until all windows get closed
-  // webui::wait();
+  // Start system tray.
+  const auto tray_guard = bibstd::system::tray::init(
+    bibstd::system::tray::icon_buffer{icon_view},
+    {
+      bibstd::system::tray::entry_type{bibstd::system::tray::button{"Exit", do_on_exit}},
+      // ...
+    }
+  );
+
+  // Register hotkeys
+  bibstd::system::hotkey::register_callback(
+    bibstd::system::hotkey::key::vk_f,
+    bibstd::system::hotkey::key_modifier::alt,
+    [&]() { workflow_reference_finder.run_once(workflow_reference_finder_settings); }
+  );
+
+  // Enter main loop.
+  bibstd::app_framework::main_loop::run();
+
   LOG_INFO("main", "Exit application: {}", bibstd::util::format_current_time_CET());
-  return 0;
+  return EXIT_SUCCESS;
 }

@@ -48,11 +48,11 @@ property_tree::property_tree(const std::filesystem::path& tree_file_path)
               std::views::filter([](const auto& tree) { return static_cast<bool>(tree); });
   if(contains(view, [&](const auto t) { return t->tree_file_path_ == tree_file_path; }))
   {
-    THROW_EXCEPTION(exception(std::format("Property tree already existing: file={}", tree_file_path.generic_string())));
+    THROW_EXCEPTION(exception(std::format("property_tree already existing: file={}", tree_file_path.generic_string())));
   }
   if(tree_file_path.extension() != std::string_view(".xml"))
   {
-    THROW_EXCEPTION(exception(std::format("Invalid file extension: file={}", tree_file_path.generic_string())));
+    THROW_EXCEPTION(exception(std::format("invalid file extension: file={}", tree_file_path.generic_string())));
   }
   if(!std::filesystem::exists(tree_file_path))
   {

@@ -2,6 +2,7 @@
 
 #include "app_framework/active_worker.hpp"
 #include "app_framework/task_queue.hpp"
+#include "app_framework/thread_pool.hpp"
 #include "system/hotkey_base.hpp"
 #include "system/windows.hpp"
 #include "util/const_bimap.hpp"
@@ -12,6 +13,8 @@
 #include <atomic>
 #include <cassert>
 #include <functional>
+#include <future>
+#include <memory>
 #include <ranges>
 
 namespace bibstd::system
@@ -22,10 +25,6 @@ namespace bibstd::system
 ///
 class hotkey final : public hotkey_base
 {
-public: // Typedefs
-#include BOOST_PP_UPDATE_COUNTER()
-  using active_worker_type = app_framework::active_worker<BOOST_PP_COUNTER>;
-
 public: // Static modifiers
   static inline auto init() -> util::scoped_guard;
   static inline auto register_callback(key key, key_modifier mod, std::function<void()>&& callback) -> void;
@@ -91,7 +90,8 @@ private: // Constants
     std::pair{key::vk_w, 0x57},
     std::pair{key::vk_x, 0x58},
     std::pair{key::vk_y, 0x59},
-    std::pair{key::vk_z, 0x5A});
+    std::pair{key::vk_z, 0x5A}
+  );
 
   static constexpr auto key_modifier_map = util::const_bimap(
     std::pair{key_modifier::alt, MOD_ALT},
@@ -99,7 +99,8 @@ private: // Constants
     std::pair{key_modifier::shift, MOD_SHIFT},
     std::pair{key_modifier::alt_control, MOD_ALT | MOD_CONTROL},
     std::pair{key_modifier::alt_shift, MOD_ALT | MOD_SHIFT},
-    std::pair{key_modifier::control_shift, MOD_CONTROL | MOD_SHIFT});
+    std::pair{key_modifier::control_shift, MOD_CONTROL | MOD_SHIFT}
+  );
 
 private: // Static helpers
   static inline auto next_hotkey_id() -> int;
@@ -107,6 +108,7 @@ private: // Static helpers
   static inline auto message_handler(const MSG& msg) -> void;
 
 private:
+  inline static std::unique_ptr<app_framework::active_worker> worker_{};
   inline static std::atomic_int hotkey_id_{0};
   inline static std::atomic_bool listen_to_msg_{true};
   inline static std::atomic<std::optional<DWORD>> windows_thread_id_{std::nullopt};
@@ -119,20 +121,29 @@ private:
 ///
 inline auto hotkey::init() -> util::scoped_guard
 {
-  decltype(auto) worker_guard = active_worker_type::start(
-    []()
+  worker_ = std::make_unique<app_framework::active_worker>();
+  std::promise<void> promise;
+  auto future = promise.get_future();
+  worker_->queue_task(
+    [&]()
     {
       windows_thread_id_ = GetCurrentThreadId();
-      active_worker_type::queue_task(get_message);
-    });
+      worker_->queue_task(get_message);
+      promise.set_value();
+    }
+  );
+  future.get();
   return util::scoped_guard(
-    [guard = std::move(worker_guard)]()
+    []()
     {
       listen_to_msg_ = false;
-      active_worker_type::run_task(
-        []() { std::ranges::for_each(callback_map_ | std::views::keys, [](const auto id) { UnregisterHotKey(nullptr, id); }); });
+      worker_->queue_task(
+        [&]() { std::ranges::for_each(callback_map_ | std::views::keys, [](const auto id) { UnregisterHotKey(nullptr, id); }); }
+      );
       PostThreadMessage(windows_thread_id_.load().value(), WM_QUIT, 0, 0);
-    });
+      worker_.reset();
+    }
+  );
 }
 
 ///
@@ -148,9 +159,12 @@ inline auto hotkey::register_callback(const key key, const key_modifier mod, std
       id_map_[std::pair{key, mod}] = hotkey_id;
       if(!RegisterHotKey(nullptr, hotkey_id, key_modifier_map.at(mod), key_map.at(key)))
       {
-        LOG_ERROR(log_channel, "Failed to register hotkey: key={}, modifier={}", util::to_integral(mod), util::to_integral(key));
+        LOG_ERROR(
+          log_channel, "Failed to register hotkey: key={}, modifier={}", util::to_integral(mod), util::to_integral(key)
+        );
       }
-    });
+    }
+  );
   PostThreadMessage(windows_thread_id_.load().value(), WM_NULL, 0, 0);
 }
 
@@ -166,7 +180,8 @@ inline auto hotkey::unregister_callback(const key key, const key_modifier mod) -
       UnregisterHotKey(nullptr, key_id);
       id_map_.erase({key, mod});
       callback_map_.erase(key_id);
-    });
+    }
+  );
   PostThreadMessage(windows_thread_id_.load().value(), WM_NULL, 0, 0);
 }
 
@@ -200,7 +215,7 @@ inline auto hotkey::get_message() -> void
         message_handler(msg);
         DispatchMessage(&msg);
       }
-      active_worker_type::queue_task(get_message);
+      worker_->queue_task(get_message);
     }
   }
 }
@@ -214,7 +229,7 @@ inline auto hotkey::message_handler(const MSG& msg) -> void
     if(callback_map_.contains(msg.wParam))
     {
       auto callback = callback_map_.at(msg.wParam);
-      app_framework::active_worker_main::run_task(std::move(callback));
+      app_framework::thread_pool::queue_task(std::move(callback));
     }
     else
     {

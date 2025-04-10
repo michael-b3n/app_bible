@@ -194,11 +194,11 @@ constexpr const_bimap<T>::const_bimap(P&&... p)
         {
           if(is_equal(map_.at(i).first, map_.at(j).first))
           {
-            THROW_EXCEPTION(util::exception("Duplicates in first elements."));
+            THROW_EXCEPTION(util::exception("duplicates in first elements"));
           }
           if(is_equal(map_.at(i).second, map_.at(j).second))
           {
-            THROW_EXCEPTION(util::exception("Duplicates in second elements."));
+            THROW_EXCEPTION(util::exception("duplicates in second elements"));
           }
         });
     });
@@ -237,7 +237,7 @@ template<typename T>
   const auto iter = std::ranges::find_if(map_, [&](const auto& e) { return is_equal(first, e.first); });
   if(iter == std::cend(map_))
   {
-    THROW_EXCEPTION(util::exception("First out of range."));
+    THROW_EXCEPTION(util::exception("first out of range"));
   }
   return iter->second;
 }
@@ -253,7 +253,7 @@ template<typename T>
   const auto iter = std::ranges::find_if(map_, [&](const auto& e) { return is_equal(second, e.second); });
   if(iter == std::cend(map_))
   {
-    THROW_EXCEPTION(util::exception("Second out of range."));
+    THROW_EXCEPTION(util::exception("second out of range"));
   }
   return iter->first;
 }

@@ -28,11 +28,11 @@ constexpr auto contains(const Container& container, const std::ranges::range_val
 /// \param predicate function
 /// \return bool true if element is found in container, false otherwise
 ///
-template<std::ranges::view View, typename F>
+template<typename View, typename F>
   requires std::predicate<F, std::ranges::range_value_t<View>>
-constexpr auto contains(View view, F&& pred) -> bool
+constexpr auto contains(View&& view, F&& pred) -> bool
 {
-  return std::ranges::find_if(view, std::forward<F>(pred)) != std::ranges::cend(view);
+  return std::ranges::find_if(std::forward<View>(view), std::forward<F>(pred)) != std::ranges::cend(view);
 }
 
 } // namespace bibstd::util

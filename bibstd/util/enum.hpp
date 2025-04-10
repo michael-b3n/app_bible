@@ -77,7 +77,7 @@ constexpr auto next(const E e) -> E
   const auto value = math::arithmetic::add(to_integral(e), std::underlying_type_t<E>(1));
   if(!value.has_value())
   {
-    THROW_EXCEPTION(std::runtime_error("Invalid next enum value"));
+    THROW_EXCEPTION(std::runtime_error("invalid next enum value"));
   }
   return to_enum<E>(*value);
 }
@@ -94,7 +94,7 @@ constexpr auto prev(const E e) -> E
   const auto value = math::arithmetic::subtract(to_integral(e), std::underlying_type_t<E>(1));
   if(!value.has_value())
   {
-    THROW_EXCEPTION(std::runtime_error("Invalid previous enum value"));
+    THROW_EXCEPTION(std::runtime_error("invalid previous enum value"));
   }
   return to_enum<E>(*value);
 }

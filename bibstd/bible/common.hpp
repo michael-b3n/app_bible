@@ -95,6 +95,32 @@ enum class testament_id
 };
 
 ///
+/// Bible translations.
+///
+enum class translation
+{
+  BEGIN = 0,
+  dbu = 0,
+  elb,
+  esv,
+  eu,
+  gnb,
+  hfa,
+  kjv,
+  lut,
+  meng,
+  neu,
+  ngu,
+  nirv,
+  niv,
+  nlb,
+  slt,
+  vxb,
+  zb,
+  END
+};
+
+///
 /// Get the count of chapters in a book.
 /// \param book The book to get the chapter count of
 /// \return the chapter count
