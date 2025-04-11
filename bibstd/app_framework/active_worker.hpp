@@ -41,7 +41,7 @@ private: // Implementation
   auto shutdown() -> void;
 
 private: // Variables
-  const std::unique_ptr<task_queue> worker_queue_;
+  std::unique_ptr<task_queue> worker_queue_;
   std::jthread worker_;
   const std::thread::id worker_id_;
 };

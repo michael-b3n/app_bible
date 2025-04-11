@@ -18,7 +18,7 @@ auto main_loop::run() -> void
     {
       while(running_)
       {
-        main_queue_->empty() ? std::this_thread::sleep_for(std::chrono::milliseconds(100)) : main_queue_->try_do_task();
+        main_queue_->do_task_or_wait();
       }
     }
     catch(const std::exception& e)
@@ -37,14 +37,17 @@ auto main_loop::run() -> void
 auto main_loop::exit() noexcept -> void
 {
   running_ = false;
-  main_queue_->clear();
+  main_queue_->queue([]() {}); // queue dummy task and trigger notify
 }
 
 ///
 ///
 auto main_loop::queue_task(task_queue::task_type&& task) -> void
 {
-  main_queue_->queue(std::forward<decltype(task)>(task));
+  if(running_)
+  {
+    main_queue_->queue(std::forward<decltype(task)>(task));
+  }
 }
 
 } // namespace bibstd::app_framework
