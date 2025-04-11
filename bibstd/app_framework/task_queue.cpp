@@ -8,7 +8,14 @@ namespace bibstd::app_framework
 ///
 task_queue::~task_queue() noexcept
 {
-  clear();
+  {
+    const auto queue_lock = std::scoped_lock(queue_mtx_, task_mtx_);
+    shutdown_ = true;
+    std::queue<task_type> empty_queue;
+    std::swap(task_queue_, empty_queue);
+  }
+  task_cv_.notify_all();
+  const auto lock = std::lock_guard(queue_mtx_); // wait until lock is freed
 }
 
 ///
@@ -31,8 +38,11 @@ auto task_queue::size() const -> std::size_t
 ///
 auto task_queue::queue(task_type&& task) -> void
 {
-  const auto lock = std::lock_guard(queue_mtx_);
-  task_queue_.emplace(std::forward<decltype(task)>(task));
+  {
+    const auto lock = std::lock_guard(queue_mtx_);
+    task_queue_.emplace(std::forward<decltype(task)>(task));
+  }
+  task_cv_.notify_one();
 }
 
 ///
@@ -41,7 +51,29 @@ auto task_queue::try_do_task() -> void
 {
   std::unique_lock<std::mutex> queue_lock(queue_mtx_, std::defer_lock);
   const auto queue_locked = queue_lock.try_lock();
-  if(queue_locked && !task_queue_.empty())
+  if(queue_locked)
+  {
+    do_task_impl(queue_lock);
+  }
+}
+
+///
+///
+auto task_queue::do_task_or_wait() -> void
+{
+  auto queue_lock = std::unique_lock<std::mutex>(queue_mtx_);
+  if(task_queue_.empty() && !shutdown_)
+  {
+    task_cv_.wait(queue_lock, [this] { return !task_queue_.empty() || shutdown_; });
+  }
+  do_task_impl(queue_lock);
+}
+
+///
+///
+auto task_queue::do_task_impl(std::unique_lock<std::mutex>& queue_lock) -> void
+{
+  if(!task_queue_.empty())
   {
     auto task = std::move(task_queue_.front());
     task_queue_.pop();
@@ -52,18 +84,6 @@ auto task_queue::try_do_task() -> void
       task();
     }
   }
-}
-
-///
-///
-auto task_queue::clear() -> void
-{
-  {
-    const auto queue_lock = std::lock_guard(queue_mtx_);
-    std::queue<task_type> empty_queue;
-    std::swap(task_queue_, empty_queue);
-  }
-  const auto task_lock = std::lock_guard(task_mtx_);
 }
 
 } // namespace bibstd::app_framework

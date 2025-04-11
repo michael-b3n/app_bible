@@ -1,6 +1,6 @@
 #pragma once
 
-#include <atomic>
+#include <condition_variable>
 #include <functional>
 #include <mutex>
 #include <queue>
@@ -45,6 +45,7 @@ public: // Modifiers
   ///
   /// Add task to queue.
   /// \param task that shall be added
+  /// \warning The task must not destroy `this` on execution.
   ///
   auto queue(task_type&& task) -> void;
 
@@ -55,13 +56,18 @@ public: // Modifiers
   auto try_do_task() -> void;
 
   ///
-  /// Clear queue.
+  /// Do one task in queue. If queue is empty, wait until a task is added.
   ///
-  auto clear() -> void;
+  auto do_task_or_wait() -> void;
+
+private: // Implementation
+  auto do_task_impl(std::unique_lock<std::mutex>& queue_lock) -> void;
 
 private: // Variables
+  bool shutdown_{false};
   mutable std::mutex queue_mtx_;
   mutable std::mutex task_mtx_;
+  std::condition_variable task_cv_;
   std::queue<task_type> task_queue_;
 };
 

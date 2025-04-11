@@ -17,8 +17,7 @@ active_worker::active_worker()
           {
             while(!stop_token.stop_requested())
             {
-              worker_queue_->empty() ? std::this_thread::sleep_for(std::chrono::milliseconds(100))
-                                     : worker_queue_->try_do_task();
+              worker_queue_->do_task_or_wait();
             }
           }
           catch(const std::exception& e)
@@ -71,8 +70,8 @@ auto active_worker::shutdown() -> void
 {
   LOG_INFO(log_channel, "Stop active_worker thread: id={}", worker_.get_id());
   worker_.request_stop();
+  worker_queue_.reset();
   worker_.join();
-  worker_queue_->clear();
 }
 
 } // namespace bibstd::app_framework
