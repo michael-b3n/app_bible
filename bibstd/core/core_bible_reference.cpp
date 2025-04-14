@@ -137,17 +137,20 @@ auto match_passage_template_section(
 
 ///
 ///
-auto core_bible_reference::parse(const std::string_view text, const std::size_t index) -> std::vector<bible::reference_range>
+auto core_bible_reference::parse(const std::string_view text, const std::size_t index) -> parse_result
 {
   const auto book = find_book(text, index);
   if(!book)
   {
-    return std::vector<bible::reference_range>{};
+    return parse_result{};
   };
-  return match_passage_template(
-    book->book_id,
-    create_passage_template(text.substr(book->index_range_numbers.begin, index_range_type::size(book->index_range_numbers)))
-  );
+  return parse_result{
+    .ranges = match_passage_template(
+      book->book_id,
+      create_passage_template(text.substr(book->index_range_numbers.begin, index_range_type::size(book->index_range_numbers)))
+    ),
+    .index_range_origin = index_range_type{book->index_range_book.begin, book->index_range_numbers.end},
+  };
 }
 
 ///
@@ -224,6 +227,7 @@ auto core_bible_reference::find_book(const std::string_view text, const std::siz
             {
               found_book = find_book_result{
                 .book_id = book_id,
+                .index_range_book = index_range_type{index_begin, index_passage_begin},
                 .index_range_numbers = index_range_type{index_passage_begin, index_end},
                 .book_name_variant = name_variant
               };

@@ -29,42 +29,12 @@ core_tesseract::~core_tesseract() noexcept
 
 ///
 ///
-auto core_tesseract::set_image(const std::function<void(pixel_plane_type&)>& setter) -> bool
+auto core_tesseract::set_image(const std::function<void(pixel_plane_type&)>& setter) -> void
 {
-  const auto old_pixels = pix_->pixels();
-  const auto old_width = pix_->width();
-  const auto old_height = pix_->height();
-
-  // Check for changed image.
-  const auto has_changed = [&]
-  {
-    if(pix_->width() == old_width && pix_->height() == old_height)
-    {
-      const auto& current_pixels = pix_->pixels();
-      const auto size = static_cast<std::size_t>(old_width) * static_cast<std::size_t>(old_height);
-      if(current_pixels.size() == old_pixels.size() && old_pixels.size() == size)
-      {
-        return current_pixels != old_pixels;
-      }
-      else
-      {
-        return std::ranges::any_of(
-          std::views::iota(decltype(size){0}, size), [&](const auto i) { return current_pixels.at(i) != old_pixels.at(i); }
-        );
-      }
-    }
-    return true;
-  };
-
   const auto setter_wrapper = [&](auto& plane) { setter(plane); };
   pix_->update(setter_wrapper);
-  const auto changed = has_changed();
-  if(changed)
-  {
-    tesseract_->SetImage(pix_->get());
-    tesseract_->SetPageSegMode(tesseract::PSM_AUTO_OSD);
-  }
-  return changed;
+  tesseract_->SetImage(pix_->get());
+  tesseract_->SetPageSegMode(tesseract::PSM_AUTO_OSD);
 }
 
 ///

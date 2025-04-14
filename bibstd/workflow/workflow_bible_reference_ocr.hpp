@@ -3,15 +3,14 @@
 #include "app_framework/settings_base.hpp"
 #include "app_framework/thread_pool.hpp"
 #include "core/core_tesseract_common.hpp"
-#include "data/pixel.hpp"
-#include "data/plane.hpp"
+#include "math/value_range.hpp"
 #include "system/screen.hpp"
 
-#include <chrono>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <string_view>
+#include <vector>
 
 namespace bibstd::core
 {
@@ -37,7 +36,6 @@ public: // Structors
   ~workflow_bible_reference_ocr_settings() noexcept = default;
 
 public: // Variables
-  const setting_type<std::chrono::milliseconds> cursor_movement_cooldown;
   const setting_type<std::vector<bible::translation>> translations;
 };
 
@@ -52,6 +50,7 @@ public: // Constants
 public: // Typedefs
   using settings_type = workflow_bible_reference_ocr_settings::sptr_type;
   using language = core::core_tesseract_common::language;
+  using bounding_box_type = core::core_tesseract_common::bounding_box_type;
 
 public: // Structors
   workflow_bible_reference_ocr(language language);
@@ -63,23 +62,48 @@ public: // Modifiers
 private: // Typedefs
   using screen_rect_type = system::screen::screen_rect_type;
   using screen_coordinates_type = system::screen::screen_coordinates_type;
+  using index_range_type = math::value_range<std::size_t>;
+
+private: // Constants
+  static constexpr auto capture_ocr_area_steps = std::array{1, 2, 4};
+  static constexpr auto vertical_range_denominator = 32;
+  static constexpr auto height_to_width_ratio = 8;
 
   ///
   /// Internal data structure.
   ///
   struct data_t final
   {
-    std::chrono::time_point<std::chrono::system_clock> last_cursor_movement{std::chrono::system_clock::now()};
     screen_coordinates_type current_cursor_position{0, 0};
-    screen_rect_type current_img_area{
-      {0, 0},
-      0, 0
-    };
+    std::optional<std::int32_t> current_char_height{};
+    std::vector<screen_rect_type> capture_areas{};
+  };
+
+  struct character_data final
+  {
+    double distance;
+    bounding_box_type bounding_box;
+  };
+
+  struct reference_position_data final
+  {
+    std::string text;
+    std::vector<character_data> char_data;
+    std::size_t index;
   };
 
 private: // Implementation
-  auto task() -> void;
-  auto capture_img(data::plane<data::pixel>& pixel_plane) -> bool;
+  auto find_references() -> void;
+  auto set_capture_areas() -> bool;
+  auto capture_img(const screen_rect_type& rect) -> bool;
+  auto get_reference_position_data(
+    const screen_coordinates_type& relative_cursor_position,
+    std::string_view text_paragraph,
+    const bounding_box_type& bounding_box
+  ) -> std::optional<reference_position_data>;
+  auto is_valid_capture_area(
+    const bounding_box_type& bounding_box, index_range_type index_range, const reference_position_data& reference_position
+  ) -> bool;
 
 private: // Variables
   const std::unique_ptr<core::core_bible_reference> core_bible_reference_;

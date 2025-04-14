@@ -52,24 +52,6 @@ public: // Modifiers
   ///
   static auto queue_task(task_type&& task, std::optional<strand_id_type> id = std::nullopt) -> void;
 
-  ///
-  /// Queue task in thread pool.
-  /// \param task Task that shall be run in thread_pool
-  /// \param delay Delay before task is run
-  /// \param id Optional unique strand ID. If specified the task
-  /// will run after the previous task with the same strand ID has finished.
-  ///
-  static auto queue_task(task_type&& task, delay_type delay, std::optional<strand_id_type> id = std::nullopt) -> void;
-
-  ///
-  /// Queue task in thread pool.
-  /// \param task Task that shall be run in thread_pool
-  /// \param time_point Point in system time when task shall be run
-  /// \param id Optional unique strand ID. If specified the task
-  /// will run after the previous task with the same strand ID has finished.
-  ///
-  static auto queue_task(task_type&& task, time_point_type time_point, std::optional<strand_id_type> id = std::nullopt) -> void;
-
 private: // Typedefs
   struct delayed_task final
   {
@@ -80,7 +62,6 @@ private: // Typedefs
 
 private: // Implementation
   static auto queue_task_impl(task_type&& task, std::optional<strand_id_type> id) -> void;
-  static auto handle_delayed_tasks() -> void;
   static auto queue_task_index(task_type&& task, strand_id_type id, std::size_t index) -> void;
   static auto queue_task_auto(task_type&& task, strand_id_type id) -> void;
   static auto create_task_wrapper(task_type&& task, std::size_t worker_index) -> task_type;
