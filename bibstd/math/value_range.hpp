@@ -216,3 +216,21 @@ constexpr auto value_range<ValueType>::operator==(const value_range& other) cons
 }
 
 } // namespace bibstd::math
+
+///
+///
+template<bibstd::math::arithmetic_type ValueType>
+struct std::formatter<bibstd::math::value_range<ValueType>> : std::formatter<std::string>
+{
+  auto format(const bibstd::math::value_range<ValueType>& e, std::format_context& ctx) const
+  {
+    if constexpr(std::integral<ValueType>)
+    {
+      return formatter<std::string>::format(std::format("[{}, {})", e.begin, e.end), ctx);
+    }
+    else
+    {
+      return formatter<std::string>::format(std::format("[{}, {}]", e.begin, e.end), ctx);
+    }
+  }
+};

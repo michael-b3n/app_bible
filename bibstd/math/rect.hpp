@@ -229,13 +229,10 @@ constexpr auto rect<ValueType>::center() const -> coordinates_type
 template<bibstd::math::arithmetic_type ValueType>
 struct std::formatter<bibstd::math::rect<ValueType>> : std::formatter<std::string>
 {
-  auto format(const bibstd::math::rect<ValueType> e, std::format_context& ctx) const
+  auto format(const bibstd::math::rect<ValueType>& e, std::format_context& ctx) const
   {
     return formatter<std::string>::format(
-      std::format(
-        "origin=[{},{}], width={}, height={}", e.origin().x(), e.origin().y(), e.horizontal_range(), e.vertical_range()
-      ),
-      ctx
+      std::format("[origin={}, width={}, height={}]", e.origin(), e.horizontal_range(), e.vertical_range()), ctx
     );
   }
 };

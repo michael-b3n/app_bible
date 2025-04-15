@@ -164,3 +164,25 @@ constexpr auto coordinates<ValueType, D>::operator-(const coordinates<value_type
 }
 
 } // namespace bibstd::math
+
+///
+///
+template<typename ValueType>
+struct std::formatter<bibstd::math::coordinates<ValueType, 2>> : std::formatter<std::string>
+{
+  auto format(const bibstd::math::coordinates<ValueType, 2>& e, std::format_context& ctx) const
+  {
+    return formatter<std::string>::format(std::format("({},{})", e.x(), e.y()), ctx);
+  }
+};
+
+///
+///
+template<typename ValueType>
+struct std::formatter<bibstd::math::coordinates<ValueType, 3>> : std::formatter<std::string>
+{
+  auto format(const bibstd::math::coordinates<ValueType, 3>& e, std::format_context& ctx) const
+  {
+    return formatter<std::string>::format(std::format("({},{},{})", e.x(), e.y(), e.z()), ctx);
+  }
+};

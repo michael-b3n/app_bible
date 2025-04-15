@@ -12,6 +12,7 @@
 #include "txt/chars.hpp"
 #include "util/boost_numeric_cast.hpp"
 #include "util/date.hpp"
+#include "util/format.hpp"
 
 #include <array>
 #include <numeric>
@@ -63,27 +64,32 @@ auto workflow_bible_reference_ocr::find_references() -> void
 {
   if(!set_capture_areas())
   {
-    LOG_WARN(
-      log_channel,
-      "Failed to define capture areas: cursor_position=[{},{}]",
-      data_.current_cursor_position.x(),
-      data_.current_cursor_position.y()
-    );
+    LOG_WARN(log_channel, "Failed to define capture areas: cursor_position={}", data_.current_cursor_position);
     return;
   }
 
   auto references = std::vector<bible::reference_range>{};
   std::ranges::any_of(
     data_.capture_areas,
-    [&](const auto& rect)
+    [&](const auto& screen_area)
     {
-      if(!capture_img(rect) || !core_tesseract_->recognize(std::nullopt))
+      if(!capture_img(screen_area) || !core_tesseract_->recognize(std::nullopt))
       {
-        LOG_WARN(log_channel, "Capture screen failed: rect=[{}]", rect);
+        LOG_WARN(log_channel, "Capture screen failed: screen_area={}", screen_area);
         return false;
       }
-      const auto base_bounding_box = bounding_box_type({0, 0}, rect.horizontal_range(), rect.vertical_range());
-      const auto relative_cursor_position = data_.current_cursor_position - rect.origin();
+
+      const auto image_dimensions = bounding_box_type({0, 0}, screen_area.horizontal_range(), screen_area.vertical_range());
+      const auto relative_cursor_position = data_.current_cursor_position - screen_area.origin();
+
+      LOG_DEBUG(
+        log_channel,
+        "Start OCR: screen_area={}, cursor_position={}, image_dimensions={}, relative_cursor_position={}",
+        screen_area,
+        data_.current_cursor_position,
+        image_dimensions,
+        relative_cursor_position
+      );
 
       auto found_references = false;
       core_tesseract_->for_each_until(
@@ -93,17 +99,45 @@ auto workflow_bible_reference_ocr::find_references() -> void
           const auto found = std::decay_t<decltype(bounding_box)>::contains(bounding_box, relative_cursor_position);
           if(found)
           {
+            LOG_DEBUG(
+              log_channel,
+              "Cursor found in paragraph: bounding_box={}, relative_cursor_position={}",
+              bounding_box,
+              relative_cursor_position
+            );
             const auto position_data = get_reference_position_data(relative_cursor_position, text_paragraph, bounding_box);
             found_references = position_data.has_value();
             if(position_data)
             {
+              LOG_DEBUG(log_channel, "Position data found: index={}, text=\"{}\"", position_data->index, position_data->text);
               const auto parse_result = core_bible_reference_->parse(position_data->text, position_data->index);
-              found_references = is_valid_capture_area(base_bounding_box, parse_result.index_range_origin, *position_data);
+              LOG_DEBUG(
+                log_channel,
+                "Parse result: index_range_origin={}, references=[{}]",
+                parse_result.index_range_origin,
+                util::format::join(parse_result.ranges, ", ")
+              );
+              const auto valid_capture_area =
+                is_valid_capture_area(image_dimensions, parse_result.index_range_origin, *position_data);
+              found_references = valid_capture_area && !parse_result.ranges.empty();
               if(found_references)
               {
                 references = parse_result.ranges;
               }
             }
+            else
+            {
+              LOG_DEBUG(log_channel, "No position data found in paragraph: found_references={}", found_references);
+            }
+          }
+          else
+          {
+            LOG_DEBUG(
+              log_channel,
+              "Skip paragraph ocr since no cursor: bounding_box={}, relative_cursor_position={}",
+              bounding_box,
+              relative_cursor_position
+            );
           }
           return found;
         }
@@ -111,6 +145,7 @@ auto workflow_bible_reference_ocr::find_references() -> void
       return found_references;
     }
   );
+  LOG_INFO(log_channel, "OCR reference search finished: found=[{}]", util::format::join(references, ", "));
   std::ranges::for_each(
     references,
     [&](const auto& reference_range) { core_bibleserver_lookup_->open(reference_range, settings_->translations->value()); }
@@ -206,7 +241,7 @@ auto workflow_bible_reference_ocr::get_reference_position_data(
 ///
 ///
 auto workflow_bible_reference_ocr::is_valid_capture_area(
-  const bounding_box_type& bounding_box, index_range_type index_range, const reference_position_data& reference_position
+  const bounding_box_type& image_dimensions, index_range_type index_range, const reference_position_data& reference_position
 ) -> bool
 {
   auto char_width = std::int32_t{0};
@@ -223,13 +258,25 @@ auto workflow_bible_reference_ocr::is_valid_capture_area(
   const auto safety_margin_side = char_width * 2;
   const auto is_in_bounds = [&](const auto i) -> bool
   {
-    const auto& bb = reference_position.char_data.at(i).bounding_box;
+    const auto& char_bounding_box = reference_position.char_data.at(i).bounding_box;
     const auto bounding_box_with_margin = bounding_box_type(
-      bb.origin() - bounding_box_type::coordinates_type(safety_margin_side, 0),
-      bb.horizontal_range() + (safety_margin_side * 2),
-      bb.vertical_range()
+      char_bounding_box.origin() - bounding_box_type::coordinates_type(safety_margin_side, 0),
+      char_bounding_box.horizontal_range() + (safety_margin_side * 2),
+      char_bounding_box.vertical_range()
     );
-    return bounding_box_type::contains(bounding_box, bounding_box_with_margin);
+
+    const auto contains = bounding_box_type::contains(image_dimensions, bounding_box_with_margin);
+    if(!contains)
+    {
+      LOG_DEBUG(
+        log_channel,
+        "Invalid capture area: char_bounding_box={}, char_margin_bounding_box={}, image_dimensions={}",
+        char_bounding_box,
+        bounding_box_with_margin,
+        image_dimensions
+      );
+    }
+    return contains;
   };
   return std::ranges::all_of(
     std::views::iota(index_range.begin, index_range.end) |
