@@ -48,10 +48,12 @@ workflow_bible_reference_ocr::~workflow_bible_reference_ocr() noexcept = default
 ///
 auto workflow_bible_reference_ocr::run_once(const settings_type& settings) -> void
 {
+  const auto cursor_position = system::screen::cursor_position();
   app_framework::thread_pool::queue_task(
-    [this, settings]()
+    [this, settings, cursor_position]()
     {
       settings_ = settings;
+      data_.current_cursor_position = cursor_position;
       find_references();
     },
     strand_id_
@@ -157,7 +159,6 @@ auto workflow_bible_reference_ocr::find_references() -> void
 auto workflow_bible_reference_ocr::set_capture_areas() -> bool
 {
   data_.capture_areas.clear();
-  data_.current_cursor_position = system::screen::cursor_position();
   const auto window_rect = system::screen::window_at(data_.current_cursor_position);
   if(!window_rect)
   {
