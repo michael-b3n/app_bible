@@ -95,6 +95,8 @@ private: // Implementation
   auto identify_transition(std::string_view text, std::size_t& pos) const -> std::optional<char>;
   auto match_passage_template(bible::book_id book, passage_template_type&& passage_template)
     -> std::vector<bible::reference_range>;
+  auto passage_template_transition_chars(const passage_template_type& passage_template) -> std::vector<char>;
+  auto passage_template_numbers(const passage_template_type& passage_template) -> std::vector<std::uint32_t>;
   auto create_passage_sections(const passage_template_type& passage_template, char down_transition_char)
     -> std::vector<passage_section>;
 };
