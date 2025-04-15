@@ -56,7 +56,8 @@ auto workflow_bible_reference_ocr::run_once(const settings_type& settings) -> vo
       data_.current_cursor_position = cursor_position;
       find_references();
     },
-    strand_id_
+    strand_id_,
+    app_framework::thread_pool::queue_rule::overwrite
   );
 }
 
