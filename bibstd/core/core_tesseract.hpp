@@ -53,9 +53,8 @@ public: // Modifiers
   ///
   /// Set image that shall be recognized with tesseract.
   /// \param setter Function that sets the image that shall be read with tesseract
-  /// \return true if image changed, false otherwise
   ///
-  auto set_image(const std::function<void(pixel_plane_type&)>& setter) -> bool;
+  auto set_image(const std::function<void(pixel_plane_type&)>& setter) -> void;
 
   ///
   /// Recognize image or sub-rectangle of image with tesseract.

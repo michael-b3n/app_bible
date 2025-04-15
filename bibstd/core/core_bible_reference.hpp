@@ -17,6 +17,14 @@ namespace bibstd::core
 ///
 class core_bible_reference final
 {
+public: // Typedefs
+  using index_range_type = math::value_range<std::size_t>;
+  struct parse_result final
+  {
+    std::vector<bible::reference_range> ranges{};
+    index_range_type index_range_origin{0, 0};
+  };
+
 public: // Constants
   static constexpr std::string_view log_channel = "core_bible_reference";
 
@@ -51,12 +59,11 @@ public: // Modifiers
   /// Parse bible reference from a string view.
   /// \param text String view containing bible references
   /// \param index Index where the bible reference shall be
-  /// \return parsed bible reference ranges
+  /// \return parse result with bible reference ranges and origin text
   ///
-  auto parse(std::string_view text, std::size_t index) -> std::vector<bible::reference_range>;
+  auto parse(std::string_view text, std::size_t index) -> parse_result;
 
 private: // Typedefs
-  using index_range_type = math::value_range<std::size_t>;
   using passage_template_value_type = std::variant<std::uint32_t, char>;
   using passage_template_type = std::vector<passage_template_value_type>;
 
@@ -69,6 +76,7 @@ private: // Typedefs
   struct find_book_result final
   {
     bible::book_id book_id;
+    math::value_range<std::size_t> index_range_book;
     math::value_range<std::size_t> index_range_numbers;
     std::string_view book_name_variant;
   };
@@ -87,6 +95,8 @@ private: // Implementation
   auto identify_transition(std::string_view text, std::size_t& pos) const -> std::optional<char>;
   auto match_passage_template(bible::book_id book, passage_template_type&& passage_template)
     -> std::vector<bible::reference_range>;
+  auto passage_template_transition_chars(const passage_template_type& passage_template) -> std::vector<char>;
+  auto passage_template_numbers(const passage_template_type& passage_template) -> std::vector<std::uint32_t>;
   auto create_passage_sections(const passage_template_type& passage_template, char down_transition_char)
     -> std::vector<passage_section>;
 };

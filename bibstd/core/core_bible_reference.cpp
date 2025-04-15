@@ -137,17 +137,20 @@ auto match_passage_template_section(
 
 ///
 ///
-auto core_bible_reference::parse(const std::string_view text, const std::size_t index) -> std::vector<bible::reference_range>
+auto core_bible_reference::parse(const std::string_view text, const std::size_t index) -> parse_result
 {
   const auto book = find_book(text, index);
   if(!book)
   {
-    return std::vector<bible::reference_range>{};
+    return parse_result{};
   };
-  return match_passage_template(
-    book->book_id,
-    create_passage_template(text.substr(book->index_range_numbers.begin, index_range_type::size(book->index_range_numbers)))
-  );
+  return parse_result{
+    .ranges = match_passage_template(
+      book->book_id,
+      create_passage_template(text.substr(book->index_range_numbers.begin, index_range_type::size(book->index_range_numbers)))
+    ),
+    .index_range_origin = index_range_type{book->index_range_book.begin, book->index_range_numbers.end},
+  };
 }
 
 ///
@@ -200,7 +203,7 @@ auto core_bible_reference::find_book(const std::string_view text, const std::siz
           if(txt::chars::is_char(letters_and_digits_only_view, pos_name_end, txt::chars::category::digit))
           {
             const auto text_after_pos = letters_and_digits_only_view.substr(pos_name_end);
-            auto numbers_offset = std::size_t{0};
+            auto numbers_offset_opt = std::optional<std::size_t>{};
             txt::chars::for_each_char_while(
               text_after_pos,
               [&]([[maybe_unused]] auto, const auto pos, const txt::chars::category category)
@@ -210,21 +213,22 @@ auto core_bible_reference::find_book(const std::string_view text, const std::siz
                      number_postfix_chars, [&](const auto v) { return util::starts_with(text_after_pos.substr(pos), v); }
                    ))
                 {
-                  numbers_offset = pos;
+                  numbers_offset_opt = pos;
                 }
-                return numbers_offset == 0;
+                return !numbers_offset_opt.has_value();
               }
             );
-            assert(numbers_offset > 0);
+            const auto number_offset = numbers_offset_opt.value_or(text_after_pos.size());
             const auto pos_abs = pos_offset + pos_rel;
             const auto index_begin = raw_index_ranges.at(pos_abs).begin;
             const auto index_passage_begin = raw_index_ranges.at(pos_abs + name_variant.size()).begin;
-            const auto index_end = raw_index_ranges.at(pos_abs + name_variant.size() + numbers_offset - 1).end;
+            const auto index_end = raw_index_ranges.at(pos_abs + name_variant.size() + number_offset - 1).end;
             if(math::value_range<std::size_t>::contains(index_range_type{index_begin, index_end}, index))
             {
               found_book = find_book_result{
                 .book_id = book_id,
-                .index_range_numbers = index_range_type{index_passage_begin, index_end},
+                .index_range_book = index_range_type{        index_begin, index_passage_begin},
+                .index_range_numbers = index_range_type{index_passage_begin,           index_end},
                 .book_name_variant = name_variant
               };
             }
@@ -364,34 +368,25 @@ auto core_bible_reference::match_passage_template(const bible::book_id book, pas
     THROW_EXCEPTION(std::invalid_argument{"invalid book ID"});
   }
   auto result = std::vector<bible::reference_range>{};
+  const auto down_transition_chars = passage_template_transition_chars(passage_template);
+  const auto numbers = passage_template_numbers(passage_template);
   if(passage_template.empty())
   {
     result.emplace_back(bible::reference_range(bible::reference::create(book, 1u, 1u).value()));
     return result;
   }
-
-  const auto down_transition_chars = [&]
+  else if(down_transition_chars.empty() && numbers.size() == 1)
   {
-    auto result = std::vector<char>{};
-    std::ranges::for_each(
-      passage_template | std::views::filter([](const auto e) { return std::holds_alternative<char>(e); }) |
-        std::views::transform([](const auto e) { return std::get<char>(e); }) |
-        std::views::filter([](const auto c) { return c != '-'; }) |
-        std::views::filter([&](const auto c) { return !util::contains(result, c); }),
-      [&](const auto c) { result.push_back(c); }
+    const auto reference_begin = bible::reference::create(book, numbers.front(), 1u);
+    const auto reference_end = bible::reference::create(
+      book, numbers.front(), bible::verse_count(book, numbers.front()).value_or(0u /*will evaluate to std::nullopt*/)
     );
+    if(reference_begin && reference_end)
+    {
+      result.emplace_back(bible::reference_range(*reference_begin, *reference_end));
+    }
     return result;
-  }();
-  const auto numbers = [&]
-  {
-    auto result = std::vector<std::uint32_t>{};
-    std::ranges::for_each(
-      passage_template | std::views::filter([](const auto e) { return std::holds_alternative<std::uint32_t>(e); }) |
-        std::views::transform([](const auto e) { return std::get<std::uint32_t>(e); }),
-      [&](const auto n) { result.push_back(n); }
-    );
-    return result;
-  }();
+  }
 
   std::map<char, std::vector<bible::reference_range>> reference_ranges;
   for(const auto down_transition_char : down_transition_chars)
@@ -440,6 +435,34 @@ auto core_bible_reference::match_passage_template(const bible::book_id book, pas
   {
     result = std::move(reference_ranges.at(reference_ranges_iter->first));
   }
+  return result;
+}
+
+///
+///
+auto core_bible_reference::passage_template_transition_chars(const passage_template_type& passage_template) -> std::vector<char>
+{
+  auto result = std::vector<char>{};
+  std::ranges::for_each(
+    passage_template | std::views::filter([](const auto e) { return std::holds_alternative<char>(e); }) |
+      std::views::transform([](const auto e) { return std::get<char>(e); }) |
+      std::views::filter([](const auto c) { return c != '-'; }) |
+      std::views::filter([&](const auto c) { return !util::contains(result, c); }),
+    [&](const auto c) { result.push_back(c); }
+  );
+  return result;
+}
+
+///
+///
+auto core_bible_reference::passage_template_numbers(const passage_template_type& passage_template) -> std::vector<std::uint32_t>
+{
+  auto result = std::vector<std::uint32_t>{};
+  std::ranges::for_each(
+    passage_template | std::views::filter([](const auto e) { return std::holds_alternative<std::uint32_t>(e); }) |
+      std::views::transform([](const auto e) { return std::get<std::uint32_t>(e); }),
+    [&](const auto n) { result.push_back(n); }
+  );
   return result;
 }
 

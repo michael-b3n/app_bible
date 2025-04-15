@@ -148,7 +148,7 @@ constexpr auto coordinates<ValueType, D>::axis_value(const std::size_t dim) cons
 template<typename ValueType, std::size_t D>
 constexpr auto coordinates<ValueType, D>::operator+(const coordinates<value_type, D>& rhs) const -> coordinates<value_type, D>
 {
-  std::array<value_type, D> coords;
+  std::array<value_type, D> coords{};
   std::ranges::transform(coordinates_, rhs.coordinates_, coords.begin(), std::plus{});
   return coordinates(std::move(coords));
 }
@@ -158,9 +158,31 @@ constexpr auto coordinates<ValueType, D>::operator+(const coordinates<value_type
 template<typename ValueType, std::size_t D>
 constexpr auto coordinates<ValueType, D>::operator-(const coordinates<value_type, D>& rhs) const -> coordinates<value_type, D>
 {
-  std::array<value_type, D> coords;
+  std::array<value_type, D> coords{};
   std::ranges::transform(coordinates_, rhs.coordinates_, coords.begin(), std::minus{});
   return coordinates(std::move(coords));
 }
 
 } // namespace bibstd::math
+
+///
+///
+template<typename ValueType>
+struct std::formatter<bibstd::math::coordinates<ValueType, 2>> : std::formatter<std::string>
+{
+  auto format(const bibstd::math::coordinates<ValueType, 2>& e, std::format_context& ctx) const
+  {
+    return formatter<std::string>::format(std::format("({},{})", e.x(), e.y()), ctx);
+  }
+};
+
+///
+///
+template<typename ValueType>
+struct std::formatter<bibstd::math::coordinates<ValueType, 3>> : std::formatter<std::string>
+{
+  auto format(const bibstd::math::coordinates<ValueType, 3>& e, std::format_context& ctx) const
+  {
+    return formatter<std::string>::format(std::format("({},{},{})", e.x(), e.y(), e.z()), ctx);
+  }
+};

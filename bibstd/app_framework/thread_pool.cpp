@@ -34,33 +34,6 @@ auto thread_pool::queue_task(task_type&& task, const std::optional<strand_id_typ
 
 ///
 ///
-auto thread_pool::queue_task(task_type&& task, const delay_type delay, const std::optional<strand_id_type> id) -> void
-{
-  const auto time_point = std::chrono::system_clock::now() + delay;
-  queue_task(std::move(task), time_point, id);
-}
-
-///
-///
-auto thread_pool::queue_task(task_type&& task, const time_point_type time_point, const std::optional<strand_id_type> id) -> void
-{
-  if(time_point < std::chrono::system_clock::now())
-  {
-    queue_task(std::move(task), id);
-  }
-  else
-  {
-    const auto lock = std::lock_guard(mtx_);
-    delayed_tasks_.emplace_back(delayed_task{.task_ = std::move(task), .strand_id_ = id, .run_time_ = time_point});
-    if(std::ranges::all_of(pool_ids_, [](const auto& ids) { return ids.empty(); }))
-    {
-      handle_delayed_tasks();
-    }
-  }
-}
-
-///
-///
 auto thread_pool::queue_task_impl(task_type&& task, std::optional<strand_id_type> id) -> void
 {
   if(id)
@@ -80,40 +53,6 @@ auto thread_pool::queue_task_impl(task_type&& task, std::optional<strand_id_type
   {
     static const auto internal_strand_id = strand_id();
     queue_task_auto(std::move(task), internal_strand_id);
-  }
-}
-
-///
-///
-auto thread_pool::handle_delayed_tasks() -> void
-{
-  if(delayed_tasks_.empty())
-  {
-    return;
-  }
-  const auto now = std::chrono::system_clock::now();
-  auto current_delay = delay_type::max();
-  const auto removed = std::erase_if(
-    delayed_tasks_,
-    [&](auto& delayed_task)
-    {
-      const auto retval = delayed_task.run_time_ <= now;
-      if(retval)
-      {
-        queue_task_impl(std::move(delayed_task.task_), delayed_task.strand_id_);
-      }
-      else
-      {
-        const auto delay_to_task = delayed_task.run_time_ - now;
-        current_delay = std::min(current_delay, delay_to_task);
-      }
-      return retval;
-    }
-  );
-  if(removed == 0 && std::ranges::all_of(pool_ids_, [](const auto& ids) { return ids.empty(); }))
-  {
-    const auto dead_time = std::min(current_delay, std::chrono::duration_cast<delay_type>(std::chrono::milliseconds(100)));
-    queue_task_impl([dead_time]() { std::this_thread::sleep_for(dead_time); }, std::nullopt);
   }
 }
 
@@ -155,7 +94,6 @@ auto thread_pool::create_task_wrapper(task_type&& task, const std::size_t index)
     forwarded_task();
     const auto lock = std::lock_guard(mtx_);
     pool_ids_.at(index).pop_front();
-    handle_delayed_tasks();
   };
 }
 
