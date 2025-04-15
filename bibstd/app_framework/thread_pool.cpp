@@ -13,7 +13,7 @@ namespace bibstd::app_framework
 ///
 auto thread_pool::strand_id() -> strand_id_type
 {
-  return util::new_uid<strand_id_type::tag_type>();
+  return strand_id_type::new_uid();
 }
 
 ///

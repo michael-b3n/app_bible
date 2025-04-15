@@ -52,14 +52,6 @@ public: // Modifiers
   ///
   static auto queue_task(task_type&& task, std::optional<strand_id_type> id = std::nullopt) -> void;
 
-private: // Typedefs
-  struct delayed_task final
-  {
-    task_type task_;
-    std::optional<strand_id_type> strand_id_;
-    time_point_type run_time_;
-  };
-
 private: // Implementation
   static auto queue_task_impl(task_type&& task, std::optional<strand_id_type> id) -> void;
   static auto queue_task_index(task_type&& task, strand_id_type id, std::size_t index) -> void;
@@ -70,7 +62,6 @@ private: // Variables
   inline static std::mutex mtx_{};
   inline static std::array<std::unique_ptr<active_worker>, max_thread_count> pool_{};
   inline static std::array<std::deque<strand_id_type>, max_thread_count> pool_ids_{};
-  inline static std::vector<delayed_task> delayed_tasks_{};
 };
 
 } // namespace bibstd::app_framework
