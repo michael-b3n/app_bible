@@ -55,7 +55,7 @@ auto uid<Tag>::new_uid() -> uid<tag_type>
 ///
 template<typename Tag>
 uid<Tag>::uid()
-  : value_{new_uid<tag_type>()}
+  : uid{new_uid()}
 {
 }
 

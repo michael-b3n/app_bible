@@ -2,14 +2,12 @@
 
 #include "app_framework/active_worker.hpp"
 #include "app_framework/task_queue.hpp"
+#include "util/non_owning_ptr.hpp"
 #include "util/scoped_guard.hpp"
 #include "util/uid.hpp"
 
 #include <chrono>
-#include <map>
 #include <memory>
-#include <optional>
-#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -22,7 +20,7 @@ namespace bibstd::app_framework
 class thread_pool final
 {
 public: // Constants
-  static constexpr std::uint16_t max_thread_count = 2;
+  inline static const auto max_thread_count = std::thread::hardware_concurrency();
 
 public: // Typedefs
   using task_type = task_queue::task_type;
@@ -71,29 +69,36 @@ public: // Modifiers
 private: // Typedefs
   using task_id_type = util::uid<struct task_id_tag>;
 
-  struct task_data final
-  {
-    task_type task;
-    task_id_type task_id;
-    strand_id_type strand_id;
-    queue_rule rule;
-  };
-
   struct id_pair final
   {
-    task_id_type task_id;
-    strand_id_type strand_id;
+    task_id_type task_id{};
+    strand_id_type strand_id{};
+  };
+
+  struct pool_element final
+  {
+    active_worker worker{};
+    std::vector<id_pair> ids{};
+    std::chrono::system_clock::time_point last_use{std::chrono::system_clock::now()};
+  };
+
+  struct task_data final
+  {
+    task_type task{[] {}};
+    task_id_type task_id{};
+    strand_id_type strand_id{};
+    queue_rule rule{queue_rule::append};
   };
 
 private: // Implementation
   static auto queue_task_index(task_data&& data, std::size_t index) -> void;
   static auto queue_task_auto(task_data&& data) -> void;
-  static auto create_task_wrapper(task_data&& data, std::size_t worker_index) -> task_type;
+  static auto create_task_wrapper(task_data&& data, util::non_owning_ptr<pool_element> element) -> task_type;
+  static auto remove_abandoned_workers() -> void;
 
 private: // Variables
   inline static std::mutex mtx_{};
-  inline static std::array<std::unique_ptr<active_worker>, max_thread_count> pool_{};
-  inline static std::array<std::vector<id_pair>, max_thread_count> pool_ids_{};
+  inline static std::vector<std::unique_ptr<pool_element>> pool_{};
 };
 
 } // namespace bibstd::app_framework
