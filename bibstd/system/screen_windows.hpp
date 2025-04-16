@@ -88,6 +88,9 @@ inline auto screen::cursor_position() -> screen_coordinates_type
 ///
 inline auto screen::window_at(const screen_coordinates_type coordinates) -> std::optional<screen_rect_type>
 {
+  // This should be set with a application manifest. This did not work
+  // We set the Dpi awareness explicitly for this process.
+  SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
   const auto hwnd = WindowFromPoint(POINT{coordinates.x(), coordinates.y()});
   if(hwnd != nullptr)
   {
