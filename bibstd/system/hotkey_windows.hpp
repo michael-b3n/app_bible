@@ -14,6 +14,7 @@
 #include <cassert>
 #include <functional>
 #include <future>
+#include <map>
 #include <memory>
 #include <ranges>
 
