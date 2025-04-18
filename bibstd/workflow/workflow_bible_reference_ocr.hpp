@@ -102,7 +102,7 @@ private: // Implementation
     const bounding_box_type& bounding_box
   ) -> std::optional<reference_position_data>;
   auto is_valid_capture_area(
-    const bounding_box_type& image_dimensions, index_range_type index_range, const reference_position_data& reference_position
+    const bounding_box_type& image_dimensions, const reference_position_data& reference_position, index_range_type index_range
   ) -> bool;
 
 private: // Variables

@@ -94,13 +94,14 @@ auto workflow_bible_reference_ocr::find_references() -> void
         relative_cursor_position
       );
 
-      auto found_references = false;
+      auto valid_capture_area = false;
       core_tesseract_->for_each_until(
         core::core_tesseract::text_resolution::paragraph,
         [&](const auto text_paragraph, const auto& bounding_box)
         {
-          const auto found = std::decay_t<decltype(bounding_box)>::contains(bounding_box, relative_cursor_position);
-          if(found)
+          const auto cursor_in_paragraph =
+            std::decay_t<decltype(bounding_box)>::contains(bounding_box, relative_cursor_position);
+          if(cursor_in_paragraph)
           {
             LOG_DEBUG(
               log_channel,
@@ -109,10 +110,10 @@ auto workflow_bible_reference_ocr::find_references() -> void
               relative_cursor_position
             );
             const auto position_data = get_reference_position_data(relative_cursor_position, text_paragraph, bounding_box);
-            found_references = position_data.has_value();
             if(position_data)
             {
               LOG_DEBUG(log_channel, "Position data found: index={}, text=\"{}\"", position_data->index, position_data->text);
+
               const auto parse_result = core_bible_reference_->parse(position_data->text, position_data->index);
               LOG_DEBUG(
                 log_channel,
@@ -120,32 +121,26 @@ auto workflow_bible_reference_ocr::find_references() -> void
                 parse_result.index_range_origin,
                 util::format::join(parse_result.ranges, ", ")
               );
-              const auto valid_capture_area =
-                is_valid_capture_area(image_dimensions, parse_result.index_range_origin, *position_data);
-              found_references = valid_capture_area && !parse_result.ranges.empty();
-              if(found_references)
-              {
-                references = parse_result.ranges;
-              }
+
+              // Parse result might be empty but the capture area is still valid.
+              // This is the case when the text is not a valid reference but the characters found in the image are
+              // within the capture area including a safety margin. In this case no larger area is captured.
+              valid_capture_area = is_valid_capture_area(image_dimensions, *position_data, parse_result.index_range_origin);
+              references = parse_result.ranges;
             }
             else
             {
-              LOG_DEBUG(log_channel, "No position data found in paragraph: found_references={}", found_references);
+              LOG_DEBUG(
+                log_channel,
+                "No position data found in paragraph: assume invalid capture area, text_paragraph=\"{}\"",
+                text_paragraph
+              );
             }
           }
-          else
-          {
-            LOG_DEBUG(
-              log_channel,
-              "Skip paragraph ocr since no cursor: bounding_box={}, relative_cursor_position={}",
-              bounding_box,
-              relative_cursor_position
-            );
-          }
-          return found;
+          return cursor_in_paragraph;
         }
       );
-      return found_references;
+      return valid_capture_area;
     }
   );
   LOG_INFO(log_channel, "OCR reference search finished: found=[{}]", util::format::join(references, ", "));
@@ -243,28 +238,23 @@ auto workflow_bible_reference_ocr::get_reference_position_data(
 ///
 ///
 auto workflow_bible_reference_ocr::is_valid_capture_area(
-  const bounding_box_type& image_dimensions, index_range_type index_range, const reference_position_data& reference_position
+  const bounding_box_type& image_dimensions, const reference_position_data& position_data, index_range_type index_range
 ) -> bool
 {
-  auto char_width = std::int32_t{0};
-  const auto is_digit = [&](const auto i) -> bool
-  {
-    const auto char_info = txt::chars::char_info(reference_position.text, i);
-    return char_info && char_info->char_category == txt::chars::category::digit;
-  };
+  auto char_height = std::int32_t{0};
+  const auto get_char_height = [&](const auto i)
+  { char_height = std::max(char_height, position_data.char_data.at(i).bounding_box.vertical_range()); };
   std::ranges::for_each(
-    std::views::iota(index_range.begin, index_range.end) |
-      std::views::filter([&](const auto i) { return i < reference_position.char_data.size(); }) | std::views::filter(is_digit),
-    [&](const auto i) { char_width = std::max(char_width, reference_position.char_data.at(i).bounding_box.horizontal_range()); }
+    std::views::iota(std::size_t{0}, position_data.char_data.size()), [&](const auto& char_data) { get_char_height(char_data); }
   );
-  const auto safety_margin_side = char_width * 2;
+
   const auto is_in_bounds = [&](const auto i) -> bool
   {
-    const auto& char_bounding_box = reference_position.char_data.at(i).bounding_box;
+    const auto& char_bounding_box = position_data.char_data.at(i).bounding_box;
     const auto bounding_box_with_margin = bounding_box_type(
-      char_bounding_box.origin() - bounding_box_type::coordinates_type(safety_margin_side, 0),
-      char_bounding_box.horizontal_range() + (safety_margin_side * 2),
-      char_bounding_box.vertical_range()
+      char_bounding_box.origin() - bounding_box_type::coordinates_type(char_height, char_height / 4),
+      char_bounding_box.horizontal_range() + (char_height * 2),
+      char_bounding_box.vertical_range() + char_height
     );
 
     const auto contains = bounding_box_type::contains(image_dimensions, bounding_box_with_margin);
@@ -280,11 +270,21 @@ auto workflow_bible_reference_ocr::is_valid_capture_area(
     }
     return contains;
   };
-  return std::ranges::all_of(
-    std::views::iota(index_range.begin, index_range.end) |
-      std::views::filter([&](const auto i) { return i < reference_position.char_data.size(); }),
-    [&](const auto i) { return is_in_bounds(i); }
-  );
+
+  if(index_range_type::empty(index_range))
+  {
+    return std::ranges::any_of(
+      std::views::iota(std::size_t{0}, position_data.char_data.size()), [&](const auto i) { return is_in_bounds(i); }
+    );
+  }
+  else
+  {
+    return std::ranges::all_of(
+      std::views::iota(index_range.begin, index_range.end) |
+        std::views::filter([&](const auto i) { return i < position_data.char_data.size(); }),
+      [&](const auto i) { return is_in_bounds(i); }
+    );
+  }
 }
 
 } // namespace bibstd::workflow
