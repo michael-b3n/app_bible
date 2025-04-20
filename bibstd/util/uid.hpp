@@ -14,8 +14,7 @@ template<typename Tag>
 class uid final
 {
   // Friends
-  template<typename T>
-  friend struct std::formatter;
+  friend struct std::formatter<uid<Tag>>;
 
 public: // Typedefs
   using tag_type = Tag;
@@ -76,6 +75,6 @@ struct std::formatter<bibstd::util::uid<T>> : std::formatter<std::uint64_t>
 {
   auto format(const bibstd::util::uid<T> id, std::format_context& ctx) const
   {
-    return formatter<std::string>::format(std::format("{}", id.value_), ctx);
+    return formatter<std::uint64_t>::format(std::format("{}", id.value_), ctx);
   }
 };

@@ -51,8 +51,6 @@ private: // Constants
     std::pair{bible::translation::zb, std::string_view("ZB")}
   );
   static_assert(translations_map_de.size() == static_cast<std::size_t>(util::to_integral(bible::translation::END)));
-
-private: // Variables
 };
 
 } // namespace bibstd::core

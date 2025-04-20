@@ -125,7 +125,7 @@ inline auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) 
     return hbitmap;
   }();
 
-  BITMAPINFO info = {0};
+  BITMAPINFO info = {};
   info.bmiHeader.biSize = sizeof(info.bmiHeader);
   if(0 == GetDIBits(hdc, bitmap, 0, 0, nullptr, &info, DIB_RGB_COLORS))
   {
