@@ -14,6 +14,9 @@
 #define MyAppURL        "${INNO_SETUP_APP_URL}"
 #define ARCH            "x86_64"
 
+[InstallDelete]
+Type: filesandordirs; Name: "{app}"
+
 [Setup]
 AppName={#AppLongName}
 AppVersion={#MyAppVersion}
@@ -30,8 +33,8 @@ UninstallDisplayIcon={app}\{#AppExeName}
 UninstallDisplayName={#AppLongName}
 Compression=lzma
 SolidCompression=yes
-ArchitecturesAllowed = x64
-ArchitecturesInstallIn64BitMode = x64
+ArchitecturesAllowed = x64compatible
+ArchitecturesInstallIn64BitMode = x64compatible
 UsePreviousAppDir=Yes
 
 [Languages]
@@ -39,7 +42,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 0,6.1
+Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
 Source: "*.exe"; Excludes: "${INNO_SETUP_OUTPUT_NAME}.exe"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
