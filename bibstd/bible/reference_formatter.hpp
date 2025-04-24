@@ -4,7 +4,7 @@
 #include "util/exception.hpp"
 
 #include <optional>
-#include <string_view>
+#include <string>
 
 namespace bibstd::bible
 {
@@ -21,9 +21,6 @@ public: // Operations
   /// \return formatted reference range as string
   ///
   auto pretty(const reference_range& range) -> std::string;
-
-private: // Constants
-  static constexpr std::string_view log_channel = "reference_formatter";
 };
 
 } // namespace bibstd::bible

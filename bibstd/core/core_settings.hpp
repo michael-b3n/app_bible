@@ -68,7 +68,7 @@ auto core_settings::create_setting(const std::string& value_path, const std::str
   const auto [_, inserted] = property_map_.emplace(value_path, std::move(prop));
   if(!inserted)
   {
-    THROW_EXCEPTION(util::exception(std::format("Setting already created: path{}, name={}", value_path, value_name)));
+    THROW_EXCEPTION(util::exception(std::format("setting already created: path{}, name={}", value_path, value_name)));
   }
   return prop_ptr;
 }

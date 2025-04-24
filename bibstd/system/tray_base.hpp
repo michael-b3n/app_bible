@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <span>
+#include <string>
 #include <variant>
 
 namespace bibstd::system
@@ -38,9 +39,6 @@ struct tray_base
   };
 
   using entry_type = std::variant<button, label, separator, toggle, submenu>;
-
-  // Constants
-  static constexpr std::string_view log_channel = "tray";
 };
 
 } // namespace bibstd::system

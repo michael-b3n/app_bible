@@ -14,7 +14,7 @@ auto core_bibleserver_lookup::open(const bible::reference_range& range, const st
 {
   if(translations.empty())
   {
-    LOG_ERROR(log_channel, "Formatter \"format_bibleserver_de\" specifies no translations: {}", range);
+    LOG_ERROR("formatter \"format_bibleserver_de\" specifies no translations: {}", range);
     return false;
   }
 
@@ -39,7 +39,7 @@ auto core_bibleserver_lookup::open(const bible::reference_range& range, const st
   decltype(auto) end = range.end();
   if(begin.book() != end.book() || begin.chapter() != end.chapter())
   {
-    LOG_WARN(log_channel, "Formatter \"format_bibleserver_de\" only supports one chapter: {}", range);
+    LOG_WARN("formatter \"format_bibleserver_de\" only supports one chapter: {}", range);
     url = std::format(
       "https://www.bibleserver.com/{}/{}{}%2C{}",
       translation_str,

@@ -25,7 +25,6 @@ namespace bibstd::core
 class core_tesseract final
 {
 public: // Constants
-  static constexpr std::string_view log_channel = "core_tesseract";
   static constexpr std::string_view tessdata_folder_name = "tessdata";
   inline static const std::filesystem::path tessdata_folder_path{
     system::filesystem::executable_folder() / tessdata_folder_name

@@ -13,11 +13,6 @@ namespace bibstd::core
 ///
 class core_bibleserver_lookup final
 {
-public: // Constants
-  static constexpr std::string_view log_channel = "core_bibleserver_lookup";
-
-public: // Typedefs
-
 public: // Structors
   core_bibleserver_lookup() = default;
   ~core_bibleserver_lookup() noexcept = default;

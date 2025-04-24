@@ -27,8 +27,6 @@ public: // Typedefs
   using screen_coordinates_type = util::screen_types::screen_coordinates_type;
   using pixel_plane_type = util::screen_types::pixel_plane_type;
 
-  static constexpr std::string_view log_channel = "system_screen";
-
 public: // Static accessors
   ///
   /// Get the virtual screen metrics.
@@ -136,7 +134,7 @@ inline auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) 
   info.bmiHeader.biSize = sizeof(info.bmiHeader);
   if(0 == GetDIBits(hdc, bitmap, 0, 0, nullptr, &info, DIB_RGB_COLORS))
   {
-    LOG_ERROR(log_channel, "Capture screen failed: {}", "bitmap info not found");
+    LOG_ERROR("capture screen failed: {}", "bitmap info not found");
     return false;
   }
   info.bmiHeader.biCompression = BI_RGB;
@@ -147,7 +145,7 @@ inline auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) 
 
   if(0 == GetDIBits(hdc, bitmap, 0, info.bmiHeader.biHeight, static_cast<void*>(pixels_bytes.data()), &info, DIB_RGB_COLORS))
   {
-    LOG_ERROR(log_channel, "Capture screen failed: {}", "bitmap data not found");
+    LOG_ERROR("capture screen failed: {}", "bitmap data not found");
     return false;
   }
   DeleteObject(bitmap);

@@ -44,21 +44,20 @@ struct bmp_file_dib_info final
 ///
 auto save_as_bitmap(const plane<pixel>& data, const std::filesystem::path& path) -> bool
 {
-  [[maybe_unused]] static constexpr std::string_view log_channel = "save_as_bitmap";
   if(path.extension() != std::string_view(".bmp"))
   {
-    LOG_ERROR(log_channel, "Invalid file extension: {}", path.extension().string());
+    LOG_ERROR("invalid file extension: {}", path.extension().string());
     return false;
   }
   std::ofstream file(path, std::ios::out | std::ios::binary);
   if(file.fail())
   {
-    LOG_ERROR(log_channel, "File could not be opened for editing: {}", path.string());
+    LOG_ERROR("file could not be opened for editing: {}", path.string());
     return false;
   }
   if(data.data.empty())
   {
-    LOG_INFO(log_channel, "Empty pixels not be saved to {}", path.string());
+    LOG_INFO("empty pixels not be saved to {}", path.string());
     return true;
   }
 

@@ -3,7 +3,6 @@
 #include "app_framework/task_queue.hpp"
 
 #include <atomic>
-#include <string_view>
 #include <thread>
 
 namespace bibstd::app_framework
@@ -14,9 +13,6 @@ namespace bibstd::app_framework
 ///
 class main_loop final
 {
-public: // Constants
-  static constexpr std::string_view log_channel = "main_loop";
-
 public: // Modifiers
   ///
   /// Run main loop.

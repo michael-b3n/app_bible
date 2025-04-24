@@ -23,11 +23,11 @@ auto main_loop::run() -> void
     }
     catch(const std::exception& e)
     {
-      LOG_ERROR(log_channel, "Main queue error: {}", e.what());
+      LOG_ERROR("main_loop queue error: {}", e.what());
     }
     catch(...)
     {
-      LOG_ERROR(log_channel, "Main queue error: {}", "unknown exception");
+      LOG_ERROR("main_loop queue error: {}", "unknown exception");
     }
   }
 }

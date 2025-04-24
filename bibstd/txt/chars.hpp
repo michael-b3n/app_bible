@@ -163,9 +163,6 @@ public: // Constants
     requires(std::is_invocable_r_v<bool, Function, const std::string_view, const std::size_t, const category>)
   static constexpr auto for_each_char_while(std::string_view string_view, Function&& function) -> void;
 
-private: // Constants
-  static constexpr std::string_view log_channel = "txt::chars";
-
 private: // Implementation
   static constexpr auto is_digit_impl(std::string_view string_view, std::size_t index) -> std::optional<std::string_view>;
 };
@@ -253,7 +250,7 @@ constexpr auto chars::for_each_char(const std::string_view string_view, Function
       }
       else
       {
-        LOG_ERROR(log_channel, "Error getting char info: char=\'{}\'", string_view.at(counter));
+        LOG_ERROR("error getting char info: char=\'{}\'", string_view.at(counter));
         ++counter;
       }
     }
@@ -286,7 +283,7 @@ constexpr auto chars::for_each_char_while(const std::string_view string_view, Fu
       }
       else
       {
-        LOG_ERROR(log_channel, "Error getting char info: char=\'{}\'", string_view.at(counter));
+        LOG_ERROR("error getting char info: char=\'{}\'", string_view.at(counter));
         ++counter;
       }
     }

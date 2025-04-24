@@ -22,18 +22,18 @@ active_worker::active_worker()
           }
           catch(const std::exception& e)
           {
-            LOG_ERROR(log_channel, "Worker queue error: {}", e.what());
+            LOG_ERROR("worker queue error: {}", e.what());
           }
           catch(...)
           {
-            LOG_ERROR(log_channel, "Worker queue error: {}", "unknown exception");
+            LOG_ERROR("worker queue error: {}", "unknown exception");
           }
         }
       }
     )}
   , worker_id_{worker_.get_id()}
 {
-  LOG_INFO(log_channel, "Start active_worker thread: id={}", worker_.get_id());
+  LOG_INFO("worker start thread: id={}", worker_.get_id());
 }
 
 ///
@@ -68,7 +68,7 @@ auto active_worker::run_task(task_queue::task_type&& task) -> void
 ///
 auto active_worker::shutdown() -> void
 {
-  LOG_INFO(log_channel, "Stop active_worker thread: id={}", worker_.get_id());
+  LOG_INFO("worker stop thread: id={}", worker_.get_id());
   worker_.request_stop();
   worker_queue_.reset();
   worker_.join();

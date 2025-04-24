@@ -160,9 +160,7 @@ inline auto hotkey::register_callback(const key key, const key_modifier mod, std
       id_map_[std::pair{key, mod}] = hotkey_id;
       if(!RegisterHotKey(nullptr, hotkey_id, key_modifier_map.at(mod), key_map.at(key)))
       {
-        LOG_ERROR(
-          log_channel, "Failed to register hotkey: key={}, modifier={}", util::to_integral(mod), util::to_integral(key)
-        );
+        LOG_ERROR("failed to register hotkey: key={}, modifier={}", util::to_integral(mod), util::to_integral(key));
       }
     }
   );
@@ -204,7 +202,7 @@ inline auto hotkey::get_message() -> void
     {
       if(ret == -1)
       {
-        LOG_ERROR(log_channel, "Error getting message in {}", std::source_location::current().function_name());
+        LOG_ERROR("error getting message in {}", std::source_location::current().function_name());
       }
       else
       {
@@ -234,7 +232,7 @@ inline auto hotkey::message_handler(const MSG& msg) -> void
     }
     else
     {
-      LOG_ERROR(log_channel, "No callback registered for hotkey_id={}", msg.wParam);
+      LOG_ERROR("no callback registered for hotkey_id={}", msg.wParam);
     }
   }
 }

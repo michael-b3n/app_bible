@@ -69,7 +69,7 @@ property_tree::property_tree(const std::filesystem::path& tree_file_path)
   }
   catch(const boost::property_tree::xml_parser_error& e)
   {
-    LOG_ERROR(log_channel, "Failed to read property file: file={}, exception={}", tree_file_path_.generic_string(), e.what());
+    LOG_ERROR("failed to read property file: file={}, exception={}", tree_file_path_.generic_string(), e.what());
   }
 }
 
@@ -84,7 +84,7 @@ property_tree::~property_tree() noexcept
   }
   catch(const boost::property_tree::xml_parser_error& e)
   {
-    LOG_ERROR(log_channel, "Failed to write property file: file={}, exception={}", tree_file_path_.generic_string(), e.what());
+    LOG_ERROR("failed to write property file: file={}, exception={}", tree_file_path_.generic_string(), e.what());
   }
 }
 

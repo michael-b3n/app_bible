@@ -69,7 +69,7 @@ auto workflow_bible_reference_ocr::find_references() -> void
 {
   if(!set_capture_areas())
   {
-    LOG_WARN(log_channel, "Failed to define capture areas: cursor_position={}", data_.current_cursor_position);
+    LOG_WARN("failed to define capture areas: cursor_position={}", data_.current_cursor_position);
     return;
   }
 
@@ -80,7 +80,7 @@ auto workflow_bible_reference_ocr::find_references() -> void
     {
       if(!capture_img(screen_area) || !core_tesseract_->recognize(std::nullopt))
       {
-        LOG_WARN(log_channel, "Capture screen failed: screen_area={}", screen_area);
+        LOG_WARN("capture screen failed: screen_area={}", screen_area);
         return false;
       }
 
@@ -88,8 +88,7 @@ auto workflow_bible_reference_ocr::find_references() -> void
       const auto relative_cursor_pos = data_.current_cursor_position - screen_area.origin();
 
       LOG_DEBUG(
-        log_channel,
-        "Start OCR: screen_area={}, cursor_position={}, image_dimensions={}, relative_cursor_pos={}",
+        "start OCR: screen_area={}, cursor_position={}, image_dimensions={}, relative_cursor_pos={}",
         screen_area,
         data_.current_cursor_position,
         image_dimensions,
@@ -101,7 +100,7 @@ auto workflow_bible_reference_ocr::find_references() -> void
       return references_optional.has_value();
     }
   );
-  LOG_INFO(log_channel, "OCR reference search finished: found=[{}]", util::format::join(references, ", "));
+  LOG_INFO("OCR reference search finished: found=[{}]", util::format::join(references, ", "));
   std::ranges::for_each(
     references,
     [&](const auto& reference_range) { core_bibleserver_lookup_->open(reference_range, settings_->translations->value()); }
@@ -172,12 +171,7 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
     core::core_tesseract::text_resolution::paragraph,
     [&](const auto text_paragraph, const auto& bounding_box)
     {
-      LOG_DEBUG(
-        log_channel,
-        "parse_tesseract_recognition step: paragraph_bounding_box={}, relative_cursor_pos={}",
-        bounding_box,
-        relative_cursor_pos
-      );
+      LOG_DEBUG("parse paragraph: paragraph_bounding_box={}, relative_cursor_pos={}", bounding_box, relative_cursor_pos);
       const auto cursor_in_paragraph = std::decay_t<decltype(bounding_box)>::contains(bounding_box, relative_cursor_pos);
       if(cursor_in_paragraph)
       {
@@ -214,8 +208,7 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
     }
   );
   LOG_DEBUG(
-    log_channel,
-    "parse_tesseract_recognition result: references=[{}] | input: image_dimensions={}, relative_cursor_pos={}",
+    "parse recognition result: references=[{}], image_dimensions={}, relative_cursor_pos={}",
     util::format::join(references, ", "),
     image_dimensions,
     relative_cursor_pos
@@ -247,8 +240,7 @@ auto workflow_bible_reference_ocr::get_reference_position_main(const screen_coor
     result = reference_position_data{std::move(text), std::move(char_data), *distance_index};
   }
   LOG_DEBUG(
-    log_channel,
-    "get_reference_position_main result: {} | input: {}",
+    "reference position main result: [{}], relative_cursor_pos={}",
     result ? std::format("text=\"{}\", index={}", result->text, result->index) : std::string{"none"},
     relative_cursor_pos
   );
@@ -316,7 +308,7 @@ auto workflow_bible_reference_ocr::get_reference_position_choices(const screen_c
       result | std::views::transform([&](const auto& e) { return std::format("(text=\"{}\", index={})", e.text, e.index); });
     return util::format::join(result_range, ", ");
   };
-  LOG_DEBUG(log_channel, "get_reference_position_choices result: [{}] | input: {}", format_result(), relative_cursor_pos);
+  LOG_DEBUG("reference position choices result: [{}], relative_cursor_pos={}", format_result(), relative_cursor_pos);
   return result;
 }
 
@@ -334,7 +326,7 @@ auto workflow_bible_reference_ocr::get_min_distance_index(const std::vector<char
   }
   else
   {
-    LOG_WARN(log_channel, "No minimum distance found in character data: char_data_size={}", char_data.size());
+    LOG_WARN("no minimum distance found in character data: char_data_size={}", char_data.size());
   }
   return result;
 }
@@ -377,13 +369,10 @@ auto workflow_bible_reference_ocr::is_valid_capture_area(
       [&](const auto i) { return is_in_bounds(i); }
     );
   }
-  LOG_DEBUG(
-    log_channel,
-    "is_valid_capture_area result: is_valid={} | input: image_dimensions={}, char_height={}",
-    result,
-    image_dimensions,
-    char_height
-  );
+  if(!result)
+  {
+    LOG_DEBUG("invalid capture area: image_dimensions={}, char_height={}", image_dimensions, char_height);
+  }
   return result;
 }
 

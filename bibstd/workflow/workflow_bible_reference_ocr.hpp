@@ -10,7 +10,6 @@
 #include <functional>
 #include <memory>
 #include <mutex>
-#include <string_view>
 #include <vector>
 
 namespace bibstd::core
@@ -46,9 +45,6 @@ public: // Variables
 ///
 class workflow_bible_reference_ocr final
 {
-public: // Constants
-  static constexpr std::string_view log_channel = "workflow_bible_reference_ocr";
-
 public: // Typedefs
   using settings_type = workflow_bible_reference_ocr_settings::sptr_type;
   using language = core::core_tesseract_common::language;

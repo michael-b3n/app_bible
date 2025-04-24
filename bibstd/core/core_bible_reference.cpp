@@ -349,7 +349,7 @@ auto core_bible_reference::normalize_passage_text(const std::string_view text) c
       }
       else
       {
-        LOG_ERROR(log_channel, "Error getting char info: char=\'{}\'", subview.at(0));
+        LOG_ERROR("invalid char info: char=\'{}\'", subview.at(0));
         ++counter;
       }
     }

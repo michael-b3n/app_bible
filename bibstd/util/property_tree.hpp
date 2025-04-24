@@ -7,7 +7,6 @@
 #include <filesystem>
 #include <memory>
 #include <mutex>
-#include <string_view>
 
 namespace bibstd::util
 {
@@ -22,9 +21,6 @@ public: // Typedefs
   using sptr_type = std::shared_ptr<property_tree>;
   using tree_type = property_tree_type;
   using path_type = property_path_type;
-
-public: // Constants
-  static constexpr std::string_view log_channel = "property_tree";
 
 public: // Creator
   ///

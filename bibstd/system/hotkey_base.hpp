@@ -83,9 +83,6 @@ struct hotkey_base
     alt_shift,
     control_shift,
   };
-
-  // Constants
-  static constexpr std::string_view log_channel = "hotkey";
 };
 
 } // namespace bibstd::system

@@ -116,7 +116,7 @@ auto core_tesseract::for_each_while(const text_resolution resolution, const text
         }
         else
         {
-          LOG_WARN(log_channel, "Invalid bounding box in for_each_while: txt={}", txt.get());
+          LOG_WARN("invalid bounding box in for_each_while: txt={}", txt.get());
         }
       }
     }
@@ -185,7 +185,7 @@ auto core_tesseract::for_each_choices_while(const choices_while_callback_type& d
       }
       else
       {
-        LOG_WARN(log_channel, "Invalid bounding box in for_each_choices_while: main_symbol={}", main_symbol);
+        LOG_WARN("invalid bounding box in for_each_choices_while: main_symbol={}", main_symbol);
       }
     }
     while(found && (ri->Next(level)));

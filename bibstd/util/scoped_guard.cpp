@@ -40,7 +40,6 @@ auto scoped_guard::operator=(scoped_guard&& rhs) & noexcept -> scoped_guard&
 ///
 auto scoped_guard::destruct() -> void
 {
-  static constexpr std::string_view log_channel = "scoped_guard";
   try
   {
     if(on_destruction_)
@@ -51,11 +50,11 @@ auto scoped_guard::destruct() -> void
   }
   catch(const std::exception& e)
   {
-    LOG_ERROR(log_channel, "Scoped guard destruction exception: {}", e.what());
+    LOG_ERROR("scoped guard destruction exception: {}", e.what());
   }
   catch(...)
   {
-    LOG_ERROR(log_channel, "Scoped guard destruction exception: {}", "unknown exception");
+    LOG_ERROR("scoped guard destruction exception: {}", "unknown exception");
   }
 }
 

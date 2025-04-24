@@ -119,7 +119,7 @@ auto tray::get_message() -> void
     if(ret == -1)
     {
       const std::source_location loc = std::source_location::current();
-      LOG_ERROR(log_channel, "Error getting message in file: {}:{}:{}", loc.file_name(), loc.line(), loc.column());
+      LOG_ERROR("error getting message in file: {}:{}:{}", loc.file_name(), loc.line(), loc.column());
     }
     else
     {

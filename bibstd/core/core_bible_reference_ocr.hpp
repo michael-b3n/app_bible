@@ -16,9 +16,6 @@ namespace bibstd::core
 ///
 class core_bible_reference_ocr final
 {
-public: // Constants
-  static constexpr std::string_view log_channel = "core_bible_reference_ocr";
-
 public: // Typedefs
   using screen_rect_type = util::screen_types::screen_rect_type;
   using screen_coordinates_type = util::screen_types::screen_coordinates_type;

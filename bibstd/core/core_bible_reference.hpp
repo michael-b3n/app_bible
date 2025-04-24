@@ -26,8 +26,6 @@ public: // Typedefs
   };
 
 public: // Constants
-  static constexpr std::string_view log_channel = "core_bible_reference";
-
   ///
   /// List of all characters which can be used to separate passage numbers.
   ///

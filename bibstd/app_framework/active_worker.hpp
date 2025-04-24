@@ -3,7 +3,6 @@
 #include "app_framework/task_queue.hpp"
 
 #include <memory>
-#include <string_view>
 #include <thread>
 
 namespace bibstd::app_framework
@@ -14,9 +13,6 @@ namespace bibstd::app_framework
 ///
 class active_worker final
 {
-public: // Constants
-  static constexpr std::string_view log_channel = "active_worker";
-
 public: // Structors
   active_worker();
   ~active_worker();
