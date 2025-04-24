@@ -1,10 +1,8 @@
 #pragma once
 
 #include "core/core_tesseract_common.hpp"
-#include "data/pixel.hpp"
-#include "data/plane.hpp"
-#include "math/rect.hpp"
 #include "system/filesystem.hpp"
+#include "util/screen_types.hpp"
 
 #include <optional>
 #include <string_view>
@@ -34,8 +32,18 @@ public: // Constants
   };
 
 public: // Typedefs
-  using pixel_plane_type = core_tesseract_common::pixel_plane_type;
-  using bounding_box_type = core_tesseract_common::bounding_box_type;
+  using screen_rect_type = util::screen_types::screen_rect_type;
+  using screen_coordinates_type = util::screen_types::screen_coordinates_type;
+  using pixel_plane_type = util::screen_types::pixel_plane_type;
+  using text_callback_type = std::function<void(std::string_view, const screen_rect_type&)>;
+  using text_while_callback_type = std::function<bool(std::string_view, const screen_rect_type&)>;
+  using tesseract_choice = core_tesseract_common::tesseract_choice;
+  using tesseract_choices = core_tesseract_common::tesseract_choices;
+
+  // clang-format off
+  using choices_callback_type = std::function<void(const tesseract_choices&, const screen_rect_type&)>;
+  using choices_while_callback_type = std::function<bool(const tesseract_choices&, const screen_rect_type&)>;
+  // clang-format on
 
   enum class text_resolution
   {
@@ -61,25 +69,35 @@ public: // Modifiers
   /// \param bounding_box Optional rectangle within image to recognize, if not set the whole image is recognized.
   /// \return true if recognition was successful, false otherwise
   ///
-  auto recognize(std::optional<bounding_box_type> bounding_box) const -> bool;
+  auto recognize(std::optional<screen_rect_type> bounding_box) const -> bool;
 
   ///
   /// Run tesseract OCR on image.
   /// \param resolution Text resolution
   /// \param do_with_text Callback that is called for each parse found
   ///
-  auto for_each(
-    text_resolution resolution, const std::function<void(std::string_view, const bounding_box_type&)>& do_with_text
-  ) const -> void;
+  auto for_each(text_resolution resolution, const text_callback_type& do_with_text) const -> void;
 
   ///
   /// Run tesseract OCR on image with breakout condition.
   /// \param resolution Text resolution
   /// \param do_with_text Callback that is called for each parse found. If function returns true, the parsing is stopped.
   ///
-  auto for_each_until(
-    text_resolution resolution, const std::function<bool(std::string_view, const bounding_box_type&)>& do_with_text
-  ) const -> void;
+  auto for_each_while(text_resolution resolution, const text_while_callback_type& do_with_text) const -> void;
+
+  ///
+  /// Run tesseract OCR on image.
+  /// \param do_with_choices Callback that is called for each symbol and its choices found. The choices are guaranteed to be non
+  /// empty and sorted by confidence.
+  ///
+  auto for_each_choices(const choices_callback_type& do_with_choices) const -> void;
+
+  ///
+  /// Run tesseract OCR on image with breakout condition.
+  /// \param do_with_choices Callback that is called for each symbol and its choices found. The choices are guaranteed to be non
+  /// empty and sorted by confidence. If function returns true, the parsing is stopped.
+  ///
+  auto for_each_choices_while(const choices_while_callback_type& do_with_choices) const -> void;
 
 private: // Constants
   static constexpr auto language_map = util::const_bimap{

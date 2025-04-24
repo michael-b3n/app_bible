@@ -61,7 +61,7 @@ public: // Modifiers
   /// \param index Index where the bible reference shall be
   /// \return parse result with bible reference ranges and origin text
   ///
-  auto parse(std::string_view text, std::size_t index) -> parse_result;
+  auto parse(std::string_view text, std::size_t index) const -> parse_result;
 
 private: // Typedefs
   using passage_template_value_type = std::variant<std::uint32_t, char>;
@@ -88,16 +88,17 @@ private: // Typedefs
   };
 
 private: // Implementation
-  auto find_book(std::string_view text, std::size_t index) -> std::optional<find_book_result>;
-  auto create_passage_template(std::string_view passage_text) -> passage_template_type;
-  auto normalize_passage_text(std::string_view text) -> std::string;
+  auto find_book(std::string_view text, std::size_t index) const -> std::optional<find_book_result>;
+  auto trim_index_range_numbers(std::string_view text, find_book_result& book) const -> void;
+  auto create_passage_template(std::string_view passage_text) const -> passage_template_type;
+  auto normalize_passage_text(std::string_view text) const -> std::string;
   auto identify_number(std::string_view text, std::size_t& pos) const -> std::optional<std::uint32_t>;
   auto identify_transition(std::string_view text, std::size_t& pos) const -> std::optional<char>;
-  auto match_passage_template(bible::book_id book, passage_template_type&& passage_template)
+  auto match_passage_template(bible::book_id book, passage_template_type&& passage_template) const
     -> std::vector<bible::reference_range>;
-  auto passage_template_transition_chars(const passage_template_type& passage_template) -> std::vector<char>;
-  auto passage_template_numbers(const passage_template_type& passage_template) -> std::vector<std::uint32_t>;
-  auto create_passage_sections(const passage_template_type& passage_template, char down_transition_char)
+  auto passage_template_transition_chars(const passage_template_type& passage_template) const -> std::vector<char>;
+  auto passage_template_numbers(const passage_template_type& passage_template) const -> std::vector<std::uint32_t>;
+  auto create_passage_sections(const passage_template_type& passage_template, char down_transition_char) const
     -> std::vector<passage_section>;
 };
 

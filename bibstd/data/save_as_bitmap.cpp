@@ -44,7 +44,7 @@ struct bmp_file_dib_info final
 ///
 auto save_as_bitmap(const plane<pixel>& data, const std::filesystem::path& path) -> bool
 {
-  static constexpr std::string_view log_channel = "save_as_bitmap";
+  [[maybe_unused]] static constexpr std::string_view log_channel = "save_as_bitmap";
   if(path.extension() != std::string_view(".bmp"))
   {
     LOG_ERROR(log_channel, "Invalid file extension: {}", path.extension().string());

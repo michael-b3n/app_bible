@@ -4,6 +4,7 @@
 #include "data/plane.hpp"
 #include "math/rect.hpp"
 #include "util/const_bimap.hpp"
+#include "util/screen_types.hpp"
 
 #include <string_view>
 
@@ -21,8 +22,12 @@ struct core_tesseract_common final
     de,
   };
 
-  using pixel_plane_type = data::plane<data::pixel>;
-  using bounding_box_type = math::rect<std::int32_t>;
+  struct tesseract_choice final
+  {
+    std::string symbol{""};
+    double confidence{0.0};
+  };
+  using tesseract_choices = std::vector<tesseract_choice>;
 };
 
 } // namespace bibstd::core

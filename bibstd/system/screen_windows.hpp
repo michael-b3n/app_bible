@@ -1,10 +1,10 @@
 #pragma once
 
-#include "system/screen_base.hpp"
 #include "system/windows.hpp"
 #include "util/boost_numeric_cast.hpp"
 #include "util/exception.hpp"
 #include "util/log.hpp"
+#include "util/screen_types.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -20,8 +20,15 @@ namespace bibstd::system
 ///
 /// Screen capture class for windows implementation.
 ///
-class screen final : public screen_base
+class screen final
 {
+public: // Typedefs
+  using screen_rect_type = util::screen_types::screen_rect_type;
+  using screen_coordinates_type = util::screen_types::screen_coordinates_type;
+  using pixel_plane_type = util::screen_types::pixel_plane_type;
+
+  static constexpr std::string_view log_channel = "system_screen";
+
 public: // Static accessors
   ///
   /// Get the virtual screen metrics.

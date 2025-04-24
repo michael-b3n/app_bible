@@ -137,13 +137,16 @@ auto match_passage_template_section(
 
 ///
 ///
-auto core_bible_reference::parse(const std::string_view text, const std::size_t index) -> parse_result
+auto core_bible_reference::parse(const std::string_view text, const std::size_t index) const -> parse_result
 {
-  const auto book = find_book(text, index);
+  auto book = find_book(text, index);
   if(!book)
   {
     return parse_result{};
   };
+  // It is possible that the last number found for the number index range belongs to another book.
+  // If this is the case we remove the last number from the numbers index range.
+  trim_index_range_numbers(text, *book);
   return parse_result{
     .ranges = match_passage_template(
       book->book_id,
@@ -155,7 +158,8 @@ auto core_bible_reference::parse(const std::string_view text, const std::size_t 
 
 ///
 ///
-auto core_bible_reference::find_book(const std::string_view text, const std::size_t index) -> std::optional<find_book_result>
+auto core_bible_reference::find_book(const std::string_view text, const std::size_t index) const
+  -> std::optional<find_book_result>
 {
   auto found_book = std::optional<find_book_result>{};
 
@@ -244,7 +248,32 @@ auto core_bible_reference::find_book(const std::string_view text, const std::siz
 
 ///
 ///
-auto core_bible_reference::create_passage_template(const std::string_view passage_text) -> passage_template_type
+auto core_bible_reference::trim_index_range_numbers(const std::string_view text, find_book_result& book) const -> void
+{
+  const auto book_overlap = find_book(text, book.index_range_numbers.end);
+  if(book_overlap && book_overlap->index_range_book.begin > book.index_range_book.begin)
+  {
+    auto numbers_pos_end = std::size_t{0};
+    txt::chars::for_each_char_while(
+      text,
+      [&](const auto string_view, const auto pos, const txt::chars::category category)
+      {
+        const auto pos_end = pos + string_view.size();
+        const auto continue_loop = pos_end <= book_overlap->index_range_book.begin;
+        if(continue_loop && category == txt::chars::category::digit)
+        {
+          numbers_pos_end = pos + string_view.size();
+        }
+        return continue_loop;
+      }
+    );
+    book.index_range_numbers.end = numbers_pos_end;
+  }
+}
+
+///
+///
+auto core_bible_reference::create_passage_template(const std::string_view passage_text) const -> passage_template_type
 {
   const auto normalized = normalize_passage_text(passage_text);
   passage_template_type passage_template;
@@ -292,7 +321,7 @@ auto core_bible_reference::create_passage_template(const std::string_view passag
 
 ///
 ///
-auto core_bible_reference::normalize_passage_text(const std::string_view text) -> std::string
+auto core_bible_reference::normalize_passage_text(const std::string_view text) const -> std::string
 {
   std::string normalized_text;
   auto counter = std::size_t{0};
@@ -360,7 +389,7 @@ auto core_bible_reference::identify_transition(const std::string_view text, std:
 
 ///
 ///
-auto core_bible_reference::match_passage_template(const bible::book_id book, passage_template_type&& passage_template)
+auto core_bible_reference::match_passage_template(const bible::book_id book, passage_template_type&& passage_template) const
   -> std::vector<bible::reference_range>
 {
   if(!util::valid(book))
@@ -440,7 +469,8 @@ auto core_bible_reference::match_passage_template(const bible::book_id book, pas
 
 ///
 ///
-auto core_bible_reference::passage_template_transition_chars(const passage_template_type& passage_template) -> std::vector<char>
+auto core_bible_reference::passage_template_transition_chars(const passage_template_type& passage_template) const
+  -> std::vector<char>
 {
   auto result = std::vector<char>{};
   std::ranges::for_each(
@@ -455,7 +485,8 @@ auto core_bible_reference::passage_template_transition_chars(const passage_templ
 
 ///
 ///
-auto core_bible_reference::passage_template_numbers(const passage_template_type& passage_template) -> std::vector<std::uint32_t>
+auto core_bible_reference::passage_template_numbers(const passage_template_type& passage_template) const
+  -> std::vector<std::uint32_t>
 {
   auto result = std::vector<std::uint32_t>{};
   std::ranges::for_each(
@@ -470,7 +501,7 @@ auto core_bible_reference::passage_template_numbers(const passage_template_type&
 ///
 auto core_bible_reference::create_passage_sections(
   const passage_template_type& passage_template, const char down_transition_char
-) -> std::vector<passage_section>
+) const -> std::vector<passage_section>
 {
   const auto to_transition_char = [down_transition_char](const char c) -> std::optional<char>
   {

@@ -10,6 +10,14 @@
 namespace bibstd::core
 {
 
+// Constants
+constexpr auto resolution_map = util::const_bimap{
+  std::pair{core_tesseract::text_resolution::character,   tesseract::RIL_SYMBOL},
+  std::pair{     core_tesseract::text_resolution::word,     tesseract::RIL_WORD},
+  std::pair{     core_tesseract::text_resolution::line, tesseract::RIL_TEXTLINE},
+  std::pair{core_tesseract::text_resolution::paragraph,     tesseract::RIL_PARA},
+};
+
 ///
 ///
 core_tesseract::core_tesseract(core_tesseract_common::language language)
@@ -18,6 +26,7 @@ core_tesseract::core_tesseract(core_tesseract_common::language language)
 {
   const auto tessdata_string = tessdata_folder_path.generic_string();
   tesseract_->Init(tessdata_string.data(), language_map.at(language).data(), tesseract::OEM_LSTM_ONLY);
+  tesseract_->SetVariable("lstm_choice_mode", "2"); // set lstm_choice_mode to alternative symbol choices per character
 }
 
 ///
@@ -39,12 +48,12 @@ auto core_tesseract::set_image(const std::function<void(pixel_plane_type&)>& set
 
 ///
 ///
-auto core_tesseract::recognize(std::optional<bounding_box_type> bounding_box) const -> bool
+auto core_tesseract::recognize(std::optional<screen_rect_type> bounding_box) const -> bool
 {
   if(bounding_box && !pix_->pixels().empty())
   {
-    auto pix_rect = bounding_box_type({0, 0}, pix_->width(), pix_->height());
-    const auto overlap = bounding_box_type::overlap(pix_rect, *bounding_box);
+    auto pix_rect = screen_rect_type({0, 0}, pix_->width(), pix_->height());
+    const auto overlap = screen_rect_type::overlap(pix_rect, *bounding_box);
     if(!overlap)
     {
       return true;
@@ -67,32 +76,23 @@ auto core_tesseract::recognize(std::optional<bounding_box_type> bounding_box) co
 
 ///
 ///
-auto core_tesseract::for_each(
-  const text_resolution resolution, const std::function<void(std::string_view, const bounding_box_type&)>& do_with_text
-) const -> void
+auto core_tesseract::for_each(const text_resolution resolution, const text_callback_type& do_with_text) const -> void
 {
-  for_each_until(
+  for_each_while(
     resolution,
     [&](const auto text, const auto& bounding_box)
     {
       do_with_text(text, bounding_box);
-      return false;
+      return true;
     }
   );
 }
 
 ///
 ///
-auto core_tesseract::for_each_until(
-  const text_resolution resolution, const std::function<bool(std::string_view, const bounding_box_type&)>& do_with_text
-) const -> void
+auto core_tesseract::for_each_while(const text_resolution resolution, const text_while_callback_type& do_with_text) const
+  -> void
 {
-  static constexpr auto resolution_map = util::const_bimap{
-    std::pair{text_resolution::character,   tesseract::RIL_SYMBOL},
-    std::pair{     text_resolution::word,     tesseract::RIL_WORD},
-    std::pair{     text_resolution::line, tesseract::RIL_TEXTLINE},
-    std::pair{text_resolution::paragraph,     tesseract::RIL_PARA},
-  };
   if(pix_->pixels().empty())
   {
     return;
@@ -101,7 +101,7 @@ auto core_tesseract::for_each_until(
   tesseract::PageIteratorLevel level = resolution_map.at(resolution);
   if(ri)
   {
-    auto found = false;
+    auto found = true;
     do
     {
       std::unique_ptr<char[]> txt(ri->GetUTF8Text(level));
@@ -111,16 +111,84 @@ auto core_tesseract::for_each_until(
         const auto success = ri->BoundingBox(level, &left, &top, &right, &bottom);
         if(success && left >= 0 && top >= 0 && right >= 1 && bottom >= 1)
         {
-          const auto box = bounding_box_type(bounding_box_type::coordinates_type(left, top), right - left, bottom - top);
+          const auto box = screen_rect_type(screen_coordinates_type(left, top), right - left, bottom - top);
           found = do_with_text(std::string_view(txt.get()), box);
         }
         else
         {
-          LOG_WARN(log_channel, "Invalid bounding box values: txt={}", txt.get());
+          LOG_WARN(log_channel, "Invalid bounding box in for_each_while: txt={}", txt.get());
         }
       }
     }
-    while(!found && (ri->Next(level)));
+    while(found && (ri->Next(level)));
+  }
+}
+
+///
+///
+auto core_tesseract::for_each_choices(const choices_callback_type& do_with_choices) const -> void
+{
+  for_each_choices_while(
+    [&](const auto& choices, const auto& bounding_box)
+    {
+      do_with_choices(choices, bounding_box);
+      return true;
+    }
+  );
+}
+
+///
+///
+auto core_tesseract::for_each_choices_while(const choices_while_callback_type& do_with_choices) const -> void
+{
+  if(pix_->pixels().empty())
+  {
+    return;
+  }
+  std::unique_ptr<tesseract::ResultIterator> ri(tesseract_->GetIterator());
+  if(ri)
+  {
+    constexpr auto level = resolution_map.at(text_resolution::character);
+    auto found = true;
+    auto choices = tesseract_choices{};
+    do
+    {
+      // Get confidence level for alternative symbol choices. Code is based on
+      // https://github.com/tesseract-ocr/tesseract/blob/main/src/api/hocrrenderer.cpp#L325-L344
+      const auto choice_map = ri->GetBestLSTMSymbolChoices();
+
+      std::unique_ptr<char[]> main_symbol_data(ri->GetUTF8Text(level));
+      const auto main_symbol = std::string(main_symbol_data.get());
+
+      choices.clear();
+      if(choice_map && !choice_map->empty())
+      {
+        std::ranges::for_each(
+          *choice_map,
+          [&](const auto& timesteps)
+          {
+            std::ranges::for_each(
+              timesteps, [&](const auto& choice) { choices.emplace_back(std::string(choice.first), choice.second); }
+            );
+          }
+        );
+      }
+      choices.emplace_back(main_symbol, ri->Confidence(level));
+      std::ranges::sort(choices, [](const auto& a, const auto& b) { return a.confidence > b.confidence; });
+
+      int left, top, right, bottom;
+      const auto success = ri->BoundingBox(level, &left, &top, &right, &bottom);
+      if(success && left >= 0 && top >= 0 && right >= 1 && bottom >= 1)
+      {
+        const auto box = screen_rect_type(screen_coordinates_type(left, top), right - left, bottom - top);
+        found = do_with_choices(choices, box);
+      }
+      else
+      {
+        LOG_WARN(log_channel, "Invalid bounding box in for_each_choices_while: main_symbol={}", main_symbol);
+      }
+    }
+    while(found && (ri->Next(level)));
   }
 }
 

@@ -2,9 +2,10 @@
 
 #include "app_framework/settings_base.hpp"
 #include "app_framework/thread_pool.hpp"
+#include "bible/reference_range.hpp"
 #include "core/core_tesseract_common.hpp"
 #include "math/value_range.hpp"
-#include "system/screen.hpp"
+#include "util/screen_types.hpp"
 
 #include <functional>
 #include <memory>
@@ -15,6 +16,7 @@
 namespace bibstd::core
 {
 // Forward declarations
+class core_bible_reference_ocr;
 class core_bible_reference;
 class core_bibleserver_lookup;
 class core_tesseract;
@@ -50,7 +52,6 @@ public: // Constants
 public: // Typedefs
   using settings_type = workflow_bible_reference_ocr_settings::sptr_type;
   using language = core::core_tesseract_common::language;
-  using bounding_box_type = core::core_tesseract_common::bounding_box_type;
 
 public: // Structors
   workflow_bible_reference_ocr(language language);
@@ -60,8 +61,10 @@ public: // Modifiers
   auto run_once(const settings_type& settings) -> void;
 
 private: // Typedefs
-  using screen_rect_type = system::screen::screen_rect_type;
-  using screen_coordinates_type = system::screen::screen_coordinates_type;
+  using screen_rect_type = util::screen_types::screen_rect_type;
+  using screen_coordinates_type = util::screen_types::screen_coordinates_type;
+  using tesseract_choice = core::core_tesseract_common::tesseract_choice;
+  using tesseract_choices = core::core_tesseract_common::tesseract_choices;
   using index_range_type = math::value_range<std::size_t>;
 
 private: // Constants
@@ -82,7 +85,7 @@ private: // Constants
   struct character_data final
   {
     double distance;
-    bounding_box_type bounding_box;
+    screen_rect_type bounding_box;
   };
 
   struct reference_position_data final
@@ -96,21 +99,24 @@ private: // Implementation
   auto find_references() -> void;
   auto set_capture_areas() -> bool;
   auto capture_img(const screen_rect_type& rect) -> bool;
-  auto get_reference_position_data(
-    const screen_coordinates_type& relative_cursor_position,
-    std::string_view text_paragraph,
-    const bounding_box_type& bounding_box
-  ) -> std::optional<reference_position_data>;
+  auto parse_tesseract_recognition(const screen_rect_type& image_dimensions, const screen_coordinates_type& relative_cursor_pos)
+    -> std::optional<std::vector<bible::reference_range>>;
+  auto get_reference_position_main(const screen_coordinates_type& relative_cursor_pos)
+    -> std::optional<reference_position_data>;
+  auto get_reference_position_choices(const screen_coordinates_type& relative_cursor_pos)
+    -> std::vector<reference_position_data>;
+  auto get_min_distance_index(const std::vector<character_data>& char_data) -> std::optional<std::size_t>;
   auto is_valid_capture_area(
-    const bounding_box_type& image_dimensions, const reference_position_data& reference_position, index_range_type index_range
+    const screen_rect_type& image_dimensions, const reference_position_data& reference_position, index_range_type index_range
   ) -> bool;
 
 private: // Variables
+  const app_framework::thread_pool::strand_id_type strand_id_{app_framework::thread_pool::strand_id()};
+  const std::unique_ptr<core::core_bible_reference_ocr> core_bible_reference_ocr_;
   const std::unique_ptr<core::core_bible_reference> core_bible_reference_;
   const std::unique_ptr<core::core_bibleserver_lookup> core_bibleserver_lookup_;
   const std::unique_ptr<core::core_tesseract> core_tesseract_;
 
-  const app_framework::thread_pool::strand_id_type strand_id_{app_framework::thread_pool::strand_id()};
   settings_type settings_{nullptr};
   data_t data_;
 };

@@ -29,7 +29,7 @@ public: // Static helpers
 public: // Constructor
   uid();
 
-public: // Structors
+public: // Operators
   constexpr auto operator<=>(const uid&) const = default;
 
 private: // Structors
