@@ -67,7 +67,9 @@ auto workflow_bible_reference_ocr::run_once(const settings_type& settings) -> vo
 ///
 auto workflow_bible_reference_ocr::find_references() -> void
 {
-  if(!set_capture_areas())
+  data_.capture_areas =
+    core_bible_reference_ocr_->generate_capture_areas(data_.current_cursor_position, data_.current_char_height);
+  if(data_.capture_areas.empty())
   {
     LOG_WARN("failed to define capture areas: cursor_position={}", data_.current_cursor_position);
     return;
@@ -105,37 +107,6 @@ auto workflow_bible_reference_ocr::find_references() -> void
     references,
     [&](const auto& reference_range) { core_bibleserver_lookup_->open(reference_range, settings_->translations->value()); }
   );
-}
-
-///
-///
-auto workflow_bible_reference_ocr::set_capture_areas() -> bool
-{
-  data_.capture_areas.clear();
-  const auto window_rect = system::screen::window_at(data_.current_cursor_position);
-  if(!window_rect)
-  {
-    return false;
-  }
-  const auto height = data_.current_char_height.value_or(window_rect->vertical_range() / vertical_range_denominator) * 2;
-  const auto width = height * height_to_width_ratio;
-  const auto valid = std::ranges::all_of(
-    capture_ocr_area_steps,
-    [&](const auto i)
-    {
-      const auto x_origin = data_.current_cursor_position.x() - (i * width / 2);
-      const auto y_origin = data_.current_cursor_position.y() - (i * height / 2);
-      const auto rect = screen_rect_type::overlap(*window_rect, screen_rect_type({x_origin, y_origin}, i * width, i * height));
-      const auto valid_rect = rect.has_value();
-      if(valid_rect)
-      {
-        data_.capture_areas.push_back(*rect);
-      }
-      return valid_rect;
-    }
-  );
-  valid ? data_.capture_areas.push_back(*window_rect) : data_.capture_areas.clear();
-  return valid;
 }
 
 ///
@@ -182,7 +153,8 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
           // Parse result might be empty but the capture area is still valid.
           // This is the case when the text is not a valid reference but the characters found in the image are
           // within the capture area including a safety margin. In this case no larger area is captured.
-          valid_capture_area = is_valid_capture_area(image_dimensions, *position_data, parse_result.index_range_origin);
+          valid_capture_area =
+            core_bible_reference_ocr_->is_valid_capture_area(image_dimensions, *position_data, parse_result.index_range_origin);
 
           // If the capture area is valid but no references are found, we parse other high confidence OCR choices.
           // If a parse result is found and the area is valid we break out.
@@ -194,8 +166,9 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
               [&](const auto& position_data_choice)
               {
                 parse_result = core_bible_reference_->parse(position_data_choice.text, position_data_choice.index);
-                valid_capture_area =
-                  is_valid_capture_area(image_dimensions, position_data_choice, parse_result.index_range_origin);
+                valid_capture_area = core_bible_reference_ocr_->is_valid_capture_area(
+                  image_dimensions, position_data_choice, parse_result.index_range_origin
+                );
                 return valid_capture_area && !parse_result.ranges.empty();
               }
             );
@@ -327,51 +300,6 @@ auto workflow_bible_reference_ocr::get_min_distance_index(const std::vector<char
   else
   {
     LOG_WARN("no minimum distance found in character data: char_data_size={}", char_data.size());
-  }
-  return result;
-}
-
-///
-///
-auto workflow_bible_reference_ocr::is_valid_capture_area(
-  const screen_rect_type& image_dimensions, const reference_position_data& position_data, index_range_type index_range
-) -> bool
-{
-  auto char_height = std::int32_t{0};
-  const auto get_char_height = [&](const auto i)
-  { char_height = std::max(char_height, position_data.char_data.at(i).bounding_box.vertical_range()); };
-  std::ranges::for_each(
-    std::views::iota(std::size_t{0}, position_data.char_data.size()), [&](const auto& char_data) { get_char_height(char_data); }
-  );
-
-  const auto is_in_bounds = [&](const auto i) -> bool
-  {
-    const auto& char_bounding_box = position_data.char_data.at(i).bounding_box;
-    const auto bounding_box_with_margin = screen_rect_type(
-      char_bounding_box.origin() - screen_rect_type::coordinates_type(char_height, char_height / 4),
-      char_bounding_box.horizontal_range() + (char_height * 2),
-      char_bounding_box.vertical_range() + char_height
-    );
-    return screen_rect_type::contains(image_dimensions, bounding_box_with_margin);
-  };
-  auto result = false;
-  if(index_range_type::empty(index_range))
-  {
-    result = std::ranges::any_of(
-      std::views::iota(std::size_t{0}, position_data.char_data.size()), [&](const auto i) { return is_in_bounds(i); }
-    );
-  }
-  else
-  {
-    result = std::ranges::all_of(
-      std::views::iota(index_range.begin, index_range.end) |
-        std::views::filter([&](const auto i) { return i < position_data.char_data.size(); }),
-      [&](const auto i) { return is_in_bounds(i); }
-    );
-  }
-  if(!result)
-  {
-    LOG_DEBUG("invalid capture area: image_dimensions={}, char_height={}", image_dimensions, char_height);
   }
   return result;
 }

@@ -3,6 +3,7 @@
 #include "app_framework/settings_base.hpp"
 #include "app_framework/thread_pool.hpp"
 #include "bible/reference_range.hpp"
+#include "core/core_bible_reference_ocr_common.hpp"
 #include "core/core_tesseract_common.hpp"
 #include "math/value_range.hpp"
 #include "util/screen_types.hpp"
@@ -61,12 +62,8 @@ private: // Typedefs
   using screen_coordinates_type = util::screen_types::screen_coordinates_type;
   using tesseract_choice = core::core_tesseract_common::tesseract_choice;
   using tesseract_choices = core::core_tesseract_common::tesseract_choices;
-  using index_range_type = math::value_range<std::size_t>;
-
-private: // Constants
-  static constexpr auto capture_ocr_area_steps = std::array{1, 2, 4};
-  static constexpr auto vertical_range_denominator = 32;
-  static constexpr auto height_to_width_ratio = 8;
+  using character_data = core::core_bible_reference_ocr_common::character_data;
+  using reference_position_data = core::core_bible_reference_ocr_common::reference_position_data;
 
   ///
   /// Internal data structure.
@@ -78,22 +75,8 @@ private: // Constants
     std::vector<screen_rect_type> capture_areas{};
   };
 
-  struct character_data final
-  {
-    double distance;
-    screen_rect_type bounding_box;
-  };
-
-  struct reference_position_data final
-  {
-    std::string text;
-    std::vector<character_data> char_data;
-    std::size_t index;
-  };
-
 private: // Implementation
   auto find_references() -> void;
-  auto set_capture_areas() -> bool;
   auto capture_img(const screen_rect_type& rect) -> bool;
   auto parse_tesseract_recognition(const screen_rect_type& image_dimensions, const screen_coordinates_type& relative_cursor_pos)
     -> std::optional<std::vector<bible::reference_range>>;
@@ -102,9 +85,6 @@ private: // Implementation
   auto get_reference_position_choices(const screen_coordinates_type& relative_cursor_pos)
     -> std::vector<reference_position_data>;
   auto get_min_distance_index(const std::vector<character_data>& char_data) -> std::optional<std::size_t>;
-  auto is_valid_capture_area(
-    const screen_rect_type& image_dimensions, const reference_position_data& reference_position, index_range_type index_range
-  ) -> bool;
 
 private: // Variables
   const app_framework::thread_pool::strand_id_type strand_id_{app_framework::thread_pool::strand_id()};
