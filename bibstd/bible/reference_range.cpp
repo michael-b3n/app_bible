@@ -25,10 +25,9 @@ reference_range::reference_range(reference first, reference second)
 /// TODO: This algorithm is correct but very inefficient.
 auto reference_range::size() const -> std::uint32_t
 {
-  constexpr auto max_verses = std::uint32_t{31102};
   auto temp = from_;
   auto counter = std::uint32_t{0};
-  while(temp <= to_ && counter <= max_verses)
+  while(temp <= to_ && counter <= bible::total_verse_count)
   {
     ++counter;
     ++temp;

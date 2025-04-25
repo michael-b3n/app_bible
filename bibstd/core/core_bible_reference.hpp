@@ -54,7 +54,7 @@ public: // Structors
 
 public: // Modifiers
   ///
-  /// Parse bible reference from a string view.
+  /// Parse bible reference from a string view. This function will only parse a reference of a single book.
   /// \param text String view containing bible references
   /// \param index Index where the bible reference shall be
   /// \return parse result with bible reference ranges and origin text
