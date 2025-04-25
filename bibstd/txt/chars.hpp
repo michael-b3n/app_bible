@@ -30,6 +30,7 @@ public: // Typedefs
     letter,
     whitespace,
     line,
+    fullstop,
     digit,
     other,
   };
@@ -164,6 +165,8 @@ public: // Constants
   static constexpr auto for_each_char_while(std::string_view string_view, Function&& function) -> void;
 
 private: // Implementation
+  static constexpr auto is_equal_impl(std::string_view string_view, std::size_t index, std::string_view character)
+    -> std::optional<std::string_view>;
   static constexpr auto is_digit_impl(std::string_view string_view, std::size_t index) -> std::optional<std::string_view>;
 };
 
@@ -179,6 +182,7 @@ constexpr auto chars::is_char(const std::string_view string_view, const std::siz
     case category::letter: return contains(letters, string_view, index);
     case category::whitespace: return contains(whitespaces, string_view, index);
     case category::line: return contains(lines, string_view, index);
+    case category::fullstop: return is_equal_impl(string_view, index, ".");
     case category::digit: return is_digit_impl(string_view, index);
     case category::other: return string_view.substr(index, 1);
     default: return std::nullopt;
@@ -224,6 +228,7 @@ constexpr auto chars::char_info(std::string_view string_view, std::size_t index)
   if(const auto result = is_char(string_view, index, category::letter); result) { return char_data{category::letter, result->size()}; }
   if(const auto result = is_char(string_view, index, category::whitespace); result) { return char_data{category::whitespace, result->size()}; }
   if(const auto result = is_char(string_view, index, category::line); result) { return char_data{category::line, result->size()}; }
+  if(const auto result = is_char(string_view, index, category::fullstop); result) { return char_data{category::fullstop, result->size()}; }
   if(const auto result = is_char(string_view, index, category::digit); result) { return char_data{category::digit, result->size()}; }
   if(const auto result = is_char(string_view, index, category::other); result) { return char_data{category::other, result->size()}; }
   // clang-format on
@@ -292,7 +297,21 @@ constexpr auto chars::for_each_char_while(const std::string_view string_view, Fu
 
 ///
 ///
-constexpr auto chars::is_digit_impl(std::string_view string_view, std::size_t index) -> std::optional<std::string_view>
+constexpr auto chars::is_equal_impl(const std::string_view string_view, const std::size_t index, const std::string_view c)
+  -> std::optional<std::string_view>
+{
+  if(index + c.size() > string_view.size())
+  {
+    return std::nullopt;
+  }
+  const auto substr = string_view.substr(index, c.size());
+  return substr == c ? std::make_optional(substr) : std::nullopt;
+}
+
+///
+///
+constexpr auto chars::is_digit_impl(const std::string_view string_view, const std::size_t index)
+  -> std::optional<std::string_view>
 {
   return std::isdigit(static_cast<unsigned char>(string_view.at(index))) ? std::make_optional(string_view.substr(index, 1))
                                                                          : std::nullopt;

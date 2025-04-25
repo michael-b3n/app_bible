@@ -87,7 +87,8 @@ private: // Typedefs
 
 private: // Implementation
   auto find_book(std::string_view text, std::size_t index) const -> std::optional<find_book_result>;
-  auto trim_index_range_numbers(std::string_view text, find_book_result& book) const -> void;
+  auto find_numbers_after_book_name(std::string_view text_after_name) const -> std::optional<std::size_t>;
+  auto trim_index_range_numbers_end(std::string_view text, find_book_result& book) const -> void;
   auto create_passage_template(std::string_view passage_text) const -> passage_template_type;
   auto normalize_passage_text(std::string_view text) const -> std::string;
   auto identify_number(std::string_view text, std::size_t& pos) const -> std::optional<std::uint32_t>;

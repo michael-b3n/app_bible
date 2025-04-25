@@ -4,6 +4,7 @@
 #include "txt/chars.hpp"
 #include "txt/find_uint.hpp"
 #include "util/contains.hpp"
+#include "util/format.hpp"
 #include "util/log.hpp"
 #include "util/string.hpp"
 #include "util/visit_helper.hpp"
@@ -146,7 +147,7 @@ auto core_bible_reference::parse(const std::string_view text, const std::size_t 
   };
   // It is possible that the last number found for the number index range belongs to another book.
   // If this is the case we remove the last number from the numbers index range.
-  trim_index_range_numbers(text, *book);
+  trim_index_range_numbers_end(text, *book);
   return parse_result{
     .ranges = match_passage_template(
       book->book_id,
@@ -163,82 +164,84 @@ auto core_bible_reference::find_book(const std::string_view text, const std::siz
 {
   auto found_book = std::optional<find_book_result>{};
 
-  std::string letters_and_digits_only;
-  letters_and_digits_only.reserve(text.size());
+  std::string normalized_text;
+  normalized_text.reserve(text.size());
   std::vector<index_range_type> raw_index_ranges;
   raw_index_ranges.reserve(text.size());
   txt::chars::for_each_char(
     text,
-    [&](const auto string_view, const auto pos, const txt::chars::category category) -> void
+    [&](const auto character, const auto pos, const txt::chars::category category) -> void
     {
-      const auto letter_or_digit = category == txt::chars::category::letter || category == txt::chars::category::digit;
-      const auto size = string_view.size();
-      if(letter_or_digit && size > 0)
+      const auto append = [&](const std::string_view c) -> void
       {
-        letters_and_digits_only.append(string_view.data(), size);
+        const auto size = c.size();
+        if(size == 0)
+        {
+          return;
+        }
+        normalized_text.append(c.data(), size);
         const auto index_range = index_range_type{pos, pos + size};
         raw_index_ranges.insert(raw_index_ranges.end(), size, index_range);
+      };
+      switch(category)
+      {
+      case txt::chars::category::letter: append(character); break;
+      case txt::chars::category::whitespace: /*noop*/ break;
+      case txt::chars::category::fullstop: /*noop*/ break;
+      case txt::chars::category::digit: append(character); break;
+      default: append("*"); break;
       }
     }
   );
-  assert(raw_index_ranges.size() == letters_and_digits_only.size());
+  assert(raw_index_ranges.size() == normalized_text.size());
+
+  // Reverse loop through all the book name variants because of two reasons:
+  // 1. The common searches match more with the latter book names.
+  // 2. For John and X_John the first match would be taken even if it should be the second one.
   std::ranges::for_each(
-    bible::book_name_variants_de::name_variants_list |
+    bible::book_name_variants_de::name_variants_list | std::views::reverse |
       std::views::take_while([&]([[maybe_unused]] auto&) { return !found_book.has_value(); }),
     [&](const auto& element)
     {
-      auto letters_and_digits_only_view = std::string_view{letters_and_digits_only};
+      auto normalized_text_view = std::string_view{normalized_text};
       const auto& [book_id, name_variant] = element;
 
       auto pos_rel = std::size_t{0};
       auto pos_offset = std::size_t{0};
-      const auto max_iterations = letters_and_digits_only_view.size();
       std::ranges::for_each(
-        std::views::iota(std::size_t{0}, max_iterations) |
+        std::views::iota(std::size_t{0}, normalized_text_view.size()) |
           std::views::take_while([&](const auto i) { return pos_rel != std::string_view::npos && !found_book.has_value(); }),
         [&]([[maybe_unused]] const auto)
         {
-          pos_rel = letters_and_digits_only_view.find(name_variant);
+          pos_rel = normalized_text_view.find(name_variant);
           if(pos_rel == std::string_view::npos)
           {
             return;
           }
           const auto pos_name_end = pos_rel + name_variant.size();
-          if(txt::chars::is_char(letters_and_digits_only_view, pos_name_end, txt::chars::category::digit))
+          const auto text_after_pos = normalized_text_view.substr(pos_name_end);
+          if(const auto numbers_end_opt = find_numbers_after_book_name(text_after_pos))
           {
-            const auto text_after_pos = letters_and_digits_only_view.substr(pos_name_end);
-            auto numbers_offset_opt = std::optional<std::size_t>{};
-            txt::chars::for_each_char_while(
-              text_after_pos,
-              [&]([[maybe_unused]] auto, const auto pos, const txt::chars::category category)
-              {
-                if(category != txt::chars::category::digit &&
-                   !util::contains(
-                     number_postfix_chars, [&](const auto v) { return util::starts_with(text_after_pos.substr(pos), v); }
-                   ))
-                {
-                  numbers_offset_opt = pos;
-                }
-                return !numbers_offset_opt.has_value();
-              }
-            );
-            const auto number_offset = numbers_offset_opt.value_or(text_after_pos.size());
+            const auto number_end = numbers_end_opt.value();
             const auto pos_abs = pos_offset + pos_rel;
-            const auto index_begin = raw_index_ranges.at(pos_abs).begin;
-            const auto index_passage_begin = raw_index_ranges.at(pos_abs + name_variant.size()).begin;
-            const auto index_end = raw_index_ranges.at(pos_abs + name_variant.size() + number_offset - 1).end;
-            if(math::value_range<std::size_t>::contains(index_range_type{index_begin, index_end}, index))
+
+            const auto index_book_begin = raw_index_ranges.at(pos_abs).begin;
+            const auto index_book_end = raw_index_ranges.at(pos_abs + name_variant.size() - 1).end;
+            const auto index_numbers_begin = raw_index_ranges.at(pos_abs + name_variant.size()).begin;
+            const auto index_numbers_end = raw_index_ranges.at(pos_abs + name_variant.size() + number_end - 1).end;
+
+            if(math::value_range<std::size_t>::contains(index_range_type{index_book_begin, index_numbers_end}, index))
             {
               found_book = find_book_result{
                 .book_id = book_id,
-                .index_range_book = index_range_type{        index_begin, index_passage_begin},
-                .index_range_numbers = index_range_type{index_passage_begin,           index_end},
+                .index_range_book = index_range_type{   index_book_begin,    index_book_end},
+                .index_range_numbers = index_range_type{index_numbers_begin, index_numbers_end},
                 .book_name_variant = name_variant
               };
             }
           }
           pos_offset += pos_name_end;
-          letters_and_digits_only_view = letters_and_digits_only_view.substr(pos_name_end);
+          normalized_text_view = normalized_text_view.substr(pos_name_end);
         }
       );
     }
@@ -248,26 +251,75 @@ auto core_bible_reference::find_book(const std::string_view text, const std::siz
 
 ///
 ///
-auto core_bible_reference::trim_index_range_numbers(const std::string_view text, find_book_result& book) const -> void
+auto core_bible_reference::find_numbers_after_book_name(const std::string_view text_after_name) const
+  -> std::optional<std::size_t>
 {
-  const auto book_overlap = find_book(text, book.index_range_numbers.end);
-  if(book_overlap && book_overlap->index_range_book.begin > book.index_range_book.begin)
-  {
-    auto numbers_pos_end = std::size_t{0};
-    txt::chars::for_each_char_while(
-      text,
-      [&](const auto string_view, const auto pos, const txt::chars::category category)
+  auto digit_found = false;
+  auto numbers_end = std::optional<std::size_t>{};
+  txt::chars::for_each_char_while(
+    text_after_name,
+    [&](const auto character, const auto pos, const txt::chars::category category)
+    {
+      if(category == txt::chars::category::digit)
       {
-        const auto pos_end = pos + string_view.size();
-        const auto continue_loop = pos_end <= book_overlap->index_range_book.begin;
-        if(continue_loop && category == txt::chars::category::digit)
-        {
-          numbers_pos_end = pos + string_view.size();
-        }
-        return continue_loop;
+        digit_found = true;
       }
-    );
-    book.index_range_numbers.end = numbers_pos_end;
+      else if(category == txt::chars::category::letter &&
+              !util::contains(number_postfix_chars, [&](const auto v) { return util::starts_with(character, v); }))
+      {
+        numbers_end = pos;
+      }
+      return !numbers_end.has_value();
+    }
+  );
+  return digit_found ? numbers_end.value_or(text_after_name.size()) : std::optional<std::size_t>{};
+}
+
+///
+///
+auto core_bible_reference::trim_index_range_numbers_end(const std::string_view text, find_book_result& book) const -> void
+{
+  auto index = std::optional<std::size_t>{};
+  txt::chars::for_each_char_while(
+    text.substr(book.index_range_numbers.end),
+    [&](const auto character, const auto pos, const txt::chars::category category)
+    {
+      const auto is_letter = category == txt::chars::category::letter;
+      if(is_letter)
+      {
+        index = pos + book.index_range_numbers.end;
+      }
+      return !is_letter;
+    }
+  );
+  if(index)
+  {
+    const auto book_overlap = find_book(text, *index);
+    if(book_overlap && book_overlap->index_range_book.begin > book.index_range_book.begin)
+    {
+      auto numbers_pos_end = std::optional<std::size_t>{};
+      txt::chars::for_each_char_while(
+        text,
+        [&](const auto character, const auto pos, const txt::chars::category category)
+        {
+          const auto pos_end = pos + character.size();
+          const auto continue_loop = pos_end <= book_overlap->index_range_book.begin;
+          if(continue_loop && category == txt::chars::category::digit)
+          {
+            numbers_pos_end = pos + character.size();
+          }
+          return continue_loop;
+        }
+      );
+      if(numbers_pos_end && book.index_range_numbers.end != numbers_pos_end)
+      {
+        book.index_range_numbers.end = *numbers_pos_end;
+      }
+      else
+      {
+        LOG_ERROR("trim index range numbers failed: numbers_pos_end={}", util::format::to_string(numbers_pos_end));
+      }
+    }
   }
 }
 

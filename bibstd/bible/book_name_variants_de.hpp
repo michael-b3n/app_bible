@@ -26,7 +26,7 @@ private: // Typedefs
 public: // Constants
   ///
   /// All german bible book name variants listed with corresponding book id.
-  /// Whitespaces and chars other than letters and digits are ignored.
+  /// Whitespaces and fullstops are omitted.
   ///
   // clang-format off
   static constexpr auto name_variants = std::tuple{

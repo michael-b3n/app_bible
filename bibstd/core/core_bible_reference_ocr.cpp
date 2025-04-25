@@ -31,7 +31,7 @@ auto core_bible_reference_ocr::match_choices_to_bible_book(
 ///
 ///
 auto core_bible_reference_ocr::generate_capture_areas(
-  const screen_coordinates_type& cursor_position, const std::optional<std::uint32_t> char_height
+  const screen_coordinates_type& cursor_position, const std::optional<std::int32_t> char_height
 ) const -> std::vector<screen_rect_type>
 {
   auto result = std::vector<screen_rect_type>{};
