@@ -79,11 +79,12 @@ auto core_bible_reference_ocr::is_valid_capture_area(
   const auto is_in_bounds = [&](const auto i) -> bool
   {
     const auto& char_bounding_box = position_data.char_data.at(i).bounding_box;
+    const auto half_vertical_margin = static_cast<std::int32_t>(char_height * vertical_margin_multiplier / 2);
+    const auto half_horizontal_margin = static_cast<std::int32_t>(char_height * horizontal_margin_multiplier / 2);
     const auto bounding_box_with_margin = screen_rect_type(
-      char_bounding_box.origin() -
-        screen_rect_type::coordinates_type(char_height, static_cast<std::int32_t>(char_height * vertical_margin_multiplier)),
-      char_bounding_box.horizontal_range() + static_cast<std::int32_t>(char_height * horizontal_margin_multiplier),
-      char_bounding_box.vertical_range() + char_height
+      char_bounding_box.origin() - screen_rect_type::coordinates_type(half_horizontal_margin, half_vertical_margin),
+      char_bounding_box.horizontal_range() + half_horizontal_margin * 2,
+      char_bounding_box.vertical_range() + half_vertical_margin * 2
     );
     return screen_rect_type::contains(image_dimensions, bounding_box_with_margin);
   };
