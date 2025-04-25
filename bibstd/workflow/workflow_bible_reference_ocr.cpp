@@ -155,7 +155,10 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
           // within the capture area including a safety margin. In this case no larger area is captured.
           valid_capture_area =
             core_bible_reference_ocr_->is_valid_capture_area(image_dimensions, *position_data, parse_result.index_range_origin);
-
+          if(valid_capture_area)
+          {
+            data_.current_char_height = position_data->char_data.at(position_data->index).bounding_box.vertical_range();
+          }
           // If the capture area is valid but no references are found, we parse other high confidence OCR choices.
           // If a parse result is found and the area is valid we break out.
           if(valid_capture_area && parse_result.ranges.empty())

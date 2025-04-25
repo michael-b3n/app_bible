@@ -48,7 +48,7 @@ public: // Operations
   /// \return vector of screen rectangles that are used to capture the screen for OCR
   ///
   [[nodiscard]]
-  auto generate_capture_areas(const screen_coordinates_type& cursor_position, std::optional<std::uint32_t> char_height) const
+  auto generate_capture_areas(const screen_coordinates_type& cursor_position, std::optional<std::int32_t> char_height) const
     -> std::vector<screen_rect_type>;
 
   ///
@@ -69,8 +69,8 @@ private: // Constants
   static constexpr auto height_to_width_ratio = 8;
   static constexpr auto vertical_range_to_full_screen_factor = 32;
   static constexpr auto capture_ocr_area_steps = std::array{1, 2, 4};
-  static constexpr auto horizontal_margin_multiplier = 2.0;
-  static constexpr auto vertical_margin_multiplier = 0.25;
+  static constexpr auto horizontal_margin_multiplier = 1.0;
+  static constexpr auto vertical_margin_multiplier = 0.1;
 
 private: // Implementation
   ///
