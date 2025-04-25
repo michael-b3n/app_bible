@@ -121,6 +121,11 @@ enum class translation
 };
 
 ///
+/// Number of all the verses in the bible.
+///
+constexpr auto total_verse_count = std::uint32_t{31102};
+
+///
 /// Get the count of chapters in a book.
 /// \param book The book to get the chapter count of
 /// \return the chapter count

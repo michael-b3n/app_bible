@@ -45,19 +45,19 @@ inline auto open_browser::open(const std::string& url) -> bool
 
   /// \see https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shellexecuteexa
   CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-  const auto success = !ShellExecuteExW(&sh_exec_info);
+  const auto success = ShellExecuteExW(&sh_exec_info);
   const auto wait_result = WaitForSingleObject(sh_exec_info.hProcess, 1000 /*ms*/);
-  const auto timeout = wait_result != WAIT_TIMEOUT;
+  const auto no_timeout = wait_result != WAIT_TIMEOUT;
   if(sh_exec_info.hProcess)
   {
-    if(timeout)
+    if(!no_timeout)
     {
       TerminateProcess(sh_exec_info.hProcess, 0);
     }
     CloseHandle(sh_exec_info.hProcess);
   }
   CoUninitialize();
-  return success && !timeout;
+  return success && no_timeout;
 }
 
 } // namespace bibstd::system
