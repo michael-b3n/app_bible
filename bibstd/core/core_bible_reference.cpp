@@ -145,9 +145,6 @@ auto core_bible_reference::parse(const std::string_view text, const std::size_t 
   {
     return parse_result{};
   };
-  // It is possible that the last number found for the number index range belongs to another book.
-  // If this is the case we remove the last number from the numbers index range.
-  trim_index_range_numbers_end(text, *book);
   return parse_result{
     .ranges = match_passage_template(
       book->book_id,
@@ -222,7 +219,7 @@ auto core_bible_reference::find_book(const std::string_view text, const std::siz
           const auto text_after_pos = normalized_text_view.substr(pos_name_end);
           if(const auto numbers_end_opt = find_numbers_after_book_name(text_after_pos))
           {
-            const auto number_end = numbers_end_opt.value();
+            const auto number_end = validate_index_range_numbers_end(text_after_pos, numbers_end_opt.value());
             const auto pos_abs = pos_offset + pos_rel;
 
             const auto index_book_begin = raw_index_ranges.at(pos_abs).begin;
@@ -277,50 +274,28 @@ auto core_bible_reference::find_numbers_after_book_name(const std::string_view t
 
 ///
 ///
-auto core_bible_reference::trim_index_range_numbers_end(const std::string_view text, find_book_result& book) const -> void
+auto core_bible_reference::validate_index_range_numbers_end(
+  const std::string_view text_after_name, std::size_t numbers_end
+) const -> std::size_t
 {
-  auto index = std::optional<std::size_t>{};
-  txt::chars::for_each_char_while(
-    text.substr(book.index_range_numbers.end),
-    [&](const auto character, const auto pos, const txt::chars::category category)
-    {
-      const auto is_letter = category == txt::chars::category::letter;
-      if(is_letter)
-      {
-        index = pos + book.index_range_numbers.end;
-      }
-      return !is_letter;
-    }
-  );
-  if(index)
+  if(numbers_end < text_after_name.size() && numbers_end > 0 &&
+     txt::chars::is_char(text_after_name, numbers_end, txt::chars::category::letter))
   {
-    const auto book_overlap = find_book(text, *index);
-    if(book_overlap && book_overlap->index_range_book.begin > book.index_range_book.begin)
+    const auto text_from_last_number = text_after_name.substr(numbers_end - 1);
+    const auto belongs_to_book_name = std::ranges::any_of(
+      bible::book_name_variants_de::name_variants_list,
+      [&](const auto& element)
+      {
+        const auto& [_, name_variant] = element;
+        return util::starts_with(text_from_last_number, name_variant);
+      }
+    );
+    if(belongs_to_book_name)
     {
-      auto numbers_pos_end = std::optional<std::size_t>{};
-      txt::chars::for_each_char_while(
-        text,
-        [&](const auto character, const auto pos, const txt::chars::category category)
-        {
-          const auto pos_end = pos + character.size();
-          const auto continue_loop = pos_end <= book_overlap->index_range_book.begin;
-          if(continue_loop && category == txt::chars::category::digit)
-          {
-            numbers_pos_end = pos + character.size();
-          }
-          return continue_loop;
-        }
-      );
-      if(numbers_pos_end && book.index_range_numbers.end != numbers_pos_end)
-      {
-        book.index_range_numbers.end = *numbers_pos_end;
-      }
-      else
-      {
-        LOG_ERROR("trim index range numbers failed: numbers_pos_end={}", util::format::to_string(numbers_pos_end));
-      }
+      --numbers_end;
     }
   }
+  return numbers_end;
 }
 
 ///

@@ -46,8 +46,8 @@ auto core_bible_reference_ocr::generate_capture_areas(
     capture_ocr_area_steps,
     [&](const auto i)
     {
-      const auto x_origin = cursor_position.x() - (i * width / 2);
-      const auto y_origin = cursor_position.y() - (i * height / 2);
+      const auto x_origin = cursor_position.x() - static_cast<std::int32_t>(i * width / 2);
+      const auto y_origin = cursor_position.y() - static_cast<std::int32_t>(i * height / 2);
       const auto rect = screen_rect_type::overlap(*window_rect, screen_rect_type({x_origin, y_origin}, i * width, i * height));
       const auto valid_rect = rect.has_value();
       if(valid_rect)

@@ -68,7 +68,7 @@ public: // Operations
 private: // Constants
   static constexpr auto height_to_width_ratio = 8;
   static constexpr auto vertical_range_to_full_screen_factor = 32;
-  static constexpr auto capture_ocr_area_steps = std::array{1, 2, 4};
+  static constexpr auto capture_ocr_area_steps = std::array{1.0, 1.5, 2.0, 3.0, 4.0};
   static constexpr auto horizontal_margin_multiplier = 1.0;
   static constexpr auto vertical_margin_multiplier = 0.1;
 

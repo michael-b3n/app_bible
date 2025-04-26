@@ -20,9 +20,6 @@
 INC_RESOURCE(icon, "res/icon.ico");
 const auto icon_view = bibstd::util::incbin::to_span<std::byte>(res_icon_data, res_icon_size);
 
-INC_RESOURCE(main_html, "html/main.html");
-const auto main_html_view = bibstd::util::incbin::to_string_view(res_main_html_data, res_main_html_size);
-
 ///
 /// Main function.
 ///

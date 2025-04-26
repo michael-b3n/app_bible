@@ -243,9 +243,8 @@ auto workflow_bible_reference_ocr::get_reference_position_choices(const screen_c
     choices_list,
     [&](const auto& choices)
     {
-      const auto main_symbol_info = txt::chars::char_info(choices.front().symbol, 0);
-      return main_symbol_info && (main_symbol_info->char_category == txt::chars::category::letter ||
-                                  main_symbol_info->char_category == txt::chars::category::digit);
+      return txt::chars::is_char(choices.front().symbol, 0, txt::chars::category::letter) ||
+             txt::chars::is_char(choices.front().symbol, 0, txt::chars::category::digit);
     }
   );
 
