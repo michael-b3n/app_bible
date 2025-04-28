@@ -128,6 +128,11 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
     );
     if(capture_area_validity_check_result.valid && capture_area_validity_check_result.detected_char_height)
     {
+      LOG_DEBUG(
+        "update assumed char height: from={} pixels to={} pixels",
+        settings_->assumed_char_height->value(),
+        *capture_area_validity_check_result.detected_char_height
+      );
       settings_->assumed_char_height->value(*capture_area_validity_check_result.detected_char_height);
     }
     // If the capture area is valid but no references are found, we parse other high confidence OCR choices.
