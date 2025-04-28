@@ -19,7 +19,6 @@ namespace bibstd::core
 class core_bible_reference_ocr;
 class core_bible_reference;
 class core_bibleserver_lookup;
-class core_tesseract;
 } // namespace bibstd::core
 
 namespace bibstd::workflow
@@ -70,28 +69,19 @@ private: // Typedefs
   ///
   struct data_t final
   {
-    screen_coordinates_type current_cursor_position{0, 0};
     std::optional<std::int32_t> current_char_height{};
-    std::vector<screen_rect_type> capture_areas{};
   };
 
 private: // Implementation
-  auto find_references() -> void;
-  auto capture_img(const screen_rect_type& rect) -> bool;
+  auto find_references(const screen_coordinates_type& cursor_pos) -> void;
   auto parse_tesseract_recognition(const screen_rect_type& image_dimensions, const screen_coordinates_type& relative_cursor_pos)
     -> std::optional<std::vector<bible::reference_range>>;
-  auto get_reference_position_main(const screen_coordinates_type& relative_cursor_pos)
-    -> std::optional<reference_position_data>;
-  auto get_reference_position_choices(const screen_coordinates_type& relative_cursor_pos)
-    -> std::vector<reference_position_data>;
-  auto get_min_distance_index(const std::vector<character_data>& char_data) -> std::optional<std::size_t>;
 
 private: // Variables
   const app_framework::thread_pool::strand_id_type strand_id_{app_framework::thread_pool::strand_id()};
   const std::unique_ptr<core::core_bible_reference_ocr> core_bible_reference_ocr_;
   const std::unique_ptr<core::core_bible_reference> core_bible_reference_;
   const std::unique_ptr<core::core_bibleserver_lookup> core_bibleserver_lookup_;
-  const std::unique_ptr<core::core_tesseract> core_tesseract_;
 
   settings_type settings_{nullptr};
   data_t data_;

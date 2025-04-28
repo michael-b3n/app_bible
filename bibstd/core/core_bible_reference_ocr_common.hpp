@@ -38,7 +38,7 @@ struct core_bible_reference_ocr_common final
   {
     std::string text;
     std::vector<character_data> char_data;
-    std::size_t index;
+    std::size_t cursor_character_index;
   };
 };
 
