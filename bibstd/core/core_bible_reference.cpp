@@ -431,16 +431,25 @@ auto core_bible_reference::match_passage_template(const bible::book_id book, pas
     result.emplace_back(bible::reference_range(bible::reference::create(book, 1u, 1u).value()));
     return result;
   }
-  else if(down_transition_chars.empty() && numbers.size() == 1)
+  else if(down_transition_chars.empty())
   {
-    const auto reference_begin = bible::reference::create(book, numbers.front(), 1u);
-    const auto reference_end = bible::reference::create(
-      book, numbers.front(), bible::verse_count(book, numbers.front()).value_or(0u /*will evaluate to std::nullopt*/)
-    );
-    if(reference_begin && reference_end)
+    // This should result to only one passage section either # or #-#.
+    const auto passage_sections = create_passage_sections(passage_template, std::nullopt);
+    if(passage_sections.empty())
     {
-      result.emplace_back(bible::reference_range(*reference_begin, *reference_end));
+      return result;
     }
+    else if(passage_sections.size() > 1)
+    {
+      LOG_ERROR("unexpected passage section detected: count={}, expected=1", passage_sections.size());
+      return result;
+    }
+    auto current_level = passage_level::chapter;
+    auto current_chapter = numbers.front();
+    const auto found = detail::match_passage_template_section(
+      book, passage_sections.front().numbers, passage_sections.front().generic_template, current_level, current_chapter
+    );
+    result.insert(result.cend(), found.cbegin(), found.cend());
     return result;
   }
 
@@ -461,7 +470,7 @@ auto core_bible_reference::match_passage_template(const bible::book_id book, pas
         if(result)
         {
           decltype(auto) ranges = reference_ranges[down_transition_char];
-          ranges.insert(ranges.end(), found.cbegin(), found.cend());
+          ranges.insert(ranges.cend(), found.cbegin(), found.cend());
         }
         else
         {
@@ -527,7 +536,7 @@ auto core_bible_reference::passage_template_numbers(const passage_template_type&
 ///
 ///
 auto core_bible_reference::create_passage_sections(
-  const passage_template_type& passage_template, const char down_transition_char
+  const passage_template_type& passage_template, const std::optional<char> down_transition_char
 ) const -> std::vector<passage_section>
 {
   const auto to_transition_char = [down_transition_char](const char c) -> std::optional<char>

@@ -173,7 +173,7 @@ private: // Implementation
   /// \param down_transition_char Transition character to use as separations between the passage sections
   /// \return Vector of passage sections
   ///
-  auto create_passage_sections(const passage_template_type& passage_template, char down_transition_char) const
+  auto create_passage_sections(const passage_template_type& passage_template, std::optional<char> down_transition_char) const
     -> std::vector<passage_section>;
 };
 
