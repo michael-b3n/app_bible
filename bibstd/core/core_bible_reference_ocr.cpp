@@ -26,23 +26,53 @@ core_bible_reference_ocr::~core_bible_reference_ocr() noexcept = default;
 
 ///
 ///
-auto core_bible_reference_ocr::capture_and_recognize_area(const screen_rect_type& screen_area) const -> bool
+auto core_bible_reference_ocr::generate_capture_areas(
+  const screen_coordinates_type& cursor_position, const std::uint16_t assumed_char_height
+) const -> std::vector<screen_rect_type>
 {
-  auto success = false;
-  core_tesseract_->set_image(
-    [&](auto& pixel_plane)
+  auto result = std::vector<screen_rect_type>{};
+  const auto window_rect = system::screen::window_at(cursor_position);
+  if(!window_rect)
+  {
+    return result;
+  }
+  // The capture areas are defined dependent on the char height using a char_height_multiplier
+  // and the height_to_width_ratio. A capture area step factor is used to scale the area.
+  // The area is generated around the cursor position. The cursor position will be horizontally
+  // and vertically in the middle.
+  const auto height = static_cast<std::int32_t>(char_height_multiplier * assumed_char_height);
+  const auto width = static_cast<std::int32_t>(height * height_to_width_ratio);
+  const auto valid = std::ranges::all_of(
+    capture_ocr_area_steps,
+    [&](const auto i)
     {
-      pixel_plane.width = screen_area.horizontal_range();
-      pixel_plane.height = screen_area.vertical_range();
-      if(pixel_plane.data.size() < pixel_plane.width * pixel_plane.height)
+      const auto half_width = static_cast<std::int32_t>(i * width / 2);
+      const auto half_height = static_cast<std::int32_t>(i * height / 2);
+      const auto x_origin = cursor_position.x() - half_width;
+      const auto y_origin = cursor_position.y() - 1 * half_height; // origin is on top left
+      const auto rect =
+        screen_rect_type::overlap(*window_rect, screen_rect_type({x_origin, y_origin}, 2 * half_width, 2 * half_height));
+      const auto valid_rect = rect.has_value();
+      if(valid_rect)
       {
-        pixel_plane.data.resize(pixel_plane.width * pixel_plane.height);
+        result.push_back(*rect);
       }
-      success = system::screen::capture(screen_area, pixel_plane);
+      return valid_rect;
     }
   );
+  valid ? result.push_back(*window_rect) : result.clear();
+  return result;
+}
+
+///
+///
+auto core_bible_reference_ocr::capture_and_recognize_area(const screen_rect_type& screen_area) const -> bool
+{
+  auto pixel_plane = pixel_plane_type{};
+  auto success = system::screen::capture(screen_area, pixel_plane);
   if(success)
   {
+    core_tesseract_->set_image(std::move(pixel_plane));
     success = core_tesseract_->recognize(std::nullopt);
   }
   return success;
@@ -158,46 +188,6 @@ auto core_bible_reference_ocr::find_reference_position_data_from_choices(
     return util::format::join(result_range, ", ");
   };
   LOG_DEBUG("reference position choices result: [{}], cursor_position={}", format_result(), relative_cursor_position);
-  return result;
-}
-
-///
-///
-auto core_bible_reference_ocr::generate_capture_areas(
-  const screen_coordinates_type& cursor_position, const std::uint16_t assumed_char_height
-) const -> std::vector<screen_rect_type>
-{
-  auto result = std::vector<screen_rect_type>{};
-  const auto window_rect = system::screen::window_at(cursor_position);
-  if(!window_rect)
-  {
-    return result;
-  }
-  // The capture areas are defined dependent on the char height using a char_height_multiplier
-  // and the height_to_width_ratio. A capture area step factor is used to scale the area.
-  // The area is generated around the cursor position. The cursor position will be horizontally
-  // and vertically in the middle.
-  const auto height = static_cast<std::int32_t>(char_height_multiplier * assumed_char_height);
-  const auto width = static_cast<std::int32_t>(height * height_to_width_ratio);
-  const auto valid = std::ranges::all_of(
-    capture_ocr_area_steps,
-    [&](const auto i)
-    {
-      const auto half_width = static_cast<std::int32_t>(i * width / 2);
-      const auto half_height = static_cast<std::int32_t>(i * height / 2);
-      const auto x_origin = cursor_position.x() - half_width;
-      const auto y_origin = cursor_position.y() - 1 * half_height; // origin is on top left
-      const auto rect =
-        screen_rect_type::overlap(*window_rect, screen_rect_type({x_origin, y_origin}, 2 * half_width, 2 * half_height));
-      const auto valid_rect = rect.has_value();
-      if(valid_rect)
-      {
-        result.push_back(*rect);
-      }
-      return valid_rect;
-    }
-  );
-  valid ? result.push_back(*window_rect) : result.clear();
   return result;
 }
 

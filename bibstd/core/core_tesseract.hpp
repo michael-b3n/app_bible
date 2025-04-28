@@ -59,9 +59,9 @@ public: // Structors
 public: // Modifiers
   ///
   /// Set image that shall be recognized with tesseract.
-  /// \param setter Function that sets the image that shall be read with tesseract
+  /// \param pixel_plane Pixel plane that defines the image that shall be read with tesseract
   ///
-  auto set_image(const std::function<void(pixel_plane_type&)>& setter) -> void;
+  auto set_image(pixel_plane_type&& pixel_plane) -> void;
 
   ///
   /// Recognize image or sub-rectangle of image with tesseract.

@@ -47,6 +47,16 @@ public: // Structors
 
 public: // Operations
   ///
+  /// Generate a list of rectangles that are used to capture the screen for OCR.
+  /// \param cursor_position Cursor position on the screen
+  /// \param char_height Height of the character, if not given, the screen areas are generated with a default value
+  /// \return vector of screen rectangles that are used to capture the screen for OCR
+  ///
+  [[nodiscard]]
+  auto generate_capture_areas(const screen_coordinates_type& cursor_position, std::uint16_t assumed_char_height) const
+    -> std::vector<screen_rect_type>;
+
+  ///
   /// Capture an area of the screen and start OCR recognition.
   /// \param screen_area Area of the screen that shall be captured
   /// \return true if capturing and recognition was successful, false otherwise
@@ -86,16 +96,6 @@ public: // Operations
   ///
   auto find_reference_position_data_from_choices(const screen_coordinates_type& relative_cursor_position) const
     -> std::vector<reference_position_data>;
-
-  ///
-  /// Generate a list of rectangles that are used to capture the screen for OCR.
-  /// \param cursor_position Cursor position on the screen
-  /// \param char_height Height of the character, if not given, the screen areas are generated with a default value
-  /// \return vector of screen rectangles that are used to capture the screen for OCR
-  ///
-  [[nodiscard]]
-  auto generate_capture_areas(const screen_coordinates_type& cursor_position, std::uint16_t assumed_char_height) const
-    -> std::vector<screen_rect_type>;
 
   ///
   /// Check if the given capture area is valid. The capture area is valid if the OCR character data is within the capture area

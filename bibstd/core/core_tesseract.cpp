@@ -38,10 +38,9 @@ core_tesseract::~core_tesseract() noexcept
 
 ///
 ///
-auto core_tesseract::set_image(const std::function<void(pixel_plane_type&)>& setter) -> void
+auto core_tesseract::set_image(pixel_plane_type&& pixel_plane) -> void
 {
-  const auto setter_wrapper = [&](auto& plane) { setter(plane); };
-  pix_->update(setter_wrapper);
+  pix_->update(std::forward<decltype(pixel_plane)>(pixel_plane));
   tesseract_->SetImage(pix_->get());
   tesseract_->SetPageSegMode(tesseract::PSM_AUTO_OSD);
 }

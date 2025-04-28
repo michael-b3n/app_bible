@@ -160,6 +160,8 @@ inline auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) 
   const auto byte_count = info.bmiHeader.biBitCount / 8;
   const auto height = boost::numeric_cast<std::uint32_t>(info.bmiHeader.biHeight);
   const auto width = boost::numeric_cast<std::uint32_t>(info.bmiHeader.biWidth);
+  pix.width = width;
+  pix.height = height;
   if(pix.data.size() < height * width)
   {
     pix.data.resize(height * width);
