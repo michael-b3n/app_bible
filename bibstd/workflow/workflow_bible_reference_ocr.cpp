@@ -22,6 +22,7 @@ namespace bibstd::workflow
 workflow_bible_reference_ocr_settings::workflow_bible_reference_ocr_settings()
   : app_framework::settings_base{"OCR"}
   , translations{core_settings_->create_setting("ocr.translations", "Translations", std::vector<bible::translation>{bible::translation::ngu, bible::translation::elb})}
+  , assumed_char_height{core_settings_->create_setting("ocr.assumed_char_height", "Assumed Char Height", std::uint16_t{100})}
 // clang-format on
 {
 }
@@ -59,7 +60,8 @@ auto workflow_bible_reference_ocr::run_once(const settings_type& settings) -> vo
 ///
 auto workflow_bible_reference_ocr::find_references(const screen_coordinates_type& cursor_pos) -> void
 {
-  const auto capture_areas = core_bible_reference_ocr_->generate_capture_areas(cursor_pos, data_.current_char_height);
+  const auto capture_areas =
+    core_bible_reference_ocr_->generate_capture_areas(cursor_pos, settings_->assumed_char_height->value());
   if(capture_areas.empty())
   {
     LOG_WARN("failed to define capture areas: cursor_position={}", cursor_pos);
@@ -112,7 +114,7 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
     return std::nullopt;
   }
   auto references = std::vector<bible::reference_range>{};
-  auto valid_capture_area = false;
+  auto capture_area_validity_check_result = core::core_bible_reference_ocr::capture_area_validity_check_result{};
   const auto& paragraph_bounding_box = *paragraph_bounding_box_opt;
   const auto position_data = core_bible_reference_ocr_->find_main_reference_position_data(relative_cursor_pos);
   if(position_data)
@@ -121,17 +123,16 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
     // Parse result might be empty but the capture area is still valid.
     // This is the case when the text is not a valid reference but the characters found in the image are
     // within the capture area including a safety margin. In this case no larger area is captured.
-    valid_capture_area = core_bible_reference_ocr_->is_valid_capture_area(
+    capture_area_validity_check_result = core_bible_reference_ocr_->is_valid_capture_area(
       relative_cursor_pos, image_dimensions, paragraph_bounding_box, *position_data, parse_result.index_range_origin
     );
-    if(valid_capture_area)
+    if(capture_area_validity_check_result.valid && capture_area_validity_check_result.detected_char_height)
     {
-      data_.current_char_height =
-        position_data->char_data.at(position_data->cursor_character_index).bounding_box.vertical_range();
+      settings_->assumed_char_height->value(*capture_area_validity_check_result.detected_char_height);
     }
     // If the capture area is valid but no references are found, we parse other high confidence OCR choices.
     // If a parse result is found and the area is valid we break out.
-    if(valid_capture_area && parse_result.ranges.empty())
+    if(capture_area_validity_check_result.valid && parse_result.ranges.empty())
     {
       const auto position_data_choices =
         core_bible_reference_ocr_->find_reference_position_data_from_choices(relative_cursor_pos);
@@ -140,10 +141,10 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
         [&](const auto& position_data_choice)
         {
           parse_result = core_bible_reference_->parse(position_data_choice.text, position_data_choice.cursor_character_index);
-          valid_capture_area = core_bible_reference_ocr_->is_valid_capture_area(
+          capture_area_validity_check_result = core_bible_reference_ocr_->is_valid_capture_area(
             relative_cursor_pos, image_dimensions, paragraph_bounding_box, position_data_choice, parse_result.index_range_origin
           );
-          return valid_capture_area && !parse_result.ranges.empty();
+          return capture_area_validity_check_result.valid && !parse_result.ranges.empty();
         }
       );
     }
@@ -155,7 +156,7 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
     image_dimensions,
     relative_cursor_pos
   );
-  return valid_capture_area ? std::make_optional(references) : std::nullopt;
+  return capture_area_validity_check_result.valid ? std::make_optional(references) : std::nullopt;
 }
 
 } // namespace bibstd::workflow

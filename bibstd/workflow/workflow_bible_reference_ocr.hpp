@@ -38,6 +38,7 @@ public: // Structors
 
 public: // Variables
   const setting_type<std::vector<bible::translation>> translations;
+  const setting_type<std::uint16_t> assumed_char_height;
 };
 
 ///
@@ -59,18 +60,6 @@ public: // Modifiers
 private: // Typedefs
   using screen_rect_type = util::screen_types::screen_rect_type;
   using screen_coordinates_type = util::screen_types::screen_coordinates_type;
-  using tesseract_choice = core::core_tesseract_common::tesseract_choice;
-  using tesseract_choices = core::core_tesseract_common::tesseract_choices;
-  using character_data = core::core_bible_reference_ocr_common::character_data;
-  using reference_position_data = core::core_bible_reference_ocr_common::reference_position_data;
-
-  ///
-  /// Internal data structure.
-  ///
-  struct data_t final
-  {
-    std::optional<std::int32_t> current_char_height{};
-  };
 
 private: // Implementation
   auto find_references(const screen_coordinates_type& cursor_pos) -> void;
@@ -84,7 +73,6 @@ private: // Variables
   const std::unique_ptr<core::core_bibleserver_lookup> core_bibleserver_lookup_;
 
   settings_type settings_{nullptr};
-  data_t data_;
 };
 
 } // namespace bibstd::workflow

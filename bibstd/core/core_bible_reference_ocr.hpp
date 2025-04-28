@@ -30,6 +30,17 @@ public: // Typedefs
   using character_data = core_bible_reference_ocr_common::character_data;
   using reference_position_data = core_bible_reference_ocr_common::reference_position_data;
 
+  ///
+  /// Represents the result of a validity check for a screen capture area.
+  /// This struct contains information about whether a screen capture area is valid
+  /// and optionally includes the detected character height within the area.
+  ///
+  struct capture_area_validity_check_result final
+  {
+    bool valid{false};
+    std::optional<std::uint16_t> detected_char_height{};
+  };
+
 public: // Structors
   core_bible_reference_ocr(core_tesseract_common::language language);
   ~core_bible_reference_ocr() noexcept;
@@ -83,7 +94,7 @@ public: // Operations
   /// \return vector of screen rectangles that are used to capture the screen for OCR
   ///
   [[nodiscard]]
-  auto generate_capture_areas(const screen_coordinates_type& cursor_position, std::optional<std::int32_t> char_height) const
+  auto generate_capture_areas(const screen_coordinates_type& cursor_position, std::uint16_t assumed_char_height) const
     -> std::vector<screen_rect_type>;
 
   ///
@@ -103,7 +114,7 @@ public: // Operations
     const screen_rect_type& paragraph_dimensions,
     const reference_position_data& position_data,
     const core_bible_reference_ocr_common::index_range_type& index_range
-  ) -> bool;
+  ) -> capture_area_validity_check_result;
 
 private: // Typedefs
   struct line_position_data final
@@ -115,7 +126,6 @@ private: // Typedefs
 private: // Constants
   static constexpr auto char_height_multiplier = 4;
   static constexpr auto height_to_width_ratio = 9;
-  static constexpr auto vertical_range_to_full_screen_factor = 32;
   static constexpr auto capture_ocr_area_steps = std::array{1.0, 1.5, 2.0, 3.0, 4.0};
   static constexpr auto horizontal_margin_multiplier = 2.0;
   static constexpr auto vertical_margin_multiplier = 0.1;
