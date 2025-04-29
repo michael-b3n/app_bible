@@ -213,8 +213,8 @@ auto core_bible_reference_ocr::is_valid_capture_area(
   const auto right = [](const auto& box) { return box.origin().x() + box.horizontal_range(); };
 
   const auto char_height = line_position_data->line_bounding_boxes.at(line_position_data->cursor_line_index).vertical_range();
-  const auto vertical_margin = static_cast<std::int32_t>(char_height * vertical_margin_multiplier / 2);
-  const auto horizontal_margin = static_cast<std::int32_t>(char_height * horizontal_margin_multiplier / 2);
+  const auto vertical_margin = static_cast<std::int32_t>(char_height * vertical_margin_multiplier);
+  const auto horizontal_margin = static_cast<std::int32_t>(char_height * horizontal_margin_multiplier);
 
   LOG_DEBUG(
     "capture area validity check parameters: char_height={}, vertical_margin={}, horizontal_margin={}",
@@ -236,7 +236,6 @@ auto core_bible_reference_ocr::is_valid_capture_area(
       line_index + 1 < line_position_data->line_bounding_boxes.size()
         ? bottom(line_position_data->line_bounding_boxes.at(line_index + 1)) > bottom(image_dimensions) + vertical_margin
         : bottom(line_position_data->line_bounding_boxes.back()) > bottom(image_dimensions) + missing_line_margin;
-
     return prev_within_bounds && next_within_bounds;
   }();
 
@@ -250,22 +249,23 @@ auto core_bible_reference_ocr::is_valid_capture_area(
   {
     // If the found reference range is well within the reference borders, it is assumed,
     // that it will not continue to the next line. If not, the image border must include
-    // the left paragraph border as well and there must be a complete text line above and
-    // below the line where the cursor is contained.
+    // the left paragraph border as well and there must be a complete text line or margin
+    // above and below the line where the cursor is contained.
     const auto ends_before_paragraph_border = std::ranges::all_of(
       std::views::iota(index_range.begin, index_range.end) |
         std::views::filter([&](const auto i) { return i < position_data.char_data.size(); }),
       [&](const auto i)
       {
         const auto& char_bounding_box = position_data.char_data.at(i).bounding_box;
-        const auto char_right_border = char_bounding_box.origin().x() + char_bounding_box.horizontal_range();
-        return char_right_border + 2 * horizontal_margin < right(paragraph_dimensions);
+        return right(char_bounding_box) + horizontal_margin < right(paragraph_dimensions);
       }
     );
     auto valid_paragraph_area = ends_before_paragraph_border;
     if(!ends_before_paragraph_border)
     {
-      valid_paragraph_area = image_dimensions.origin().x() < left(paragraph_dimensions) && prev_and_next_lines_within_bounds;
+      valid_paragraph_area = left(image_dimensions) + horizontal_margin < left(paragraph_dimensions) &&
+                             right(paragraph_dimensions) + horizontal_margin < right(image_dimensions) &&
+                             prev_and_next_lines_within_bounds;
     }
     const auto valid_character_positions = std::ranges::all_of(
       std::views::iota(index_range.begin, index_range.end) |
@@ -275,8 +275,8 @@ auto core_bible_reference_ocr::is_valid_capture_area(
         const auto& char_bounding_box = position_data.char_data.at(i).bounding_box;
         const auto bounding_box_with_margin = screen_rect_type(
           char_bounding_box.origin() - screen_rect_type::coordinates_type(horizontal_margin, vertical_margin),
-          char_bounding_box.horizontal_range() + horizontal_margin * 2,
-          char_bounding_box.vertical_range() + vertical_margin * 2
+          char_bounding_box.horizontal_range() + 2 * horizontal_margin,
+          char_bounding_box.vertical_range() + 2 * vertical_margin
         );
         return screen_rect_type::contains(image_dimensions, bounding_box_with_margin);
       }
@@ -296,16 +296,20 @@ auto core_bible_reference_ocr::match_choices_to_bible_book(
   const std::vector<tesseract_choices>& choices_list, const std::function<bool(const tesseract_choices&)>& choices_filter
 ) const -> std::vector<txt::indexed_strings>
 {
-  auto results = std::vector<txt::indexed_strings>{};
+  auto results_unsorted = std::vector<std::pair<double, txt::indexed_strings>>{};
   std::ranges::for_each(
     bible::book_name_variants_de::name_variants_list,
     [&](const auto& element)
     {
       const auto& [_, name_variant] = element;
       const auto element_result = match_choices_to_string(choices_list, name_variant, choices_filter);
-      results.insert(results.cend(), element_result.cbegin(), element_result.cend());
+      results_unsorted.insert(results_unsorted.cend(), element_result.cbegin(), element_result.cend());
     }
   );
+  std::ranges::sort(results_unsorted, [&](const auto& a, const auto& b) { return a.first > b.first; });
+  auto results = std::vector<txt::indexed_strings>{};
+  results.reserve(results_unsorted.size());
+  std::ranges::for_each(results_unsorted, [&](auto& e) { results.emplace_back(std::move(e.second)); });
   return results;
 }
 
@@ -315,9 +319,9 @@ auto core_bible_reference_ocr::match_choices_to_string(
   const std::vector<tesseract_choices>& choices_list,
   const std::string_view text_template,
   const std::function<bool(const tesseract_choices&)>& choices_filter
-) const -> std::vector<txt::indexed_strings>
+) const -> std::vector<std::pair<double, txt::indexed_strings>>
 {
-  auto results = std::vector<txt::indexed_strings>{};
+  auto results = std::vector<std::pair<double, txt::indexed_strings>>{};
   if(!text_template.empty())
   {
     const auto indexed_strings = [&]
@@ -332,6 +336,7 @@ auto core_bible_reference_ocr::match_choices_to_string(
       [&](const auto choices_list_offset) mutable
       {
         auto text_template_found = false;
+        auto confidence_value = 0.0;
         auto local_indexed_strings = indexed_strings;
         std::ranges::any_of(
           std::views::iota(choices_list_offset, choices_list.size()) |
@@ -343,13 +348,9 @@ auto core_bible_reference_ocr::match_choices_to_string(
             if(choice_optional)
             {
               text_template_position += choice_optional->symbol.size();
+              confidence_value += choice_optional->confidence;
               local_indexed_strings.overwrite_at(choices_list_index, choice_optional->symbol);
-
               text_template_found = text_template_position >= text_template.size();
-              if(text_template_found)
-              {
-                text_template_position = 0;
-              }
               return text_template_found;
             }
             return true;
@@ -357,7 +358,7 @@ auto core_bible_reference_ocr::match_choices_to_string(
         );
         if(text_template_found)
         {
-          results.emplace_back(std::move(local_indexed_strings));
+          results.emplace_back(confidence_value, std::move(local_indexed_strings));
         }
       }
     );

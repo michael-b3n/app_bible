@@ -113,7 +113,7 @@ private: // Typedefs
   };
 
 private: // Constants
-  static constexpr auto char_height_multiplier = 4;
+  static constexpr auto char_height_multiplier = 3;
   static constexpr auto height_to_width_ratio = 9;
   static constexpr auto capture_ocr_area_steps = std::array{1.0, 1.5, 2.0, 3.0, 4.0};
   static constexpr auto horizontal_margin_multiplier = 2.0;
@@ -138,14 +138,14 @@ private: // Implementation
   /// \param text_template Text template that shall be chosen from the character choices
   /// \param choices_filter Filter function that is called for each choice. If the filter returns false, the choices are ignored
   /// and the main symbol is taken for the result chars.
-  /// \return vector of indexed strings with the text template symbols inserted at possible positions
+  /// \return vector of confidence sums and indexed strings with the text template symbols inserted at possible positions
   /// The index count is guaranteed to be the same as the number of choices in the choices_list.
   ///
   [[nodiscard]] auto match_choices_to_string(
     const std::vector<tesseract_choices>& choices_list,
     std::string_view text_template,
     const std::function<bool(const tesseract_choices&)>& choices_filter
-  ) const -> std::vector<txt::indexed_strings>;
+  ) const -> std::vector<std::pair<double, txt::indexed_strings>>;
 
   ///
   /// Check if the given character is found in the choices.
