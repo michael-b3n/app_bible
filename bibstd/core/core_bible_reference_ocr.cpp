@@ -225,16 +225,25 @@ auto core_bible_reference_ocr::is_valid_capture_area(
 
   const auto prev_and_next_lines_within_bounds = [&]
   {
+    const auto missing_line_margin = 2 * char_height;
+
     const auto line_index = line_position_data->cursor_line_index;
-    return line_index > 0 && line_index + 1 < line_position_data->line_bounding_boxes.size() &&
-           top(line_position_data->line_bounding_boxes.at(line_index - 1)) + vertical_margin < top(image_dimensions) &&
-           bottom(line_position_data->line_bounding_boxes.at(line_index + 1)) > bottom(image_dimensions) + vertical_margin;
-  };
+    const auto prev_within_bounds =
+      line_index == 0
+        ? top(line_position_data->line_bounding_boxes.front()) + missing_line_margin < top(image_dimensions)
+        : top(line_position_data->line_bounding_boxes.at(line_index - 1)) + vertical_margin < top(image_dimensions);
+    const auto next_within_bounds =
+      line_index + 1 < line_position_data->line_bounding_boxes.size()
+        ? bottom(line_position_data->line_bounding_boxes.at(line_index + 1)) > bottom(image_dimensions) + vertical_margin
+        : bottom(line_position_data->line_bounding_boxes.back()) > bottom(image_dimensions) + missing_line_margin;
+
+    return prev_within_bounds && next_within_bounds;
+  }();
 
   auto result = false;
   if(core_bible_reference_ocr_common::index_range_type::empty(index_range) || position_data.char_data.empty())
   {
-    result = prev_and_next_lines_within_bounds() && (left(image_dimensions) + horizontal_margin) < left(paragraph_dimensions) &&
+    result = prev_and_next_lines_within_bounds && (left(image_dimensions) + horizontal_margin) < left(paragraph_dimensions) &&
              (right(paragraph_dimensions) + horizontal_margin) < right(image_dimensions);
   }
   else
@@ -256,12 +265,7 @@ auto core_bible_reference_ocr::is_valid_capture_area(
     auto valid_paragraph_area = ends_before_paragraph_border;
     if(!ends_before_paragraph_border)
     {
-      const auto line_index = line_position_data->cursor_line_index;
-      valid_paragraph_area =
-        image_dimensions.origin().x() < left(paragraph_dimensions) && line_index > 0 &&
-        line_index + 1 < line_position_data->line_bounding_boxes.size() &&
-        top(line_position_data->line_bounding_boxes.at(line_index - 1)) + vertical_margin < top(image_dimensions) &&
-        bottom(line_position_data->line_bounding_boxes.at(line_index + 1)) > bottom(image_dimensions) + vertical_margin;
+      valid_paragraph_area = image_dimensions.origin().x() < left(paragraph_dimensions) && prev_and_next_lines_within_bounds;
     }
     const auto valid_character_positions = std::ranges::all_of(
       std::views::iota(index_range.begin, index_range.end) |
