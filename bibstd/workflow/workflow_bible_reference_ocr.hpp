@@ -38,7 +38,7 @@ public: // Structors
 
 public: // Variables
   const setting_type<std::vector<bible::translation>> translations;
-  const setting_type<std::uint16_t> assumed_char_height;
+  const setting_type<std::uint16_t> assumed_initial_char_height;
 };
 
 ///

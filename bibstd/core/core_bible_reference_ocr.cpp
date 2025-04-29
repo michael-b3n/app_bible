@@ -199,13 +199,13 @@ auto core_bible_reference_ocr::is_valid_capture_area(
   const screen_rect_type& paragraph_dimensions,
   const reference_position_data& position_data,
   const core_bible_reference_ocr_common::index_range_type& index_range
-) -> capture_area_validity_check_result
+) -> bool
 {
-  auto result = capture_area_validity_check_result{};
   const auto line_position_data = find_line_position_data(relative_cursor_position);
   if(!line_position_data)
   {
-    return result;
+    LOG_DEBUG("invalid capture area: no line_position_data found, image_dimensions={}", image_dimensions);
+    return false;
   }
   const auto top = [](const auto& box) { return box.origin().y() + box.vertical_range(); };
   const auto bottom = [](const auto& box) { return box.origin().y(); };
@@ -215,7 +215,13 @@ auto core_bible_reference_ocr::is_valid_capture_area(
   const auto char_height = line_position_data->line_bounding_boxes.at(line_position_data->cursor_line_index).vertical_range();
   const auto vertical_margin = static_cast<std::int32_t>(char_height * vertical_margin_multiplier / 2);
   const auto horizontal_margin = static_cast<std::int32_t>(char_height * horizontal_margin_multiplier / 2);
-  result.detected_char_height = boost::numeric_cast<std::uint16_t>(char_height);
+
+  LOG_DEBUG(
+    "capture area validity check parameters: char_height={}, vertical_margin={}, horizontal_margin={}",
+    char_height,
+    vertical_margin,
+    horizontal_margin
+  );
 
   const auto prev_and_next_lines_within_bounds = [&]
   {
@@ -225,11 +231,11 @@ auto core_bible_reference_ocr::is_valid_capture_area(
            bottom(line_position_data->line_bounding_boxes.at(line_index + 1)) > bottom(image_dimensions) + vertical_margin;
   };
 
+  auto result = false;
   if(core_bible_reference_ocr_common::index_range_type::empty(index_range) || position_data.char_data.empty())
   {
-    result.valid = prev_and_next_lines_within_bounds() &&
-                   (left(image_dimensions) + horizontal_margin) < left(paragraph_dimensions) &&
-                   (right(paragraph_dimensions) + horizontal_margin) < right(image_dimensions);
+    result = prev_and_next_lines_within_bounds() && (left(image_dimensions) + horizontal_margin) < left(paragraph_dimensions) &&
+             (right(paragraph_dimensions) + horizontal_margin) < right(image_dimensions);
   }
   else
   {
@@ -271,9 +277,9 @@ auto core_bible_reference_ocr::is_valid_capture_area(
         return screen_rect_type::contains(image_dimensions, bounding_box_with_margin);
       }
     );
-    result.valid = valid_paragraph_area && valid_character_positions;
+    result = valid_paragraph_area && valid_character_positions;
   }
-  if(!result.valid)
+  if(!result)
   {
     LOG_DEBUG("invalid capture area: image_dimensions={}, char_height={}", image_dimensions, char_height);
   }

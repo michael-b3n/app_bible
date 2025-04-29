@@ -30,17 +30,6 @@ public: // Typedefs
   using character_data = core_bible_reference_ocr_common::character_data;
   using reference_position_data = core_bible_reference_ocr_common::reference_position_data;
 
-  ///
-  /// Represents the result of a validity check for a screen capture area.
-  /// This struct contains information about whether a screen capture area is valid
-  /// and optionally includes the detected character height within the area.
-  ///
-  struct capture_area_validity_check_result final
-  {
-    bool valid{false};
-    std::optional<std::uint16_t> detected_char_height{};
-  };
-
 public: // Structors
   core_bible_reference_ocr(core_tesseract_common::language language);
   ~core_bible_reference_ocr() noexcept;
@@ -114,7 +103,7 @@ public: // Operations
     const screen_rect_type& paragraph_dimensions,
     const reference_position_data& position_data,
     const core_bible_reference_ocr_common::index_range_type& index_range
-  ) -> capture_area_validity_check_result;
+  ) -> bool;
 
 private: // Typedefs
   struct line_position_data final
