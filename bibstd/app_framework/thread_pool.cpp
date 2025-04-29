@@ -21,11 +21,17 @@ auto thread_pool::strand_id() -> strand_id_type
 auto thread_pool::init() -> util::scoped_guard
 {
   const auto lock = std::lock_guard(mtx_);
+  initialized_ = true;
   pool_.emplace_back(std::make_unique<pool_element>());
   return util::scoped_guard(
     []()
     {
-      const auto lock = std::lock_guard(mtx_);
+      {
+        initialized_ = false;
+        // Make sure the lock is not used by anyone else anymore. The shutdown flag ensures,
+        // that the pool_ member is not modified or read from external threads anymore.
+        const auto lock = std::lock_guard(mtx_);
+      }
       pool_.clear();
     }
   );
@@ -35,6 +41,10 @@ auto thread_pool::init() -> util::scoped_guard
 ///
 auto thread_pool::queue_task(task_type&& task) -> void
 {
+  if(!initialized_)
+  {
+    return;
+  }
   const auto lock = std::lock_guard(mtx_);
   static const auto internal_strand_id = strand_id();
   queue_task_auto(task_data{std::move(task), task_id_type::new_uid(), internal_strand_id, queue_rule::append});
@@ -44,6 +54,10 @@ auto thread_pool::queue_task(task_type&& task) -> void
 ///
 auto thread_pool::queue_task(task_type&& task, const strand_id_type id, const queue_rule rule) -> void
 {
+  if(!initialized_)
+  {
+    return;
+  }
   const auto lock = std::lock_guard(mtx_);
   const auto dest_thread = std::ranges::find_if(
     pool_, [&](const auto& e) { return util::contains(e->ids, [id](const auto& p) { return p.strand_id == id; }); }
@@ -104,6 +118,8 @@ auto thread_pool::create_task_wrapper(task_data&& data, const util::non_owning_p
   element->last_use = std::chrono::system_clock::now();
   return [forwarded_data = std::move(data), element]() mutable
   {
+    // These locks can be called during uninitialized state and the pool will be modified. Since it is ensured that the worker
+    // calling this function will be destroyed before the pool element (including the ids), the destruction is well defined.
     auto pre_lock = std::unique_lock(mtx_);
     const auto found = util::contains(element->ids, [&](const auto& p) { return p.task_id == forwarded_data.task_id; });
     pre_lock.unlock();

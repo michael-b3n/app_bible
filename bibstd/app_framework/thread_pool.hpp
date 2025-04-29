@@ -6,6 +6,7 @@
 #include "util/scoped_guard.hpp"
 #include "util/uid.hpp"
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <thread>
@@ -75,11 +76,16 @@ private: // Typedefs
     strand_id_type strand_id{};
   };
 
+  ///
+  /// Thread pool element holding IDs and timestamps for bookkeeping.
+  /// \warning On destruction of this struct the worker object has to be destroyed first,
+  /// since it might modify other members of this struct on destruction.
+  ///
   struct pool_element final
   {
-    active_worker worker{};
     std::vector<id_pair> ids{};
     std::chrono::system_clock::time_point last_use{std::chrono::system_clock::now()};
+    active_worker worker{};
   };
 
   struct task_data final
@@ -97,6 +103,7 @@ private: // Implementation
   static auto remove_abandoned_workers() -> void;
 
 private: // Variables
+  inline static std::atomic_bool initialized_{false};
   inline static std::mutex mtx_{};
   inline static std::vector<std::unique_ptr<pool_element>> pool_{};
 };
