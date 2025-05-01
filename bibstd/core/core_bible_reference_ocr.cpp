@@ -216,13 +216,6 @@ auto core_bible_reference_ocr::is_valid_capture_area(
   const auto vertical_margin = static_cast<std::int32_t>(char_height * vertical_margin_multiplier);
   const auto horizontal_margin = static_cast<std::int32_t>(char_height * horizontal_margin_multiplier);
 
-  LOG_DEBUG(
-    "capture area validity check parameters: char_height={}, vertical_margin={}, horizontal_margin={}",
-    char_height,
-    vertical_margin,
-    horizontal_margin
-  );
-
   const auto prev_and_next_lines_within_bounds = [&]
   {
     const auto missing_line_margin = 2 * char_height;

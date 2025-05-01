@@ -64,7 +64,7 @@ private: // Typedefs
 private: // Implementation
   auto find_references(const screen_coordinates_type& cursor_pos) -> void;
   auto parse_tesseract_recognition(const screen_rect_type& image_dimensions, const screen_coordinates_type& relative_cursor_pos)
-    -> std::optional<std::vector<bible::reference_range>>;
+    -> std::pair<bool, std::vector<bible::reference_range>>;
 
 private: // Variables
   const app_framework::thread_pool::strand_id_type strand_id_{app_framework::thread_pool::strand_id()};

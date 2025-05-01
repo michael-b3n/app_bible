@@ -113,7 +113,7 @@ private: // Typedefs
   };
 
 private: // Constants
-  static constexpr auto char_height_multiplier = 3;
+  static constexpr auto char_height_multiplier = 2;
   static constexpr auto height_to_width_ratio = 9;
   static constexpr auto capture_ocr_area_steps = std::array{1.0, 1.5, 2.0, 3.0, 4.0};
   static constexpr auto horizontal_margin_multiplier = 2.0;
