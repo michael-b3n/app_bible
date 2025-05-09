@@ -42,76 +42,76 @@ workflow_bible_reference_ocr::~workflow_bible_reference_ocr() noexcept = default
 
 ///
 ///
-auto workflow_bible_reference_ocr::run_once(const settings_type& settings) -> void
+auto workflow_bible_reference_ocr::find_references(const settings_type& settings) -> void
 {
   const auto cursor_position = system::screen::cursor_position();
   app_framework::thread_pool::queue_task(
     [this, settings, cursor_position]()
     {
       settings_ = settings;
-      find_references(cursor_position);
+      const auto [is_valid_capture_area, references] = find_references_impl(cursor_position);
+      LOG_INFO(
+        "OCR reference search finished: references=[{}], valid_area={}",
+        util::format::join(references, ", "),
+        is_valid_capture_area
+      );
+      std::ranges::for_each(
+        references,
+        [&](const auto& reference_range) { core_bibleserver_lookup_->open(reference_range, settings_->translations->value()); }
+      );
     },
-    strand_id_,
-    app_framework::thread_pool::queue_rule::overwrite
+    strand_id_
   );
 }
 
 ///
 ///
-auto workflow_bible_reference_ocr::find_references(const screen_coordinates_type& cursor_pos) -> void
+auto workflow_bible_reference_ocr::find_references_impl(const screen_coordinates_type& cursor_position) -> parse_result_type
 {
+  auto result = parse_result_type{false, {}};
   const auto capture_areas =
-    core_bible_reference_ocr_->generate_capture_areas(cursor_pos, settings_->assumed_initial_char_height->value());
+    core_bible_reference_ocr_->generate_capture_areas(cursor_position, settings_->assumed_initial_char_height->value());
   if(capture_areas.empty())
   {
-    LOG_WARN("failed to define capture areas: cursor_position={}", cursor_pos);
-    return;
+    LOG_WARN("failed to define capture areas: cursor_position={}", cursor_position);
+    return result;
   }
-
-  std::vector<bible::reference_range> references{};
   std::ranges::any_of(
     capture_areas,
-    [&](const auto& screen_area)
+    [&](const auto& capture_area)
     {
-      if(!core_bible_reference_ocr_->capture_and_recognize_area(screen_area))
+      if(!core_bible_reference_ocr_->capture_and_set_ocr_area(capture_area))
       {
-        LOG_WARN("capture screen failed: screen_area={}", screen_area);
+        LOG_WARN("capture screen failed: capture_area={}", capture_area);
         return false;
       }
-
-      const auto image_dimensions = screen_rect_type({0, 0}, screen_area.horizontal_range(), screen_area.vertical_range());
-      const auto relative_cursor_pos = cursor_pos - screen_area.origin();
-
+      const auto image_dimensions = screen_rect_type({0, 0}, capture_area.horizontal_range(), capture_area.vertical_range());
+      const auto relative_cursor_pos = cursor_position - capture_area.origin();
       LOG_DEBUG(
-        "start OCR: screen_area={}, cursor_position={}, image_dimensions={}, relative_cursor_pos={}",
-        screen_area,
-        cursor_pos,
+        "find references: capture_area={}, cursor_position={}, image_dimensions={}, relative_cursor_pos={}",
+        capture_area,
+        cursor_position,
         image_dimensions,
         relative_cursor_pos
       );
-
-      const auto [valid_capture_area, found_references] = parse_tesseract_recognition(image_dimensions, relative_cursor_pos);
-      if(!found_references.empty())
+      auto area_result = parse_tesseract_recognition(image_dimensions, relative_cursor_pos);
+      if(!area_result.second.empty())
       {
-        references = found_references;
+        result = std::move(area_result);
       }
-      return valid_capture_area;
+      return result.first;
     }
   );
-  LOG_INFO("OCR reference search finished: found=[{}]", util::format::join(references, ", "));
-  std::ranges::for_each(
-    references,
-    [&](const auto& reference_range) { core_bibleserver_lookup_->open(reference_range, settings_->translations->value()); }
-  );
+  return result;
 }
 
 ///
 ///
 auto workflow_bible_reference_ocr::parse_tesseract_recognition(
   const screen_rect_type& image_dimensions, const screen_coordinates_type& relative_cursor_pos
-) -> std::pair<bool, std::vector<bible::reference_range>>
+) -> parse_result_type
 {
-  const auto paragraph_bounding_box_opt = core_bible_reference_ocr_->find_paragraph_bounding_box(relative_cursor_pos);
+  const auto paragraph_bounding_box_opt = core_bible_reference_ocr_->recognize_paragraph_bounding_box(relative_cursor_pos);
   if(!paragraph_bounding_box_opt)
   {
     return std::pair{false, std::vector<bible::reference_range>{}};
@@ -131,7 +131,7 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
     );
     // If the capture area is valid but no references are found, we parse other high confidence OCR choices.
     // If a parse result is found and the area is valid we break out.
-    if(parse_result.ranges.empty() && is_valid_capture_area)
+    if(parse_result.ranges.empty())
     {
       const auto position_data_choices =
         core_bible_reference_ocr_->find_reference_position_data_from_choices(relative_cursor_pos);
@@ -140,10 +140,7 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
         [&](const auto& position_data_choice)
         {
           parse_result = core_bible_reference_->parse(position_data_choice.text, position_data_choice.cursor_character_index);
-          is_valid_capture_area = core_bible_reference_ocr_->is_valid_capture_area(
-            relative_cursor_pos, image_dimensions, paragraph_bounding_box, position_data_choice, parse_result.index_range_origin
-          );
-          return is_valid_capture_area && !parse_result.ranges.empty();
+          return !parse_result.ranges.empty();
         }
       );
       references = parse_result.ranges;
@@ -160,7 +157,7 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
     image_dimensions,
     relative_cursor_pos
   );
-  return std::pair{is_valid_capture_area, references};
+  return parse_result_type{is_valid_capture_area, references};
 }
 
 } // namespace bibstd::workflow

@@ -71,6 +71,13 @@ public: // Modifiers
   auto recognize(std::optional<screen_rect_type> bounding_box) const -> bool;
 
   ///
+  /// Run tesseract analyze layout on image and list all bounding boxes.
+  /// \param resolution Text resolution
+  /// \return list of bounding boxes corresponding to resolution level
+  ///
+  auto bounding_boxes(text_resolution resolution) const -> std::vector<screen_rect_type>;
+
+  ///
   /// Run tesseract OCR on image.
   /// \param resolution Text resolution
   /// \param do_with_text Callback that is called for each parse found

@@ -40,10 +40,10 @@ auto core_bible_reference_ocr::generate_capture_areas(
   // and the height_to_width_ratio. A capture area step factor is used to scale the area.
   // The area is generated around the cursor position. The cursor position will be horizontally
   // and vertically in the middle.
-  const auto height = static_cast<std::int32_t>(char_height_multiplier * assumed_char_height);
-  const auto width = static_cast<std::int32_t>(height * height_to_width_ratio);
+  const auto height = static_cast<std::int32_t>(area_generation_char_height_multiplier * assumed_char_height);
+  const auto width = static_cast<std::int32_t>(height * area_generation_height_to_width_ratio);
   const auto valid = std::ranges::all_of(
-    capture_ocr_area_steps,
+    area_generation_steps,
     [&](const auto i)
     {
       const auto half_width = static_cast<std::int32_t>(i * width / 2);
@@ -66,37 +66,31 @@ auto core_bible_reference_ocr::generate_capture_areas(
 
 ///
 ///
-auto core_bible_reference_ocr::capture_and_recognize_area(const screen_rect_type& screen_area) const -> bool
+auto core_bible_reference_ocr::capture_and_set_ocr_area(const screen_rect_type& screen_area) const -> bool
 {
   auto pixel_plane = pixel_plane_type{};
   auto success = system::screen::capture(screen_area, pixel_plane);
   if(success)
   {
     core_tesseract_->set_image(std::move(pixel_plane));
-    success = core_tesseract_->recognize(std::nullopt);
   }
   return success;
 }
 
 ///
 ///
-auto core_bible_reference_ocr::find_paragraph_bounding_box(const screen_coordinates_type& relative_cursor_position) const
+auto core_bible_reference_ocr::recognize_paragraph_bounding_box(const screen_coordinates_type& relative_cursor_position) const
   -> std::optional<screen_rect_type>
 {
-  auto result = std::optional<screen_rect_type>{};
-  core_tesseract_->for_each_while(
-    core::core_tesseract::text_resolution::paragraph,
-    [&]([[maybe_unused]] const auto, const auto& paragraph_bounding_box)
-    {
-      const auto cursor_in_paragraph = screen_rect_type::contains(paragraph_bounding_box, relative_cursor_position);
-      if(cursor_in_paragraph)
-      {
-        result = paragraph_bounding_box;
-      }
-      return !cursor_in_paragraph;
-    }
+  const auto bounding_boxes = core_tesseract_->bounding_boxes(core::core_tesseract::text_resolution::paragraph);
+  const auto iter = std::ranges::find_if(
+    bounding_boxes, [&](const auto& rect) { return screen_rect_type::contains(rect, relative_cursor_position); }
   );
-  return result;
+  if(iter != std::ranges::cend(bounding_boxes))
+  {
+    return core_tesseract_->recognize(*iter) ? std::make_optional(*iter) : std::nullopt;
+  }
+  return std::nullopt;
 }
 
 ///
@@ -213,8 +207,8 @@ auto core_bible_reference_ocr::is_valid_capture_area(
   const auto right = [](const auto& box) { return box.origin().x() + box.horizontal_range(); };
 
   const auto char_height = line_position_data->line_bounding_boxes.at(line_position_data->cursor_line_index).vertical_range();
-  const auto vertical_margin = static_cast<std::int32_t>(char_height * vertical_margin_multiplier);
-  const auto horizontal_margin = static_cast<std::int32_t>(char_height * horizontal_margin_multiplier);
+  const auto vertical_margin = static_cast<std::int32_t>(char_height * area_validation_vertical_margin_multiplier);
+  const auto horizontal_margin = static_cast<std::int32_t>(char_height * area_validation_horizontal_margin_multiplier);
 
   const auto prev_and_next_lines_within_bounds = [&]
   {

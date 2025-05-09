@@ -55,16 +55,17 @@ public: // Structors
   ~workflow_bible_reference_ocr() noexcept;
 
 public: // Modifiers
-  auto run_once(const settings_type& settings) -> void;
+  auto find_references(const settings_type& settings) -> void;
 
 private: // Typedefs
   using screen_rect_type = util::screen_types::screen_rect_type;
   using screen_coordinates_type = util::screen_types::screen_coordinates_type;
+  using parse_result_type = std::pair<bool, std::vector<bible::reference_range>>;
 
 private: // Implementation
-  auto find_references(const screen_coordinates_type& cursor_pos) -> void;
+  auto find_references_impl(const screen_coordinates_type& cursor_position) -> parse_result_type;
   auto parse_tesseract_recognition(const screen_rect_type& image_dimensions, const screen_coordinates_type& relative_cursor_pos)
-    -> std::pair<bool, std::vector<bible::reference_range>>;
+    -> parse_result_type;
 
 private: // Variables
   const app_framework::thread_pool::strand_id_type strand_id_{app_framework::thread_pool::strand_id()};

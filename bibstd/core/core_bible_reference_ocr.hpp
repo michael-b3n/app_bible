@@ -37,6 +37,7 @@ public: // Structors
 public: // Operations
   ///
   /// Generate a list of rectangles that are used to capture the screen for OCR.
+  /// The generated list is sorted from the smallest to the largest area.
   /// \param cursor_position Cursor position on the screen
   /// \param char_height Height of the character, if not given, the screen areas are generated with a default value
   /// \return vector of screen rectangles that are used to capture the screen for OCR
@@ -46,11 +47,11 @@ public: // Operations
     -> std::vector<screen_rect_type>;
 
   ///
-  /// Capture an area of the screen and start OCR recognition.
+  /// Capture an area of the screen and set as OCR recognition image.
   /// \param screen_area Area of the screen that shall be captured
   /// \return true if capturing and recognition was successful, false otherwise
   ///
-  [[nodiscard]] auto capture_and_recognize_area(const screen_rect_type& screen_area) const -> bool;
+  [[nodiscard]] auto capture_and_set_ocr_area(const screen_rect_type& screen_area) const -> bool;
 
   ///
   /// Find the bounding box of the paragraph containing the given cursor position.
@@ -59,7 +60,7 @@ public: // Operations
   /// \return An optional screen rectangle representing the bounding box of the paragraph.
   /// If no paragraph is found, returns std::nullopt.
   ///
-  [[nodiscard]] auto find_paragraph_bounding_box(const screen_coordinates_type& relative_cursor_position) const
+  [[nodiscard]] auto recognize_paragraph_bounding_box(const screen_coordinates_type& relative_cursor_position) const
     -> std::optional<screen_rect_type>;
 
   ///
@@ -113,11 +114,13 @@ private: // Typedefs
   };
 
 private: // Constants
-  static constexpr auto char_height_multiplier = 2;
-  static constexpr auto height_to_width_ratio = 9;
-  static constexpr auto capture_ocr_area_steps = std::array{1.0, 1.5, 2.0, 3.0, 4.0};
-  static constexpr auto horizontal_margin_multiplier = 2.0;
-  static constexpr auto vertical_margin_multiplier = 0.1;
+  // Area generation constants
+  static constexpr auto area_generation_steps = std::array{1.0, 2.0, 3.0, 4.0};
+  static constexpr auto area_generation_char_height_multiplier = 2;
+  static constexpr auto area_generation_height_to_width_ratio = 9;
+  // Area validation constants
+  static constexpr auto area_validation_horizontal_margin_multiplier = 2.0;
+  static constexpr auto area_validation_vertical_margin_multiplier = 0.2;
 
 private: // Implementation
   ///
