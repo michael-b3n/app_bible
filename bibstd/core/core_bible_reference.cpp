@@ -145,9 +145,6 @@ auto core_bible_reference::parse(const std::string_view text, const std::size_t 
   {
     return parse_result{};
   };
-  // It is possible that the last number found for the number index range belongs to another book.
-  // If this is the case we remove the last number from the numbers index range.
-  trim_index_range_numbers_end(text, *book);
   return parse_result{
     .ranges = match_passage_template(
       book->book_id,
@@ -187,6 +184,7 @@ auto core_bible_reference::find_book(const std::string_view text, const std::siz
       {
       case txt::chars::category::letter: append(character); break;
       case txt::chars::category::whitespace: /*noop*/ break;
+      case txt::chars::category::line: /*noop*/ break;
       case txt::chars::category::fullstop: /*noop*/ break;
       case txt::chars::category::digit: append(character); break;
       default: append("*"); break;
@@ -222,7 +220,7 @@ auto core_bible_reference::find_book(const std::string_view text, const std::siz
           const auto text_after_pos = normalized_text_view.substr(pos_name_end);
           if(const auto numbers_end_opt = find_numbers_after_book_name(text_after_pos))
           {
-            const auto number_end = numbers_end_opt.value();
+            const auto number_end = validate_index_range_numbers_end(text_after_pos, numbers_end_opt.value());
             const auto pos_abs = pos_offset + pos_rel;
 
             const auto index_book_begin = raw_index_ranges.at(pos_abs).begin;
@@ -277,50 +275,28 @@ auto core_bible_reference::find_numbers_after_book_name(const std::string_view t
 
 ///
 ///
-auto core_bible_reference::trim_index_range_numbers_end(const std::string_view text, find_book_result& book) const -> void
+auto core_bible_reference::validate_index_range_numbers_end(
+  const std::string_view text_after_name, std::size_t numbers_end
+) const -> std::size_t
 {
-  auto index = std::optional<std::size_t>{};
-  txt::chars::for_each_char_while(
-    text.substr(book.index_range_numbers.end),
-    [&](const auto character, const auto pos, const txt::chars::category category)
-    {
-      const auto is_letter = category == txt::chars::category::letter;
-      if(is_letter)
-      {
-        index = pos + book.index_range_numbers.end;
-      }
-      return !is_letter;
-    }
-  );
-  if(index)
+  if(numbers_end < text_after_name.size() && numbers_end > 0 &&
+     txt::chars::is_char(text_after_name, numbers_end, txt::chars::category::letter))
   {
-    const auto book_overlap = find_book(text, *index);
-    if(book_overlap && book_overlap->index_range_book.begin > book.index_range_book.begin)
+    const auto text_from_last_number = text_after_name.substr(numbers_end - 1);
+    const auto belongs_to_book_name = std::ranges::any_of(
+      bible::book_name_variants_de::name_variants_list,
+      [&](const auto& element)
+      {
+        const auto& [_, name_variant] = element;
+        return util::starts_with(text_from_last_number, name_variant);
+      }
+    );
+    if(belongs_to_book_name)
     {
-      auto numbers_pos_end = std::optional<std::size_t>{};
-      txt::chars::for_each_char_while(
-        text,
-        [&](const auto character, const auto pos, const txt::chars::category category)
-        {
-          const auto pos_end = pos + character.size();
-          const auto continue_loop = pos_end <= book_overlap->index_range_book.begin;
-          if(continue_loop && category == txt::chars::category::digit)
-          {
-            numbers_pos_end = pos + character.size();
-          }
-          return continue_loop;
-        }
-      );
-      if(numbers_pos_end && book.index_range_numbers.end != numbers_pos_end)
-      {
-        book.index_range_numbers.end = *numbers_pos_end;
-      }
-      else
-      {
-        LOG_ERROR("trim index range numbers failed: numbers_pos_end={}", util::format::to_string(numbers_pos_end));
-      }
+      --numbers_end;
     }
   }
+  return numbers_end;
 }
 
 ///
@@ -456,16 +432,25 @@ auto core_bible_reference::match_passage_template(const bible::book_id book, pas
     result.emplace_back(bible::reference_range(bible::reference::create(book, 1u, 1u).value()));
     return result;
   }
-  else if(down_transition_chars.empty() && numbers.size() == 1)
+  else if(down_transition_chars.empty())
   {
-    const auto reference_begin = bible::reference::create(book, numbers.front(), 1u);
-    const auto reference_end = bible::reference::create(
-      book, numbers.front(), bible::verse_count(book, numbers.front()).value_or(0u /*will evaluate to std::nullopt*/)
-    );
-    if(reference_begin && reference_end)
+    // This should result to only one passage section either # or #-#.
+    const auto passage_sections = create_passage_sections(passage_template, std::nullopt);
+    if(passage_sections.empty())
     {
-      result.emplace_back(bible::reference_range(*reference_begin, *reference_end));
+      return result;
     }
+    else if(passage_sections.size() > 1)
+    {
+      LOG_ERROR("unexpected passage section detected: count={}, expected=1", passage_sections.size());
+      return result;
+    }
+    auto current_level = passage_level::chapter;
+    auto current_chapter = numbers.front();
+    const auto found = detail::match_passage_template_section(
+      book, passage_sections.front().numbers, passage_sections.front().generic_template, current_level, current_chapter
+    );
+    result.insert(result.cend(), found.cbegin(), found.cend());
     return result;
   }
 
@@ -486,7 +471,7 @@ auto core_bible_reference::match_passage_template(const bible::book_id book, pas
         if(result)
         {
           decltype(auto) ranges = reference_ranges[down_transition_char];
-          ranges.insert(ranges.end(), found.cbegin(), found.cend());
+          ranges.insert(ranges.cend(), found.cbegin(), found.cend());
         }
         else
         {
@@ -552,7 +537,7 @@ auto core_bible_reference::passage_template_numbers(const passage_template_type&
 ///
 ///
 auto core_bible_reference::create_passage_sections(
-  const passage_template_type& passage_template, const char down_transition_char
+  const passage_template_type& passage_template, const std::optional<char> down_transition_char
 ) const -> std::vector<passage_section>
 {
   const auto to_transition_char = [down_transition_char](const char c) -> std::optional<char>

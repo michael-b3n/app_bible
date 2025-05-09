@@ -19,7 +19,6 @@ namespace bibstd::core
 class core_bible_reference_ocr;
 class core_bible_reference;
 class core_bibleserver_lookup;
-class core_tesseract;
 } // namespace bibstd::core
 
 namespace bibstd::workflow
@@ -39,6 +38,7 @@ public: // Structors
 
 public: // Variables
   const setting_type<std::vector<bible::translation>> translations;
+  const setting_type<std::uint16_t> assumed_initial_char_height;
 };
 
 ///
@@ -55,46 +55,25 @@ public: // Structors
   ~workflow_bible_reference_ocr() noexcept;
 
 public: // Modifiers
-  auto run_once(const settings_type& settings) -> void;
+  auto find_references(const settings_type& settings) -> void;
 
 private: // Typedefs
   using screen_rect_type = util::screen_types::screen_rect_type;
   using screen_coordinates_type = util::screen_types::screen_coordinates_type;
-  using tesseract_choice = core::core_tesseract_common::tesseract_choice;
-  using tesseract_choices = core::core_tesseract_common::tesseract_choices;
-  using character_data = core::core_bible_reference_ocr_common::character_data;
-  using reference_position_data = core::core_bible_reference_ocr_common::reference_position_data;
-
-  ///
-  /// Internal data structure.
-  ///
-  struct data_t final
-  {
-    screen_coordinates_type current_cursor_position{0, 0};
-    std::optional<std::int32_t> current_char_height{};
-    std::vector<screen_rect_type> capture_areas{};
-  };
+  using parse_result_type = std::pair<bool, std::vector<bible::reference_range>>;
 
 private: // Implementation
-  auto find_references() -> void;
-  auto capture_img(const screen_rect_type& rect) -> bool;
+  auto find_references_impl(const screen_coordinates_type& cursor_position) -> parse_result_type;
   auto parse_tesseract_recognition(const screen_rect_type& image_dimensions, const screen_coordinates_type& relative_cursor_pos)
-    -> std::optional<std::vector<bible::reference_range>>;
-  auto get_reference_position_main(const screen_coordinates_type& relative_cursor_pos)
-    -> std::optional<reference_position_data>;
-  auto get_reference_position_choices(const screen_coordinates_type& relative_cursor_pos)
-    -> std::vector<reference_position_data>;
-  auto get_min_distance_index(const std::vector<character_data>& char_data) -> std::optional<std::size_t>;
+    -> parse_result_type;
 
 private: // Variables
   const app_framework::thread_pool::strand_id_type strand_id_{app_framework::thread_pool::strand_id()};
   const std::unique_ptr<core::core_bible_reference_ocr> core_bible_reference_ocr_;
   const std::unique_ptr<core::core_bible_reference> core_bible_reference_;
   const std::unique_ptr<core::core_bibleserver_lookup> core_bibleserver_lookup_;
-  const std::unique_ptr<core::core_tesseract> core_tesseract_;
 
   settings_type settings_{nullptr};
-  data_t data_;
 };
 
 } // namespace bibstd::workflow

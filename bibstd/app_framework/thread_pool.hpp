@@ -6,6 +6,7 @@
 #include "util/scoped_guard.hpp"
 #include "util/uid.hpp"
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <thread>
@@ -25,16 +26,6 @@ public: // Constants
 public: // Typedefs
   using task_type = task_queue::task_type;
   using strand_id_type = util::uid<struct strand_id_tag>;
-
-  ///
-  /// Queue rule enum.
-  ///
-  enum class queue_rule
-  {
-    append,    // Append task to queue always
-    overwrite, // Overwrite older tasks in queue if not running
-    discard    // Discard task if older tasks are queued
-  };
 
 public: // Accessors
   ///
@@ -64,7 +55,7 @@ public: // Modifiers
   /// will run after the previous task with the same strand ID has finished.
   /// \param rule Queue rule \see queue_rule
   ///
-  static auto queue_task(task_type&& task, strand_id_type id, queue_rule rule = queue_rule::append) -> void;
+  static auto queue_task(task_type&& task, strand_id_type id) -> void;
 
 private: // Typedefs
   using task_id_type = util::uid<struct task_id_tag>;
@@ -75,11 +66,16 @@ private: // Typedefs
     strand_id_type strand_id{};
   };
 
+  ///
+  /// Thread pool element holding IDs and timestamps for bookkeeping.
+  /// \warning On destruction of this struct the worker object has to be destroyed first,
+  /// since it might modify other members of this struct on destruction.
+  ///
   struct pool_element final
   {
-    active_worker worker{};
     std::vector<id_pair> ids{};
     std::chrono::system_clock::time_point last_use{std::chrono::system_clock::now()};
+    active_worker worker{};
   };
 
   struct task_data final
@@ -87,7 +83,6 @@ private: // Typedefs
     task_type task{[] {}};
     task_id_type task_id{};
     strand_id_type strand_id{};
-    queue_rule rule{queue_rule::append};
   };
 
 private: // Implementation
@@ -97,6 +92,7 @@ private: // Implementation
   static auto remove_abandoned_workers() -> void;
 
 private: // Variables
+  inline static std::atomic_bool initialized_{false};
   inline static std::mutex mtx_{};
   inline static std::vector<std::unique_ptr<pool_element>> pool_{};
 };

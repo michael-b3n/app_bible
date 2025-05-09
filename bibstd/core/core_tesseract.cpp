@@ -2,6 +2,7 @@
 #include "data/pix.hpp"
 #include "util/boost_numeric_cast.hpp"
 #include "util/const_bimap.hpp"
+#include "util/enum.hpp"
 #include "util/log.hpp"
 
 #include <leptonica/allheaders.h>
@@ -38,10 +39,9 @@ core_tesseract::~core_tesseract() noexcept
 
 ///
 ///
-auto core_tesseract::set_image(const std::function<void(pixel_plane_type&)>& setter) -> void
+auto core_tesseract::set_image(pixel_plane_type&& pixel_plane) -> void
 {
-  const auto setter_wrapper = [&](auto& plane) { setter(plane); };
-  pix_->update(setter_wrapper);
+  pix_->update(std::forward<decltype(pixel_plane)>(pixel_plane));
   tesseract_->SetImage(pix_->get());
   tesseract_->SetPageSegMode(tesseract::PSM_AUTO_OSD);
 }
@@ -72,6 +72,33 @@ auto core_tesseract::recognize(std::optional<screen_rect_type> bounding_box) con
   {
     return tesseract_->Recognize(nullptr) == 0;
   }
+}
+
+///
+///
+auto core_tesseract::bounding_boxes(const text_resolution resolution) const -> std::vector<screen_rect_type>
+{
+  auto result = std::vector<screen_rect_type>{};
+  std::unique_ptr<tesseract::PageIterator> pi(tesseract_->AnalyseLayout());
+  if(pi)
+  {
+    const auto level = resolution_map.at(resolution);
+    do
+    {
+      int left, top, right, bottom;
+      const auto success = pi->BoundingBox(level, &left, &top, &right, &bottom);
+      if(success && left >= 0 && top >= 0 && right >= 1 && bottom >= 1)
+      {
+        result.emplace_back(screen_rect_type(screen_coordinates_type(left, top), right - left, bottom - top));
+      }
+      else
+      {
+        LOG_WARN("invalid bounding box in analyze_bounding_boxes: resolution={}", util::to_string_view(resolution));
+      }
+    }
+    while(pi->Next(level));
+  }
+  return result;
 }
 
 ///

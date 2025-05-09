@@ -1,8 +1,7 @@
 #include "core/core_settings.hpp"
 
-#include <format>
+#include <algorithm>
 #include <ranges>
-#include <string>
 
 namespace bibstd::core
 {

@@ -53,11 +53,10 @@ public: // Accessors
 
 public: // Modifiers
   ///
-  /// Update the pix data by calling the setter.
-  /// After the setter is called, the pix data `size` must be equal to `width * height`.
-  /// \param setter The setter function to update the data of pix
+  /// Update the pix data by providing a new pixel plane. The pix data `size` must be equal to `width * height`.
+  /// \param pixel_plane Pixel plane that is used to update the data of pix
   ///
-  auto update(const std::function<void(plane<pixel>&)>& setter) -> void;
+  auto update(plane<pixel>&& pixel_plane) -> void;
 
 private: // Members
   plane<pixel> data_;

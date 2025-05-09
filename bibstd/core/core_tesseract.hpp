@@ -59,9 +59,9 @@ public: // Structors
 public: // Modifiers
   ///
   /// Set image that shall be recognized with tesseract.
-  /// \param setter Function that sets the image that shall be read with tesseract
+  /// \param pixel_plane Pixel plane that defines the image that shall be read with tesseract
   ///
-  auto set_image(const std::function<void(pixel_plane_type&)>& setter) -> void;
+  auto set_image(pixel_plane_type&& pixel_plane) -> void;
 
   ///
   /// Recognize image or sub-rectangle of image with tesseract.
@@ -69,6 +69,13 @@ public: // Modifiers
   /// \return true if recognition was successful, false otherwise
   ///
   auto recognize(std::optional<screen_rect_type> bounding_box) const -> bool;
+
+  ///
+  /// Run tesseract analyze layout on image and list all bounding boxes.
+  /// \param resolution Text resolution
+  /// \return list of bounding boxes corresponding to resolution level
+  ///
+  auto bounding_boxes(text_resolution resolution) const -> std::vector<screen_rect_type>;
 
   ///
   /// Run tesseract OCR on image.

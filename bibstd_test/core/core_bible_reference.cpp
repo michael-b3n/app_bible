@@ -8,7 +8,7 @@ namespace bibstd::core
 
 TEST_CASE("reference_parser", "[bible]")
 {
-  core_bible_reference parser;
+  core_bible_reference core;
   const auto ref_genesis_1_1 = bible::reference::create(bible::book_id::genesis, 1u, 1u).value();
   const auto ref_genesis_1_2 = bible::reference::create(bible::book_id::genesis, 1u, 2u).value();
   const auto genesis_1_1 = bible::reference_range(ref_genesis_1_1);
@@ -27,22 +27,22 @@ TEST_CASE("reference_parser", "[bible]")
 
   const auto filler_text = std::string{"Lorem ipsum dolor sit"};
 
-  CHECK(parser.parse(filler_text, 0).ranges.empty());
+  CHECK(core.parse(filler_text, 0).ranges.empty());
   {
     const auto reference = std::string{"1.Mose 1:1"};
-    const auto result = parser.parse(reference, 0).ranges;
+    const auto result = core.parse(reference, 0).ranges;
     CHECK(result.size() == 1);
     CHECK(util::contains(result, genesis_1_1));
   }
   {
     const auto reference = std::string{"1.Mose 1;1-2"};
-    const auto result = parser.parse(reference, 0).ranges;
+    const auto result = core.parse(reference, 0).ranges;
     CHECK(result.size() == 1);
     CHECK(util::contains(result, genesis_1_1to2));
   }
   {
     const auto reference = std::string{"2.Mose 2,2-3.7;4,5;5,6-7,8"};
-    const auto result = parser.parse(reference, 0).ranges;
+    const auto result = core.parse(reference, 0).ranges;
     CHECK(result.size() == 4);
     CHECK(util::contains(result, exodus_2_2to3));
     CHECK(util::contains(result, exodus_2_7));

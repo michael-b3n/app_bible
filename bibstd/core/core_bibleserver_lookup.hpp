@@ -19,7 +19,8 @@ public: // Structors
 
 public: // Operations
   ///
-  /// Open reference range with the bibleserver in the default web browser.
+  /// Open reference range with the bibleserver in the default web browser. Multiple tabs might be opened.
+  /// This function does not support reference ranges over multiple books.
   /// \param range Reference range that shall be opened
   /// \return true if successful, false otherwise
   ///

@@ -20,9 +20,6 @@
 INC_RESOURCE(icon, "res/icon.ico");
 const auto icon_view = bibstd::util::incbin::to_span<std::byte>(res_icon_data, res_icon_size);
 
-INC_RESOURCE(main_html, "html/main.html");
-const auto main_html_view = bibstd::util::incbin::to_string_view(res_main_html_data, res_main_html_size);
-
 ///
 /// Main function.
 ///
@@ -32,7 +29,8 @@ int main()
   LOG_INFO("main", "Executable: {}", bibstd::system::filesystem::executable_location().string());
 
   // Init backend
-  auto workflow_reference_finder = bibstd::workflow::workflow_bible_reference_ocr(bibstd::workflow::workflow_bible_reference_ocr::language::de);
+  auto workflow_reference_finder =
+    bibstd::workflow::workflow_bible_reference_ocr(bibstd::workflow::workflow_bible_reference_ocr::language::de);
 
   // Init settings
   auto workflow_reference_finder_settings = std::make_shared<bibstd::workflow::workflow_bible_reference_ocr_settings>();
@@ -56,7 +54,7 @@ int main()
   bibstd::system::hotkey::register_callback(
     bibstd::system::hotkey::key::vk_f,
     bibstd::system::hotkey::key_modifier::alt,
-    [&]() { workflow_reference_finder.run_once(workflow_reference_finder_settings); }
+    [&]() { workflow_reference_finder.find_references(workflow_reference_finder_settings); }
   );
 
   // Enter main loop.
