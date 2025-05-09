@@ -27,16 +27,6 @@ public: // Typedefs
   using task_type = task_queue::task_type;
   using strand_id_type = util::uid<struct strand_id_tag>;
 
-  ///
-  /// Queue rule enum.
-  ///
-  enum class queue_rule
-  {
-    append,    // Append task to queue always
-    overwrite, // Overwrite older tasks in queue if not running
-    discard    // Discard task if older tasks are queued
-  };
-
 public: // Accessors
   ///
   /// Get a new unique strand ID.
@@ -65,7 +55,7 @@ public: // Modifiers
   /// will run after the previous task with the same strand ID has finished.
   /// \param rule Queue rule \see queue_rule
   ///
-  static auto queue_task(task_type&& task, strand_id_type id, queue_rule rule = queue_rule::append) -> void;
+  static auto queue_task(task_type&& task, strand_id_type id) -> void;
 
 private: // Typedefs
   using task_id_type = util::uid<struct task_id_tag>;
@@ -93,7 +83,6 @@ private: // Typedefs
     task_type task{[] {}};
     task_id_type task_id{};
     strand_id_type strand_id{};
-    queue_rule rule{queue_rule::append};
   };
 
 private: // Implementation

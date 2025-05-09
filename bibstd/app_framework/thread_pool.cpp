@@ -47,12 +47,12 @@ auto thread_pool::queue_task(task_type&& task) -> void
   }
   const auto lock = std::lock_guard(mtx_);
   static const auto internal_strand_id = strand_id();
-  queue_task_auto(task_data{std::move(task), task_id_type::new_uid(), internal_strand_id, queue_rule::append});
+  queue_task_auto(task_data{std::move(task), task_id_type::new_uid(), internal_strand_id});
 }
 
 ///
 ///
-auto thread_pool::queue_task(task_type&& task, const strand_id_type id, const queue_rule rule) -> void
+auto thread_pool::queue_task(task_type&& task, const strand_id_type id) -> void
 {
   if(!initialized_)
   {
@@ -65,22 +65,11 @@ auto thread_pool::queue_task(task_type&& task, const strand_id_type id, const qu
   const auto index = static_cast<std::size_t>(std::ranges::distance(std::ranges::cbegin(pool_), dest_thread));
   if(index < pool_.size())
   {
-    const auto queue_task = [&] { queue_task_index(task_data{std::move(task), task_id_type::new_uid(), id, rule}, index); };
-    switch(rule)
-    {
-    case queue_rule::append: queue_task(); break;
-    case queue_rule::overwrite:
-    {
-      std::erase_if(pool_.at(index)->ids, [&](const auto& p) { return p.strand_id == id; });
-      queue_task();
-      break;
-    }
-    case queue_rule::discard: /*noop*/ break;
-    }
+    queue_task_index(task_data{std::move(task), task_id_type::new_uid(), id}, index);
   }
   else
   {
-    queue_task_auto(task_data{std::move(task), task_id_type::new_uid(), id, rule});
+    queue_task_auto(task_data{std::move(task), task_id_type::new_uid(), id});
   }
 }
 
