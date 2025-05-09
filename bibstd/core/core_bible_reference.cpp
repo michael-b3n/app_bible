@@ -184,6 +184,7 @@ auto core_bible_reference::find_book(const std::string_view text, const std::siz
       {
       case txt::chars::category::letter: append(character); break;
       case txt::chars::category::whitespace: /*noop*/ break;
+      case txt::chars::category::line: /*noop*/ break;
       case txt::chars::category::fullstop: /*noop*/ break;
       case txt::chars::category::digit: append(character); break;
       default: append("*"); break;
