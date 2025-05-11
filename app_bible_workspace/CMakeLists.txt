@@ -6,7 +6,6 @@ cmake_minimum_required(VERSION 3.30)
 include(cmake/copy_target_files.cmake)
 include(helper_functions)
 include(generate_inno_setup)
-include(set_mingw_path_variables)
 
 #
 # Define app information
@@ -17,12 +16,24 @@ set(APP_VERSION "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}")
 set(APP_EXE_NAME "app_bible_workspace")
 set(APP_NAME "Bible Workspace")
 set(APP_FILE_DESCRIPTION ${APP_NAME})
+message(STATUS "project name: " ${APP_EXE_NAME})
+message(STATUS "project version: " ${APP_VERSION})
+
+#
+# Generate git information
+#
+generate_git_info(GIT_SHA1 GIT_DATE)
+message(STATUS "git sha1: " ${GIT_SHA1})
+message(STATUS "git date: " ${GIT_DATE})
+if(GIT_SHA1 STREQUAL "")
+  message(FATAL_ERROR "git sha1 not found")
+endif()
 
 #
 # Configure version files
 #
-configure_file(${CMAKE_CURRENT_LIST_DIR}/res/resource.rc.in ${CMAKE_CURRENT_LIST_DIR}/res/resource.rc)
-configure_file(${CMAKE_CURRENT_LIST_DIR}/res/version.hpp.in ${CMAKE_CURRENT_LIST_DIR}/src/version.hpp)
+configure_file(${CMAKE_CURRENT_LIST_DIR}/res/resource.rc.in ${CMAKE_CURRENT_LIST_DIR}/res/resource.rc @ONLY)
+configure_file(${CMAKE_CURRENT_LIST_DIR}/res/version.hpp.in ${CMAKE_CURRENT_LIST_DIR}/src/version.hpp @ONLY)
 
 project(
   app_bible_workspace
@@ -76,9 +87,9 @@ target_link_libraries(app_bible_workspace
 #
 # Find library directories
 #
-set_mingw_path_variables(MINGW_ROOT_DIRECTORY MINGW_SHARE_DIRECTORY)
-message(STATUS "Found mingw64 root directory: " ${MINGW_ROOT_DIRECTORY})
-message(STATUS "Found mingw64 share directory: " ${MINGW_SHARE_DIRECTORY})
+set_mingw_path(MINGW_ROOT_DIRECTORY MINGW_SHARE_DIRECTORY)
+message(STATUS "found mingw64 root directory: " ${MINGW_ROOT_DIRECTORY})
+message(STATUS "found mingw64 share directory: " ${MINGW_SHARE_DIRECTORY})
 
 #
 # Copy files needed by binary
