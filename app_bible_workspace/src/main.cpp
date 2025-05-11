@@ -2,6 +2,8 @@
 /// Main file.
 ///
 
+#include "src/version.hpp"
+
 #include <app_framework/active_worker.hpp>
 #include <app_framework/main_loop.hpp>
 #include <system/filesystem.hpp>
@@ -26,7 +28,10 @@ const auto icon_view = bibstd::util::incbin::to_span<std::byte>(res_icon_data, r
 int main()
 {
   const auto logger = bibstd::util::logger();
-  LOG_INFO("main", "Executable: {}", bibstd::system::filesystem::executable_location().string());
+  LOG_INFO("executable: {}", bibstd::system::filesystem::executable_location().string());
+  LOG_INFO("version: {}", bible_workspace::version::version_string);
+  LOG_INFO("commit_hash: {}", bible_workspace::version::commit_hash);
+  LOG_INFO("commit_date: {}", bible_workspace::version::commit_date);
 
   // Init backend
   auto workflow_reference_finder =

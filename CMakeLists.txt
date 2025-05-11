@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.30)
 
 #
 # Add the folder tools/cmake  to the CMAKE_MODULE_PATH
-# so we can find these files easaly.
 #
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/tools/cmake")
 

@@ -1,0 +1,31 @@
+#include <windows.h>
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION @APP_VERSION_MAJOR@,0,0,@APP_VERSION_MINOR@
+PRODUCTVERSION @APP_VERSION_MAJOR@,0,0,@APP_VERSION_MINOR@
+FILEFLAGSMASK 0x17L
+FILEFLAGS 0x0L
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904B0"  // Language (English - United States)
+    BEGIN
+      VALUE "CompanyName", "RYC"
+      VALUE "FileDescription", "@APP_NAME@"
+      VALUE "FileVersion", "@APP_VERSION_MAJOR@.0.0.@APP_VERSION_MINOR@"
+      VALUE "InternalName", "@APP_NAME@"
+      VALUE "OriginalFilename", "@APP_EXE_NAME@.exe"
+      VALUE "ProductName", "@APP_NAME@"
+      VALUE "ProductVersion", "@APP_VERSION_MAJOR@.0.0.@APP_VERSION_MINOR@"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x0409, 1200  // English (US)
+  END
+END
+
+1 24 "app_bible_workspace.exe.manifest"
+IDI_ICON1	ICON	"icon.ico"
