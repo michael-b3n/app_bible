@@ -39,33 +39,19 @@ endfunction(copy_file)
 #
 function(copy_files target dst src)
   file(GLOB files "${src}/*")
-
   foreach(file ${files})
     copy_file(${target} ${dst} ${file})
   endforeach()
 endfunction(copy_files)
 
 #
-# Function will create post_build the setup
+# Set the mingw path variables.
+# \param root directory (usually called MINGW_ROOT_DIRECTORY)
+# \param share directory (usually called MINGW_SHARE_DIRECTORY)
 #
-function(generate_inno_setup target_setup target_app template_file folder)
-  file(GLOB_RECURSE files_to_delete LIST_DIRECTORIES true "${folder}")
-
-  if(files_to_delete)
-    file(REMOVE_RECURSE ${files_to_delete})
-  endif()
-
-  configure_file(${template_file} "${CMAKE_CURRENT_BINARY_DIR}/generated_setup.iss")
-
-  find_package(InnoSetup)
-  add_custom_command(
-    TARGET ${target_setup} POST_BUILD
-    WORKING_DIRECTORY ${folder}
-    COMMAND "${CMAKE_COMMAND}" -E echo "Setup generation for ${folder}."
-    COMMAND "${CMAKE_COMMAND}" -E make_directory ${folder}
-    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CMAKE_CURRENT_BINARY_DIR}/generated_setup.iss" ${folder}/
-    COMMAND "${CMAKE_COMMAND}" -E env "${INNOSETUP_EXECUTABLE}" "${folder}/generated_setup.iss"
-    COMMAND "${CMAKE_COMMAND}" -E remove "${folder}/generated_setup.iss"
-    COMMENT "Generating Setup..."
-  )
-endfunction(generate_inno_setup)
+function(set_mingw_path_variables mingw_root_dir mingw_share_dir)
+  list(GET CMAKE_SYSTEM_LIBRARY_PATH 1 MINGW_LIB_DIRECTORY)
+  cmake_path(GET MINGW_LIB_DIRECTORY PARENT_PATH MINGW_ROOT_DIRECTORY)
+  set(${mingw_root_dir} "${MINGW_ROOT_DIRECTORY}" PARENT_SCOPE)
+  set(${mingw_share_dir} "${MINGW_ROOT_DIRECTORY}/share" PARENT_SCOPE)
+endfunction(set_mingw_path_variables)
