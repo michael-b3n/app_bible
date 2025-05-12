@@ -14,9 +14,9 @@ namespace bible_workspace
 ///
 struct version final
 {
-  static constexpr unsigned int major_number = 0;
+  static constexpr unsigned int major_number = 1;
   static constexpr unsigned int minor_number = 0;
-  static constexpr auto version_string = std::string_view("0.0");
+  static constexpr auto version_string = std::string_view("1.0");
   static constexpr auto commit_hash = std::string_view("");
   static constexpr auto commit_date = std::string_view("");
 };
