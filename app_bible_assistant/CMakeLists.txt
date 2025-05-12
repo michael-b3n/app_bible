@@ -10,7 +10,7 @@ include(generate_inno_setup)
 #
 # Define app information
 #
-set(APP_VERSION_MAJOR 1)
+set(APP_VERSION_MAJOR 2)
 set(APP_VERSION_MINOR 0)
 set(APP_VERSION "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}")
 set(APP_EXE_NAME "app_bible_assistant")
