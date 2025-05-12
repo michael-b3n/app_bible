@@ -62,7 +62,7 @@ endfunction(set_mingw_path)
 # \param git_date (usually called GIT_DATE)
 #
 function(generate_git_info git_sha1 git_date)
-  # the commit's SHA1, and whether the building workspace was dirty or not
+  # the commit's SHA1, and whether the building assistant was dirty or not
   execute_process(COMMAND
     git describe --match=NeVeRmAtCh --always --abbrev=40 --dirty
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"

@@ -29,9 +29,9 @@ int main()
 {
   const auto logger = bibstd::util::logger();
   LOG_INFO("executable: {}", bibstd::system::filesystem::executable_location().string());
-  LOG_INFO("version: {}", bible_workspace::version::version_string);
-  LOG_INFO("commit_hash: {}", bible_workspace::version::commit_hash);
-  LOG_INFO("commit_date: {}", bible_workspace::version::commit_date);
+  LOG_INFO("version: {}", bible_assistant::version::version_string);
+  LOG_INFO("commit_hash: {}", bible_assistant::version::commit_hash);
+  LOG_INFO("commit_date: {}", bible_assistant::version::commit_date);
 
   // Init backend
   auto workflow_reference_finder =
