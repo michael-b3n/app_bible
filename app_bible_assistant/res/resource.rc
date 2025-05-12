@@ -13,11 +13,11 @@ BEGIN
     BLOCK "040904B0"  // Language (English - United States)
     BEGIN
       VALUE "CompanyName", "RYC"
-      VALUE "FileDescription", "Bible assistant"
+      VALUE "FileDescription", "Bible Assistant"
       VALUE "FileVersion", "1.0.0.0"
-      VALUE "InternalName", "Bible assistant"
+      VALUE "InternalName", "Bible Assistant"
       VALUE "OriginalFilename", "app_bible_assistant.exe"
-      VALUE "ProductName", "Bible assistant"
+      VALUE "ProductName", "Bible Assistant"
       VALUE "ProductVersion", "1.0.0.0"
     END
   END
