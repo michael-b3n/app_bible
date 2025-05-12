@@ -6,11 +6,11 @@
 
 #include <string_view>
 
-namespace bible_workspace
+namespace bible_assistant
 {
 
 ///
-/// This struct contains app bible workspace version information.
+/// This struct contains app bible assistant version information.
 ///
 struct version final
 {
@@ -21,4 +21,4 @@ struct version final
   static constexpr auto commit_date = std::string_view("@GIT_DATE@");
 };
 
-} // namespace bible_workspace
+} // namespace bible_assistant
