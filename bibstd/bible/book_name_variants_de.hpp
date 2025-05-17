@@ -40,8 +40,8 @@ public: // Constants
     std::pair{           book_id::ruth,                                   util::to_array("Rut")},
     std::pair{        book_id::samuel1,                       util::to_array("1Samuel", "1Sam")},
     std::pair{        book_id::samuel2,                       util::to_array("2Samuel", "2Sam")},
-    std::pair{         book_id::kings1,                       util::to_array("1Könige", "1Kön")},
-    std::pair{         book_id::kings2,                       util::to_array("2Könige", "2Kön")},
+    std::pair{         book_id::kings1,                util::to_array("1Könige", "1Kön", "1Kö")},
+    std::pair{         book_id::kings2,                util::to_array("2Könige", "2Kön", "2Kö")},
     std::pair{    book_id::chronicles1,                      util::to_array("1Chronik", "1Chr")},
     std::pair{    book_id::chronicles2,                      util::to_array("2Chronik", "2Chr")},
     std::pair{           book_id::ezra,                                  util::to_array("Esra")},
@@ -95,7 +95,7 @@ public: // Constants
     std::pair{          book_id::john2,                     util::to_array("2Johannes", "2Joh")},
     std::pair{          book_id::john3,                     util::to_array("3Johannes", "3Joh")},
     std::pair{           book_id::jude,                          util::to_array("Judas", "Jud")},
-    std::pair{     book_id::revelation,                   util::to_array("Offenbarung", "Offb")}
+    std::pair{     book_id::revelation,         util::to_array("Offenbarung", "Offenb", "Offb")}
   };
   // clang-format on
   static_assert(std::tuple_size_v<decltype(name_variants)> == util::to_integral(book_id::END));
