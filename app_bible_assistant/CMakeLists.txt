@@ -25,6 +25,7 @@ message(STATUS "project version: " ${APP_VERSION})
 generate_git_info(GIT_SHA1 GIT_DATE)
 message(STATUS "git sha1: " ${GIT_SHA1})
 message(STATUS "git date: " ${GIT_DATE})
+
 if(GIT_SHA1 STREQUAL "")
   message(FATAL_ERROR "git sha1 not found")
 endif()
@@ -92,9 +93,16 @@ message(STATUS "found mingw64 root directory: " ${MINGW_ROOT_DIRECTORY})
 message(STATUS "found mingw64 share directory: " ${MINGW_SHARE_DIRECTORY})
 
 #
+# Configure tessdata folder
+#
+set(TESSDATA_VERSION "best") # other option would be "fast"
+set(TESSDATA_FOLDER "${CMAKE_CURRENT_LIST_DIR}/res/tessdata-${TESSDATA_VERSION}")
+message(STATUS "set tessdata folder: " ${TESSDATA_FOLDER})
+
+#
 # Copy files needed by binary
 #
-copy_folder(app_bible_assistant "${CMAKE_CURRENT_BINARY_DIR}/tessdata" "${MINGW_SHARE_DIRECTORY}/tessdata")
+copy_folder(app_bible_assistant "${CMAKE_CURRENT_BINARY_DIR}/tessdata" "${TESSDATA_FOLDER}")
 
 #
 # Create Setup
@@ -112,7 +120,7 @@ add_custom_target(app_bible_assistant_setup
 # Copy executable, needed *.dll's and other files.
 #
 copy_target_files(app_bible_assistant_setup ${TARGET_DEPLOY_DIR} ${MINGW_ROOT_DIRECTORY})
-copy_folder(app_bible_assistant_setup ${TARGET_DEPLOY_DIR}/tessdata ${MINGW_SHARE_DIRECTORY}/tessdata)
+copy_folder(app_bible_assistant_setup ${TARGET_DEPLOY_DIR}/tessdata ${TESSDATA_FOLDER})
 
 include(FindInnoSetup)
 
