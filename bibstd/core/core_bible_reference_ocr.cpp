@@ -49,7 +49,7 @@ auto core_bible_reference_ocr::generate_capture_areas(
       const auto half_width = static_cast<std::int32_t>(i * width / 2);
       const auto half_height = static_cast<std::int32_t>(i * height / 2);
       const auto x_origin = cursor_position.x() - half_width;
-      const auto y_origin = cursor_position.y() - 1 * half_height; // origin is on top left
+      const auto y_origin = cursor_position.y() - half_height; // origin is on top left
       const auto rect =
         screen_rect_type::overlap(*window_rect, screen_rect_type({x_origin, y_origin}, 2 * half_width, 2 * half_height));
       const auto valid_rect = rect.has_value();
@@ -187,7 +187,7 @@ auto core_bible_reference_ocr::find_reference_position_data_from_choices(
 
 ///
 ///
-auto core_bible_reference_ocr::is_valid_capture_area(
+auto core_bible_reference_ocr::is_verified_capture_area(
   const screen_coordinates_type& relative_cursor_position,
   const screen_rect_type& image_dimensions,
   const screen_rect_type& paragraph_dimensions,
@@ -198,13 +198,21 @@ auto core_bible_reference_ocr::is_valid_capture_area(
   const auto line_position_data = find_line_position_data(relative_cursor_position);
   if(!line_position_data)
   {
-    LOG_DEBUG("invalid capture area: no line_position_data found, image_dimensions={}", image_dimensions);
+    LOG_DEBUG("capture area not verified: no line_position_data found, image_dimensions={}", image_dimensions);
     return false;
   }
-  const auto top = [](const auto& box) { return box.origin().y() + box.vertical_range(); };
-  const auto bottom = [](const auto& box) { return box.origin().y(); };
-  const auto left = [](const auto& box) { return box.origin().x(); };
-  const auto right = [](const auto& box) { return box.origin().x() + box.horizontal_range(); };
+  const auto top = [](const auto& box) -> std::int32_t { return box.origin().y() + box.vertical_range(); };
+  const auto bottom = [](const auto& box) -> std::int32_t { return box.origin().y(); };
+  const auto left = [](const auto& box) -> std::int32_t { return box.origin().x(); };
+  const auto right = [](const auto& box) -> std::int32_t { return box.origin().x() + box.horizontal_range(); };
+  const auto in_vertical_boundaries = [&](const auto& rect, const auto& subrect, const auto margin) -> bool
+  {
+    const auto lower_rect = std::min(top(rect), bottom(rect));
+    const auto upper_rect = std::max(top(rect), bottom(rect));
+    const auto lower_subrect = std::min(top(subrect), bottom(subrect));
+    const auto upper_subrect = std::max(top(subrect), bottom(subrect));
+    return upper_rect > upper_subrect + margin && lower_rect + margin < lower_subrect;
+  };
 
   const auto char_height = line_position_data->line_bounding_boxes.at(line_position_data->cursor_line_index).vertical_range();
   const auto vertical_margin = static_cast<std::int32_t>(char_height * area_validation_vertical_margin_multiplier);
@@ -217,12 +225,12 @@ auto core_bible_reference_ocr::is_valid_capture_area(
     const auto line_index = line_position_data->cursor_line_index;
     const auto prev_within_bounds =
       line_index == 0
-        ? top(line_position_data->line_bounding_boxes.front()) + missing_line_margin < top(image_dimensions)
-        : top(line_position_data->line_bounding_boxes.at(line_index - 1)) + vertical_margin < top(image_dimensions);
+        ? in_vertical_boundaries(image_dimensions, line_position_data->line_bounding_boxes.front(), missing_line_margin)
+        : in_vertical_boundaries(image_dimensions, line_position_data->line_bounding_boxes.at(line_index - 1), vertical_margin);
     const auto next_within_bounds =
       line_index + 1 < line_position_data->line_bounding_boxes.size()
-        ? bottom(line_position_data->line_bounding_boxes.at(line_index + 1)) > bottom(image_dimensions) + vertical_margin
-        : bottom(line_position_data->line_bounding_boxes.back()) > bottom(image_dimensions) + missing_line_margin;
+        ? in_vertical_boundaries(image_dimensions, line_position_data->line_bounding_boxes.at(line_index + 1), vertical_margin)
+        : in_vertical_boundaries(image_dimensions, line_position_data->line_bounding_boxes.back(), missing_line_margin);
     return prev_within_bounds && next_within_bounds;
   }();
 
@@ -234,7 +242,7 @@ auto core_bible_reference_ocr::is_valid_capture_area(
   }
   else
   {
-    // If the found reference range is well within the reference borders, it is assumed,
+    // If the found reference range is well within the paragraph borders, it is assumed,
     // that it will not continue to the next line. If not, the image border must include
     // the left paragraph border as well and there must be a complete text line or margin
     // above and below the line where the cursor is contained.
@@ -248,7 +256,7 @@ auto core_bible_reference_ocr::is_valid_capture_area(
       }
     );
     auto valid_paragraph_area = ends_before_paragraph_border;
-    if(!ends_before_paragraph_border)
+    if(!valid_paragraph_area)
     {
       valid_paragraph_area = left(image_dimensions) + horizontal_margin < left(paragraph_dimensions) &&
                              right(paragraph_dimensions) + horizontal_margin < right(image_dimensions) &&
@@ -272,7 +280,7 @@ auto core_bible_reference_ocr::is_valid_capture_area(
   }
   if(!result)
   {
-    LOG_DEBUG("invalid capture area: image_dimensions={}, char_height={}", image_dimensions, char_height);
+    LOG_DEBUG("capture area not verified: image_dimensions={}, char_height={}", image_dimensions, char_height);
   }
   return result;
 }
