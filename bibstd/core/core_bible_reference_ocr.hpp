@@ -98,7 +98,7 @@ public: // Operations
   /// \param index_range Index range of the character data that is used to check if the capture area is valid
   /// \return true if the capture area is valid, otherwise false
   ///
-  [[nodiscard]] auto is_valid_capture_area(
+  [[nodiscard]] auto is_verified_capture_area(
     const screen_coordinates_type& relative_cursor_position,
     const screen_rect_type& image_dimensions,
     const screen_rect_type& paragraph_dimensions,

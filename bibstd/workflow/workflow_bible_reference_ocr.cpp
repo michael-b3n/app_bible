@@ -49,11 +49,11 @@ auto workflow_bible_reference_ocr::find_references(const settings_type& settings
     [this, settings, cursor_position]()
     {
       settings_ = settings;
-      const auto [is_valid_capture_area, references] = find_references_impl(cursor_position);
+      const auto [is_verified_capture_area, references] = find_references_impl(cursor_position);
       LOG_INFO(
         "OCR reference search finished: references=[{}], valid_area={}",
         util::format::join(references, ", "),
-        is_valid_capture_area
+        is_verified_capture_area
       );
       std::ranges::for_each(
         references,
@@ -116,7 +116,7 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
   {
     return std::pair{false, std::vector<bible::reference_range>{}};
   }
-  auto is_valid_capture_area = false;
+  auto is_verified_capture_area = false;
   auto references = std::vector<bible::reference_range>{};
   const auto& paragraph_bounding_box = *paragraph_bounding_box_opt;
   const auto position_data = core_bible_reference_ocr_->find_main_reference_position_data(relative_cursor_pos);
@@ -126,7 +126,7 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
     // Parse result might be empty but the capture area is still valid.
     // This is the case when the text is not a valid reference but the characters found in the image are
     // within the capture area including a safety margin. In this case no larger area is captured.
-    is_valid_capture_area = core_bible_reference_ocr_->is_valid_capture_area(
+    is_verified_capture_area = core_bible_reference_ocr_->is_verified_capture_area(
       relative_cursor_pos, image_dimensions, paragraph_bounding_box, *position_data, parse_result.index_range_origin
     );
     // If the capture area is valid but no references are found, we parse other high confidence OCR choices.
@@ -151,13 +151,13 @@ auto workflow_bible_reference_ocr::parse_tesseract_recognition(
     references = parse_result.ranges;
   }
   LOG_DEBUG(
-    "parse recognition result: references=[{}], valid_capture_area={}, image_dimensions={}, relative_cursor_pos={}",
+    "parse recognition result: references=[{}], verified_capture_area={}, image_dimensions={}, relative_cursor_pos={}",
     util::format::join(references, ", "),
-    is_valid_capture_area,
+    is_verified_capture_area,
     image_dimensions,
     relative_cursor_pos
   );
-  return parse_result_type{is_valid_capture_area, references};
+  return parse_result_type{is_verified_capture_area, references};
 }
 
 } // namespace bibstd::workflow
