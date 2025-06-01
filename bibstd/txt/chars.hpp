@@ -209,7 +209,7 @@ constexpr auto chars::contains(const T& chars, const std::string_view string_vie
       [&](const auto& e)
       {
         const auto size = std::min(e.size(), string_size - index);
-        return util::make_substring_view(string_view, index, size) == e;
+        return string_view.substr(index, size) == e;
       }
     );
     return iter != std::ranges::cend(chars) ? std::make_optional(*iter) : std::nullopt;
