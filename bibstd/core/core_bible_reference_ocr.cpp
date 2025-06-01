@@ -396,10 +396,6 @@ auto core_bible_reference_ocr::min_distance_index(const std::vector<character_da
   {
     result = static_cast<std::size_t>(std::ranges::distance(char_data.cbegin(), min_element));
   }
-  else
-  {
-    LOG_WARN("no minimum distance found in character data: char_data_size={}", char_data.size());
-  }
   return result;
 }
 
