@@ -24,7 +24,7 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={commonpf}/${INNO_SETUP_APP_INSTALL_FOLDER}
+DefaultDirName={autopf}/${INNO_SETUP_APP_INSTALL_FOLDER}
 DefaultGroupName=${INNO_SETUP_APP_INSTALL_FOLDER}
 OutputDir=.
 OutputBaseFilename=${INNO_SETUP_OUTPUT_NAME}
@@ -36,6 +36,7 @@ SolidCompression=yes
 ArchitecturesAllowed = x64compatible
 ArchitecturesInstallIn64BitMode = x64compatible
 UsePreviousAppDir=Yes
+PrivilegesRequiredOverridesAllowed=dialog
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
