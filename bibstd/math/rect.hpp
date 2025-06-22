@@ -3,6 +3,7 @@
 #include "math/arithmetic.hpp"
 #include "math/coordinates.hpp"
 #include "math/value_range.hpp"
+#include "meta/type_traits.hpp"
 #include "util/boost_numeric_cast.hpp"
 #include "util/enum.hpp"
 
@@ -49,6 +50,16 @@ public: // Static functions
   /// \return true if coordinates are contained in rectangle, false otherwise
   ///
   static constexpr auto contains(const rect<value_type>& rectangle, const coordinates_type& coordinates) -> bool;
+
+  ///
+  /// Get a rectangle that surrounds all given rectangles.
+  /// \tparam RectTypes Types of rectangles that shall be surrounded
+  /// \param rects Rectangles that shall be surrounded
+  /// \return rectangle that surrounds all given rectangles
+  ///
+  template<typename... RectTypes>
+  static constexpr auto surrounding_rect(const RectTypes&... rects) -> rect<value_type>
+    requires(meta::are_same_v<rect<value_type>, RectTypes...>);
 
 public: // Constructors
   constexpr rect(coordinates_type origin, value_type width, value_type height);
@@ -131,6 +142,28 @@ constexpr auto rect<ValueType>::contains(const rect<value_type>& rectangle, cons
   const auto x_contains = value_range<value_type>::contains(rectangle.horizontal_range_, coordinates.x());
   const auto y_contains = value_range<value_type>::contains(rectangle.vertical_range_, coordinates.y());
   return x_contains && y_contains;
+}
+
+///
+///
+template<arithmetic_type ValueType>
+template<typename... RectTypes>
+constexpr auto rect<ValueType>::surrounding_rect(const RectTypes&... rects) -> rect<value_type>
+  requires(meta::are_same_v<rect<value_type>, RectTypes...>)
+{
+  static_assert(sizeof...(rects) > 0);
+
+  auto min_x = std::numeric_limits<value_type>::max();
+  ([&](const auto& r) { min_x = std::min(min_x, r.origin().x()); }(rects), ...);
+  auto min_y = std::numeric_limits<value_type>::max();
+  ([&](const auto& r) { min_y = std::min(min_y, r.origin().y()); }(rects), ...);
+
+  auto max_x = std::numeric_limits<value_type>::lowest();
+  ([&](const auto& r) { max_x = std::max(max_x, r.origin().x() + r.horizontal_range()); }(rects), ...);
+  auto max_y = std::numeric_limits<value_type>::lowest();
+  ([&](const auto& r) { max_y = std::max(max_y, r.origin().y() + r.vertical_range()); }(rects), ...);
+
+  return rect<value_type>(coordinates_type(min_x, min_y), coordinates_type(max_x, max_y));
 }
 
 ///

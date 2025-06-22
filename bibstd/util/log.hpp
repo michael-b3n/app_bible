@@ -95,6 +95,6 @@ struct logger final
 /// Default logging macros
 ///
 #define LOG_DEBUG(FMT_STR, ...) INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::debug, FMT_STR, __VA_ARGS__);
-#define LOG_INFO(FMT_STR, ...) INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::info, FMT_STR, __VA_ARGS__);
-#define LOG_WARN(FMT_STR, ...) INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::warning, FMT_STR, __VA_ARGS__);
+#define LOG_INFO(FMT_STR, ...)  INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::info, FMT_STR, __VA_ARGS__);
+#define LOG_WARN(FMT_STR, ...)  INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::warning, FMT_STR, __VA_ARGS__);
 #define LOG_ERROR(FMT_STR, ...) INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::error, FMT_STR, __VA_ARGS__);

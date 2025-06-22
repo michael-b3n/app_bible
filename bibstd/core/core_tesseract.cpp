@@ -79,7 +79,7 @@ auto core_tesseract::recognize(std::optional<screen_rect_type> bounding_box) con
 auto core_tesseract::bounding_boxes(const text_resolution resolution) const -> std::vector<screen_rect_type>
 {
   auto result = std::vector<screen_rect_type>{};
-  std::unique_ptr<tesseract::PageIterator> pi(tesseract_->AnalyseLayout());
+  std::unique_ptr<tesseract::PageIterator> pi(tesseract_->AnalyseLayout(resolution > text_resolution::word));
   if(pi)
   {
     const auto level = resolution_map.at(resolution);

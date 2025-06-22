@@ -30,38 +30,48 @@ public: // Typedefs
   using character_data = core_bible_reference_ocr_common::character_data;
   using reference_position_data = core_bible_reference_ocr_common::reference_position_data;
 
+  struct recognize_bounding_box_result final
+  {
+    screen_rect_type initial;
+    screen_rect_type largest;
+  };
+
+public: // Constants
+  static constexpr auto recognition_area_step_count = std::size_t{3};
+
 public: // Structors
   core_bible_reference_ocr(core_tesseract_common::language language);
   ~core_bible_reference_ocr() noexcept;
 
 public: // Operations
   ///
-  /// Generate a list of rectangles that are used to capture the screen for OCR.
-  /// The generated list is sorted from the smallest to the largest area.
-  /// \param cursor_position Cursor position on the screen
-  /// \param char_height Height of the character, if not given, the screen areas are generated with a default value
-  /// \return vector of screen rectangles that are used to capture the screen for OCR
-  ///
-  [[nodiscard]]
-  auto generate_capture_areas(const screen_coordinates_type& cursor_position, std::uint16_t assumed_char_height) const
-    -> std::vector<screen_rect_type>;
-
-  ///
   /// Capture an area of the screen and set as OCR recognition image.
-  /// \param screen_area Area of the screen that shall be captured
-  /// \return true if capturing and recognition was successful, false otherwise
+  /// \param cursor_position Cursor position on the screen
+  /// \return optional relative cursor position, std::nullopt if capturing image failed
   ///
-  [[nodiscard]] auto capture_and_set_ocr_area(const screen_rect_type& screen_area) const -> bool;
+  [[nodiscard]] auto capture_ocr_image(const screen_coordinates_type& cursor_position) const
+    -> std::optional<screen_coordinates_type>;
 
   ///
-  /// Find the bounding box of the paragraph containing the given cursor position.
+  /// Find the bounding box of the lines containing the given cursor position with the reference.
   /// If no paragraph is found at the specified position, returns std::nullopt.
   /// \param relative_cursor_position The position of the cursor on the screen in the image.
   /// \return An optional screen rectangle representing the bounding box of the paragraph.
   /// If no paragraph is found, returns std::nullopt.
   ///
-  [[nodiscard]] auto recognize_paragraph_bounding_box(const screen_coordinates_type& relative_cursor_position) const
-    -> std::optional<screen_rect_type>;
+  [[nodiscard]] auto recognize_bounding_box(const screen_coordinates_type& relative_cursor_position) const
+    -> std::optional<recognize_bounding_box_result>;
+
+  ///
+  /// Recognize capture area using OCR. The functions generates the area depending on the given initial capture rectangle.
+  /// With increasing step index the capture area is increased.
+  /// \param init_capture_rect Initial rectangle that is captured
+  /// \param step_index Step index that is used to increase the capture area
+  /// \return true if the OCR recognition was successful, otherwise false
+  ///
+  [[nodiscard]]
+  auto recognize_capture_area(const recognize_bounding_box_result& recognized_bounding_box, std::size_t step_index) const
+    -> bool;
 
   ///
   /// Finds the main reference position data based on the given cursor position.
@@ -87,25 +97,6 @@ public: // Operations
   auto find_reference_position_data_from_choices(const screen_coordinates_type& relative_cursor_position) const
     -> std::vector<reference_position_data>;
 
-  ///
-  /// Check if the given capture area is valid. The capture area is valid if the OCR character data is within the capture area
-  /// including a boundary margin. If the index range is empty, paragraph left and right borders including the previous and
-  /// next text line must be included, such that the capture area is valid.
-  /// \param relative_cursor_position The screen coordinates of the cursor position in the image.
-  /// \param image_dimensions Image dimensions of the captured screen area
-  /// \param paragraph_dimensions Paragraph dimensions within the captured screen area
-  /// \param position_data OCR character position data
-  /// \param index_range Index range of the character data that is used to check if the capture area is valid
-  /// \return true if the capture area is valid, otherwise false
-  ///
-  [[nodiscard]] auto is_verified_capture_area(
-    const screen_coordinates_type& relative_cursor_position,
-    const screen_rect_type& image_dimensions,
-    const screen_rect_type& paragraph_dimensions,
-    const reference_position_data& position_data,
-    const core_bible_reference_ocr_common::index_range_type& index_range
-  ) -> bool;
-
 private: // Typedefs
   struct line_position_data final
   {
@@ -114,10 +105,6 @@ private: // Typedefs
   };
 
 private: // Constants
-  // Area generation constants
-  static constexpr auto area_generation_steps = std::array{1.0, 2.0, 3.0, 4.0};
-  static constexpr auto area_generation_char_height_multiplier = 2;
-  static constexpr auto area_generation_height_to_width_ratio = 9;
   // Area validation constants
   static constexpr auto area_validation_horizontal_margin_multiplier = 2.0;
   static constexpr auto area_validation_vertical_margin_multiplier = 0.2;

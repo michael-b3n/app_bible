@@ -46,17 +46,12 @@ target_link_libraries(bibstd
 )
 
 IF(WIN32)
-  target_link_libraries(bibstd
-    PUBLIC mswsock
-  )
+  target_link_libraries(bibstd PUBLIC mswsock)
 ENDIF()
 
-#
-# Compile definitions.
-#
-target_compile_definitions(bibstd PUBLIC
-  NOMINMAX
-)
+IF(WIN32)
+  target_compile_definitions(bibstd PUBLIC NOMINMAX)
+ENDIF()
 
 #
 # Add target include dirs and target sources.
