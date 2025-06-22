@@ -7,11 +7,60 @@
 #include "util/format.hpp"
 #include "util/log.hpp"
 #include "util/string.hpp"
+#include "util/timer.hpp"
 
 #include <algorithm>
 
 namespace bibstd::core
 {
+namespace detail
+{
+
+///
+/// Get the top position of a rectangle.
+/// The top position is defined as the y coordinate of the origin plus the vertical range.
+/// \param rect Rectangle for which the top position is calculated
+/// \return top position of the rectangle
+///
+auto top(const util::screen_types::screen_rect_type& rect) -> std::int32_t
+{
+  return rect.origin().y() + rect.vertical_range();
+}
+
+///
+/// Get the bottom position of a rectangle.
+/// The bottom position is defined as the y coordinate of the origin.
+/// \param rect Rectangle for which the bottom position is calculated
+/// \return bottom position of the rectangle
+///
+auto bottom(const util::screen_types::screen_rect_type& rect) -> std::int32_t
+{
+  return rect.origin().y();
+}
+
+///
+/// Get the left position of a rectangle.
+/// The left position is defined as the x coordinate of the origin.
+/// \param rect Rectangle for which the left position is calculated
+/// \return left position of the rectangle
+///
+auto left(const util::screen_types::screen_rect_type& rect) -> std::int32_t
+{
+  return rect.origin().x();
+}
+
+///
+/// Get the right position of a rectangle.
+/// The right position is defined as the x coordinate of the origin plus the horizontal range.
+/// \param rect Rectangle for which the right position is calculated
+/// \return right position of the rectangle
+///
+auto right(const util::screen_types::screen_rect_type& rect) -> std::int32_t
+{
+  return rect.origin().x() + rect.horizontal_range();
+}
+
+} // namespace detail
 
 ///
 ///
@@ -26,71 +75,123 @@ core_bible_reference_ocr::~core_bible_reference_ocr() noexcept = default;
 
 ///
 ///
-auto core_bible_reference_ocr::generate_capture_areas(
-  const screen_coordinates_type& cursor_position, const std::uint16_t assumed_char_height
-) const -> std::vector<screen_rect_type>
+auto core_bible_reference_ocr::capture_ocr_image(const screen_coordinates_type& cursor_position) const
+  -> std::optional<screen_coordinates_type>
 {
-  auto result = std::vector<screen_rect_type>{};
+  SCOPED_TIMER_LOG();
   const auto window_rect = system::screen::window_at(cursor_position);
   if(!window_rect)
   {
-    return result;
+    return std::nullopt;
   }
-  // The capture areas are defined dependent on the char height using a char_height_multiplier
-  // and the height_to_width_ratio. A capture area step factor is used to scale the area.
-  // The area is generated around the cursor position. The cursor position will be horizontally
-  // and vertically in the middle.
-  const auto height = static_cast<std::int32_t>(area_generation_char_height_multiplier * assumed_char_height);
-  const auto width = static_cast<std::int32_t>(height * area_generation_height_to_width_ratio);
-  const auto valid = std::ranges::all_of(
-    area_generation_steps,
-    [&](const auto i)
-    {
-      const auto half_width = static_cast<std::int32_t>(i * width / 2);
-      const auto half_height = static_cast<std::int32_t>(i * height / 2);
-      const auto x_origin = cursor_position.x() - half_width;
-      const auto y_origin = cursor_position.y() - half_height; // origin is on top left
-      const auto rect =
-        screen_rect_type::overlap(*window_rect, screen_rect_type({x_origin, y_origin}, 2 * half_width, 2 * half_height));
-      const auto valid_rect = rect.has_value();
-      if(valid_rect)
-      {
-        result.push_back(*rect);
-      }
-      return valid_rect;
-    }
-  );
-  valid ? result.push_back(*window_rect) : result.clear();
-  return result;
-}
-
-///
-///
-auto core_bible_reference_ocr::capture_and_set_ocr_area(const screen_rect_type& screen_area) const -> bool
-{
   auto pixel_plane = pixel_plane_type{};
-  auto success = system::screen::capture(screen_area, pixel_plane);
+  auto success = system::screen::capture(*window_rect, pixel_plane);
   if(success)
   {
     core_tesseract_->set_image(std::move(pixel_plane));
   }
-  return success;
+  return cursor_position - window_rect->origin();
 }
 
 ///
 ///
-auto core_bible_reference_ocr::recognize_paragraph_bounding_box(const screen_coordinates_type& relative_cursor_position) const
-  -> std::optional<screen_rect_type>
+auto core_bible_reference_ocr::recognize_bounding_box(const screen_coordinates_type& relative_cursor_position) const
+  -> std::optional<recognize_bounding_box_result>
 {
-  const auto bounding_boxes = core_tesseract_->bounding_boxes(core::core_tesseract::text_resolution::paragraph);
-  const auto iter = std::ranges::find_if(
-    bounding_boxes, [&](const auto& rect) { return screen_rect_type::contains(rect, relative_cursor_position); }
+  SCOPED_TIMER_LOG();
+  const auto paragraph_bounding_boxes = core_tesseract_->bounding_boxes(core::core_tesseract::text_resolution::paragraph);
+  const auto paragraph_bounding_box_iter = std::ranges::find_if(
+    paragraph_bounding_boxes, [&](const auto& rect) { return screen_rect_type::contains(rect, relative_cursor_position); }
   );
-  if(iter != std::ranges::cend(bounding_boxes))
+  if(paragraph_bounding_box_iter == std::ranges::cend(paragraph_bounding_boxes))
   {
-    return core_tesseract_->recognize(*iter) ? std::make_optional(*iter) : std::nullopt;
+    return std::nullopt;
+  }
+  const auto line_bounding_boxes = core_tesseract_->bounding_boxes(core::core_tesseract::text_resolution::line);
+  const auto iter = std::ranges::find_if(
+    line_bounding_boxes, [&](const auto& rect) { return screen_rect_type::contains(rect, relative_cursor_position); }
+  );
+  if(iter != std::ranges::cend(line_bounding_boxes))
+  {
+    const auto top_line = [&]
+    {
+      auto top_line_view =
+        line_bounding_boxes |
+        std::views::filter([&](const auto& r) { return r.vertical_range() > 0 && detail::top(*iter) < detail::bottom(r); });
+      const auto top_line_iter = std::ranges::min_element(
+        top_line_view,
+        [&](const auto& r1, const auto& r2)
+        {
+          const auto range1 = math::value_range(detail::top(*iter), detail::bottom(r1));
+          const auto range2 = math::value_range(detail::top(*iter), detail::bottom(r2));
+          return decltype(range1)::size(range1) < decltype(range2)::size(range2);
+        }
+      );
+      return top_line_iter != std::ranges::cend(top_line_view) ? *top_line_iter : *iter;
+    }();
+    const auto bottom_line = [&]
+    {
+      auto bottom_line_view =
+        line_bounding_boxes |
+        std::views::filter([&](const auto& r) { return r.vertical_range() > 0 && detail::bottom(*iter) > detail::top(r); });
+      const auto bottom_line_iter = std::ranges::min_element(
+        bottom_line_view,
+        [&](const auto& r1, const auto& r2)
+        {
+          const auto range1 = math::value_range(detail::bottom(*iter), detail::top(r1));
+          const auto range2 = math::value_range(detail::bottom(*iter), detail::top(r2));
+          return decltype(range1)::size(range1) < decltype(range2)::size(range2);
+        }
+      );
+      return bottom_line_iter != std::ranges::cend(bottom_line_view) ? *bottom_line_iter : *iter;
+    }();
+    const auto reduced_paragraph_bounding_box = screen_rect_type(
+      {paragraph_bounding_box_iter->origin().x(), iter->origin().y()},
+      paragraph_bounding_box_iter->horizontal_range(),
+      iter->vertical_range()
+    );
+    const auto surrounding_rect = screen_rect_type::overlap(
+      screen_rect_type::surrounding_rect(reduced_paragraph_bounding_box, *iter, top_line, bottom_line),
+      *paragraph_bounding_box_iter
+    );
+    if(!surrounding_rect)
+    {
+      LOG_ERROR("no surrounding rectangle found for paragraph bounding box: {}", *paragraph_bounding_box_iter);
+      return std::nullopt;
+    }
+    return recognize_bounding_box_result{*surrounding_rect, *paragraph_bounding_box_iter};
   }
   return std::nullopt;
+}
+
+///
+///
+auto core_bible_reference_ocr::recognize_capture_area(
+  const recognize_bounding_box_result& recognized_bounding_box, std::size_t step_index
+) const -> bool
+{
+  SCOPED_TIMER_LOG();
+  static_assert(recognition_area_step_count > 0);
+  if(step_index >= recognition_area_step_count)
+  {
+    LOG_ERROR("step index out of range: step_index={}, range=[0, {})", step_index, recognition_area_step_count);
+    return false;
+  }
+  const auto& [initial, largest] = recognized_bounding_box;
+  const auto expansion_multiplier = static_cast<double>(step_index) / static_cast<double>(recognition_area_step_count - 1);
+  const auto top = static_cast<std::int32_t>(
+    expansion_multiplier * std::abs(math::arithmetic::subtract(detail::top(largest), detail::top(initial)).value())
+  );
+  const auto bottom = static_cast<std::int32_t>(
+    expansion_multiplier * std::abs(math::arithmetic::subtract(detail::bottom(initial), detail::bottom(largest)).value())
+  );
+  // The area is expanded only vertically with each step.
+  const auto area = screen_rect_type(
+    {initial.origin().x(), math::arithmetic::subtract(initial.origin().y(), bottom).value()},
+    initial.horizontal_range(),
+    initial.vertical_range() + bottom + top
+  );
+  return core_tesseract_->recognize(area);
 }
 
 ///
@@ -98,6 +199,7 @@ auto core_bible_reference_ocr::recognize_paragraph_bounding_box(const screen_coo
 auto core_bible_reference_ocr::find_main_reference_position_data(const screen_coordinates_type& relative_cursor_position) const
   -> std::optional<reference_position_data>
 {
+  SCOPED_TIMER_LOG();
   auto text = std::string{};
   std::vector<character_data> char_data{};
 
@@ -130,6 +232,7 @@ auto core_bible_reference_ocr::find_reference_position_data_from_choices(
   const screen_coordinates_type& relative_cursor_position
 ) const -> std::vector<reference_position_data>
 {
+  SCOPED_TIMER_LOG();
   auto choices_list = std::vector<tesseract_choices>{};
   auto choices_char_data = std::vector<character_data>{};
   core_tesseract_->for_each_choices(
@@ -182,106 +285,6 @@ auto core_bible_reference_ocr::find_reference_position_data_from_choices(
     return util::format::join(result_range, ", ");
   };
   LOG_DEBUG("reference position choices result: [{}], cursor_position={}", format_result(), relative_cursor_position);
-  return result;
-}
-
-///
-///
-auto core_bible_reference_ocr::is_verified_capture_area(
-  const screen_coordinates_type& relative_cursor_position,
-  const screen_rect_type& image_dimensions,
-  const screen_rect_type& paragraph_dimensions,
-  const reference_position_data& position_data,
-  const core_bible_reference_ocr_common::index_range_type& index_range
-) -> bool
-{
-  const auto line_position_data = find_line_position_data(relative_cursor_position);
-  if(!line_position_data)
-  {
-    LOG_DEBUG("capture area not verified: no line_position_data found, image_dimensions={}", image_dimensions);
-    return false;
-  }
-  const auto top = [](const auto& box) -> std::int32_t { return box.origin().y() + box.vertical_range(); };
-  const auto bottom = [](const auto& box) -> std::int32_t { return box.origin().y(); };
-  const auto left = [](const auto& box) -> std::int32_t { return box.origin().x(); };
-  const auto right = [](const auto& box) -> std::int32_t { return box.origin().x() + box.horizontal_range(); };
-  const auto in_vertical_boundaries = [&](const auto& rect, const auto& subrect, const auto margin) -> bool
-  {
-    const auto lower_rect = std::min(top(rect), bottom(rect));
-    const auto upper_rect = std::max(top(rect), bottom(rect));
-    const auto lower_subrect = std::min(top(subrect), bottom(subrect));
-    const auto upper_subrect = std::max(top(subrect), bottom(subrect));
-    return upper_rect > upper_subrect + margin && lower_rect + margin < lower_subrect;
-  };
-
-  const auto char_height = line_position_data->line_bounding_boxes.at(line_position_data->cursor_line_index).vertical_range();
-  const auto vertical_margin = static_cast<std::int32_t>(char_height * area_validation_vertical_margin_multiplier);
-  const auto horizontal_margin = static_cast<std::int32_t>(char_height * area_validation_horizontal_margin_multiplier);
-
-  const auto prev_and_next_lines_within_bounds = [&]
-  {
-    const auto missing_line_margin = 2 * char_height;
-
-    const auto line_index = line_position_data->cursor_line_index;
-    const auto prev_within_bounds =
-      line_index == 0
-        ? in_vertical_boundaries(image_dimensions, line_position_data->line_bounding_boxes.front(), missing_line_margin)
-        : in_vertical_boundaries(image_dimensions, line_position_data->line_bounding_boxes.at(line_index - 1), vertical_margin);
-    const auto next_within_bounds =
-      line_index + 1 < line_position_data->line_bounding_boxes.size()
-        ? in_vertical_boundaries(image_dimensions, line_position_data->line_bounding_boxes.at(line_index + 1), vertical_margin)
-        : in_vertical_boundaries(image_dimensions, line_position_data->line_bounding_boxes.back(), missing_line_margin);
-    return prev_within_bounds && next_within_bounds;
-  }();
-
-  auto result = false;
-  if(core_bible_reference_ocr_common::index_range_type::empty(index_range) || position_data.char_data.empty())
-  {
-    result = prev_and_next_lines_within_bounds && (left(image_dimensions) + horizontal_margin) < left(paragraph_dimensions) &&
-             (right(paragraph_dimensions) + horizontal_margin) < right(image_dimensions);
-  }
-  else
-  {
-    // If the found reference range is well within the paragraph borders, it is assumed,
-    // that it will not continue to the next line. If not, the image border must include
-    // the left paragraph border as well and there must be a complete text line or margin
-    // above and below the line where the cursor is contained.
-    const auto ends_before_paragraph_border = std::ranges::all_of(
-      std::views::iota(index_range.begin, index_range.end) |
-        std::views::filter([&](const auto i) { return i < position_data.char_data.size(); }),
-      [&](const auto i)
-      {
-        const auto& char_bounding_box = position_data.char_data.at(i).bounding_box;
-        return right(char_bounding_box) + horizontal_margin < right(paragraph_dimensions);
-      }
-    );
-    auto valid_paragraph_area = ends_before_paragraph_border;
-    if(!valid_paragraph_area)
-    {
-      valid_paragraph_area = left(image_dimensions) + horizontal_margin < left(paragraph_dimensions) &&
-                             right(paragraph_dimensions) + horizontal_margin < right(image_dimensions) &&
-                             prev_and_next_lines_within_bounds;
-    }
-    const auto valid_character_positions = std::ranges::all_of(
-      std::views::iota(index_range.begin, index_range.end) |
-        std::views::filter([&](const auto i) { return i < position_data.char_data.size(); }),
-      [&](const auto i)
-      {
-        const auto& char_bounding_box = position_data.char_data.at(i).bounding_box;
-        const auto bounding_box_with_margin = screen_rect_type(
-          char_bounding_box.origin() - screen_rect_type::coordinates_type(horizontal_margin, vertical_margin),
-          char_bounding_box.horizontal_range() + 2 * horizontal_margin,
-          char_bounding_box.vertical_range() + 2 * vertical_margin
-        );
-        return screen_rect_type::contains(image_dimensions, bounding_box_with_margin);
-      }
-    );
-    result = valid_paragraph_area && valid_character_positions;
-  }
-  if(!result)
-  {
-    LOG_DEBUG("capture area not verified: image_dimensions={}, char_height={}", image_dimensions, char_height);
-  }
   return result;
 }
 
