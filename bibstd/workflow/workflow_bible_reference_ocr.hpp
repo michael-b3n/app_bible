@@ -38,7 +38,6 @@ public: // Structors
 
 public: // Variables
   const setting_type<std::vector<bible::translation>> translations;
-  const setting_type<std::uint16_t> assumed_initial_char_height;
 };
 
 ///
@@ -60,12 +59,10 @@ public: // Modifiers
 private: // Typedefs
   using screen_rect_type = util::screen_types::screen_rect_type;
   using screen_coordinates_type = util::screen_types::screen_coordinates_type;
-  using parse_result_type = std::pair<bool, std::vector<bible::reference_range>>;
 
 private: // Implementation
-  auto find_references_impl(const screen_coordinates_type& cursor_position) -> parse_result_type;
-  auto parse_tesseract_recognition(const screen_rect_type& image_dimensions, const screen_coordinates_type& relative_cursor_pos)
-    -> parse_result_type;
+  auto find_references_impl(const screen_coordinates_type& cursor_position) -> std::vector<bible::reference_range>;
+  auto parse_tesseract_recognition(const screen_coordinates_type& relative_cursor_pos) -> std::vector<bible::reference_range>;
 
 private: // Variables
   const app_framework::thread_pool::strand_id_type strand_id_{app_framework::thread_pool::strand_id()};

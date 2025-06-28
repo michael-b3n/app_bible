@@ -1,0 +1,40 @@
+#include "util/timer.hpp"
+#include "util/log.hpp"
+#include "util/source_location_helpers.hpp"
+
+#include <format>
+
+namespace bibstd::util
+{
+
+///
+///
+timer::timer()
+  : time_point_{std::chrono::system_clock::now()}
+{
+}
+
+///
+///
+auto timer::current_duration() const -> std::chrono::milliseconds
+{
+  const auto now = std::chrono::system_clock::now();
+  return std::chrono::duration_cast<std::chrono::milliseconds>(now - time_point_);
+}
+
+///
+///
+scoped_timer_logger::scoped_timer_logger(std::source_location&& source_location)
+  : source_location_{std::move(source_location)}
+{
+}
+
+///
+///
+scoped_timer_logger::~scoped_timer_logger()
+{
+  const auto duration = timer_.current_duration();
+  LOG_INFO("measured scoped time duration: {} ms | {}", duration.count(), util::filter_function_name(source_location_));
+}
+
+} // namespace bibstd::util
