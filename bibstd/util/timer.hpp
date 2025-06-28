@@ -1,7 +1,5 @@
 #pragma once
 
-#include "util/pretty_source_location.hpp"
-
 #include <boost/preprocessor/cat.hpp>
 
 #include <chrono>
@@ -36,11 +34,11 @@ private: // Variables
 class scoped_timer_logger final
 {
 public: // Destructor
-  scoped_timer_logger(std::string_view function_name = util::pretty_function_name());
+  scoped_timer_logger(std::source_location&& source_location = std::source_location::current());
   ~scoped_timer_logger();
 
 private: // Variables
-  const std::string_view function_name_;
+  const std::source_location source_location_;
   const timer timer_;
 };
 
@@ -50,4 +48,4 @@ private: // Variables
 /// Scoped timer logging macro.
 ///
 #define SCOPED_TIMER_LOG()                                                                                                     \
-  [[maybe_unused]] const auto BOOST_PP_CAT(__scoped_timer_logger_instance, __COUNTER__) = bibstd::util::scoped_timer_logger();
+  [[maybe_unused]] const auto BOOST_PP_CAT(__scoped_timer_logger_instance, __COUNTER__) = ::bibstd::util::scoped_timer_logger();

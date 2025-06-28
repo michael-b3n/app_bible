@@ -12,10 +12,10 @@ namespace bibstd::util
 /// \param loc Source location, defaults to the current source location
 /// \return Pretty function name as std::string_view
 ///
-consteval auto pretty_function_name(const std::source_location& loc = std::source_location::current()) -> std::string_view
+constexpr auto filter_function_name(const std::source_location& loc) -> std::string_view
 {
   const std::string_view func_name = loc.function_name();
-  const auto last_braces_pos = func_name.find_last_of("(");
+  const auto last_braces_pos = func_name.find_first_of("(");
   const std::string_view func_name_without_braces =
     (last_braces_pos != std::string_view::npos) ? func_name.substr(0, last_braces_pos) : func_name;
   const auto colon_pos = func_name_without_braces.find_last_of(':');
@@ -30,7 +30,7 @@ consteval auto pretty_function_name(const std::source_location& loc = std::sourc
 /// \param loc Source location, defaults to the current source location
 /// \return Pretty file name as std::string_view
 ///
-consteval auto pretty_file_name(std::source_location loc = std::source_location::current()) -> std::string_view
+constexpr auto filter_file_name(const std::source_location& loc) -> std::string_view
 {
   const std::string_view file_name = loc.file_name();
   const auto last_slash_pos = file_name.find_last_of("/\\");
@@ -48,7 +48,7 @@ consteval auto pretty_file_name(std::source_location loc = std::source_location:
 /// \param loc Source location, defaults to the current source location
 /// \return Pretty folder name as std::string_view
 ///
-consteval auto pretty_folder_name(std::source_location loc = std::source_location::current()) -> std::string_view
+constexpr auto filter_folder_name(const std::source_location& loc) -> std::string_view
 {
   const std::string_view file_name = loc.file_name();
   const auto last_slash_pos = file_name.find_last_of("/\\");

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "util/source_location_helpers.hpp"
+
 #include <filesystem>
 #include <format>
 #include <source_location>
@@ -68,16 +70,12 @@ struct logger final
   {                                                                                                                                                                                                                     \
     if(LEVEL >= ::bibstd::util::global_log_level())                                                                                                                                                                     \
     {                                                                                                                                                                                                                   \
-      constexpr std::string_view __log_path = std::source_location::current().file_name();                                                                                                                              \
-      constexpr auto __log_last_slash_pos = __log_path.find_last_of("/\\");                                                                                                                                             \
-      constexpr std::string_view __log_file_name_with_ext = (__log_last_slash_pos != std::string_view::npos) ? __log_path.substr(__log_last_slash_pos + 1) : __log_path;                                                \
-      constexpr auto __log_dot_pos = __log_file_name_with_ext.find_last_of('.');                                                                                                                                        \
-      constexpr std::string_view __log_file_name = (__log_dot_pos != std::string_view::npos) ? __log_file_name_with_ext.substr(0, __log_dot_pos) : __log_file_name_with_ext;                                            \
-      constexpr auto __log_parent_folder_end = (__log_last_slash_pos != std::string_view::npos) ? __log_path.substr(0, __log_last_slash_pos).find_last_of("/\\") : std::string_view::npos;                              \
-      constexpr std::string_view __log_folder = (__log_parent_folder_end != std::string_view::npos) ? __log_path.substr(__log_parent_folder_end + 1, __log_last_slash_pos - (__log_parent_folder_end + 1)) : "unknown"; \
+      static constexpr std::source_location __log_source_location = std::source_location::current();                                                                                                                    \
+      static constexpr auto __log_folder_name  = ::bibstd::util::filter_folder_name(__log_source_location);                                                                                                                  \
+      static constexpr auto __log_file_name  = ::bibstd::util::filter_file_name(__log_source_location);                                                                                                                      \
       try                                                                                                                                                                                                               \
       {                                                                                                                                                                                                                 \
-        const auto log_string = std::format("[{}::{}] " FMT_STR " | {}", __log_folder, __log_file_name, __VA_ARGS__, std::source_location::current().function_name());                                                  \
+        const auto log_string = std::format("[{}::{}] " FMT_STR " | {}", __log_folder_name, __log_file_name, __VA_ARGS__, ::bibstd::util::filter_function_name(__log_source_location));                                 \
         if      constexpr(LEVEL == ::bibstd::util::logger_level::debug)   { ::bibstd::util::log_debug(log_string); }                                                                                                    \
         else if constexpr(LEVEL == ::bibstd::util::logger_level::info)    { ::bibstd::util::log_info(log_string);  }                                                                                                    \
         else if constexpr(LEVEL == ::bibstd::util::logger_level::warning) { ::bibstd::util::log_warn(log_string);  }                                                                                                    \
