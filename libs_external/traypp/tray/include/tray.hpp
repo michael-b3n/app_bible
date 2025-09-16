@@ -4,7 +4,6 @@
 #include <components/imagebutton.hpp>
 #include <components/label.hpp>
 #include <components/separator.hpp>
-#include <components/submenu.hpp>
 #include <components/syncedtoggle.hpp>
 #include <components/toggle.hpp>
 

@@ -72,25 +72,7 @@ inline auto tray::init(const icon_buffer icon, std::vector<entry_type>&& entries
             [&](const button& v) { tray_->addEntry(Tray::Button(v.text, void_callback_wrapper(v.callback))); },
             [&](const label& v) { tray_->addEntry(Tray::Label(v.text)); },
             [&](const separator& v) { tray_->addEntry(Tray::Separator()); },
-            [&](const toggle& v) { tray_->addEntry(Tray::Toggle(v.text, v.state, toggle_callback_wrapper(v.callback))); },
-            [&](const submenu& submenu)
-            {
-              const auto submenu_sptr = tray_->addEntry(Tray::Submenu(submenu.text));
-              std::ranges::for_each(
-                submenu.entries,
-                [&](const auto& submenu_entry)
-                {
-                  util::visit_lambdas(
-                    submenu_entry,
-                    [&](const button& v) { submenu_sptr->addEntry(Tray::Button(v.text, void_callback_wrapper(v.callback))); },
-                    [&](const label& v) { submenu_sptr->addEntry(Tray::Label(v.text)); },
-                    [&](const separator& v) { submenu_sptr->addEntry(Tray::Separator()); },
-                    [&](const toggle& v)
-                    { submenu_sptr->addEntry(Tray::Toggle(v.text, v.state, toggle_callback_wrapper(v.callback))); }
-                  );
-                }
-              );
-            }
+            [&](const toggle& v) { tray_->addEntry(Tray::Toggle(v.text, v.state, toggle_callback_wrapper(v.callback))); }
           );
         }
       );

@@ -31,14 +31,8 @@ struct tray_base
   struct separator final {};
   struct toggle final { std::string text; bool state; std::function<std::function<void()>(bool)> callback; };
   // clang-format on
-  struct submenu final
-  {
-    using simple_entry_type = std::variant<button, label, separator, toggle>;
-    std::string text;
-    std::vector<simple_entry_type> entries;
-  };
 
-  using entry_type = std::variant<button, label, separator, toggle, submenu>;
+  using entry_type = std::variant<button, label, separator, toggle>;
 };
 
 } // namespace bibstd::system
