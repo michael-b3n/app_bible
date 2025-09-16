@@ -7,7 +7,6 @@
   #include <components/imagebutton.hpp>
   #include <components/label.hpp>
   #include <components/separator.hpp>
-  #include <components/submenu.hpp>
   #include <components/syncedtoggle.hpp>
   #include <components/toggle.hpp>
 
@@ -143,11 +142,6 @@ HMENU Tray::Tray::construct(const std::vector<std::shared_ptr<TrayEntry>>& entri
       {
         winItem.fState |= MFS_UNCHECKED;
       }
-    }
-    else if(auto* submenu = dynamic_cast<Submenu*>(item); submenu)
-    {
-      winItem.fMask |= MIIM_SUBMENU;
-      winItem.hSubMenu = construct(submenu->getEntries(), parent);
     }
     else if(auto* iconButton = dynamic_cast<ImageButton*>(item); iconButton)
     {
