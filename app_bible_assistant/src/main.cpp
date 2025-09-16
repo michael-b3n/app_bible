@@ -8,6 +8,7 @@
 #include <app_framework/main_loop.hpp>
 #include <system/filesystem.hpp>
 #include <system/hotkey.hpp>
+#include <system/open_browser.hpp>
 #include <system/tray.hpp>
 #include <util/date.hpp>
 #include <util/incbin.hpp>
@@ -45,12 +46,14 @@ int main()
   const auto pool_guard = bibstd::app_framework::thread_pool::init();
 
   const auto do_on_exit = [&]() { bibstd::app_framework::main_loop::exit(); };
+  const auto open_github = []() { bibstd::system::open_browser::open("https://github.com/michael-b3n/app_bible"); };
 
   // Start system tray.
   const auto tray_guard = bibstd::system::tray::init(
     bibstd::system::tray::icon_buffer{icon_view},
     {
       bibstd::system::tray::entry_type{bibstd::system::tray::button{"Exit", do_on_exit}},
+      bibstd::system::tray::entry_type{bibstd::system::tray::button{"Open GitHub", open_github}},
       // ...
     }
   );
