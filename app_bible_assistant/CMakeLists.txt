@@ -41,23 +41,50 @@ project(
   VERSION ${APP_VERSION}
 )
 
+#
+# Define target files
+#
 file(GLOB_RECURSE app_bible_assistant_CPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.cpp")
 file(GLOB_RECURSE app_bible_assistant_HPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.hpp")
+file(GLOB_RECURSE app_bible_assistant_QML_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.qml")
 
 #
-# Add executable.
+# Setup Qt6 and executable
 #
-add_executable(app_bible_assistant WIN32)
+set(QT_VERSION_NAME Qt6)
+set(QT_VERSION_NUMBER 6.9)
+
+set(QT_FORCE_CMP0156_TO_VALUE NEW)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+
+find_package(${QT_VERSION_NAME} ${QT_VERSION_NUMBER} REQUIRED COMPONENTS Widgets Quick)
+qt_standard_project_setup(REQUIRES ${QT_VERSION_NUMBER})
+
+qt_add_executable(${PROJECT_NAME} WIN32)
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${Qt6_INCLUDE_DIRS})
+qt_add_qml_module(${PROJECT_NAME}
+  URI "module"
+  QML_FILES
+  src/main.qml
+  SOURCES
+  RESOURCES
+)
 
 #
-# Set custom executbale name.
+# Set custom executable name.
 #
-set_target_properties(app_bible_assistant PROPERTIES OUTPUT_NAME ${APP_EXE_NAME})
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_EXE_NAME})
+set_target_properties(${PROJECT_NAME} PROPERTIES AUTOMOC TRUE)
+set_target_properties(${PROJECT_NAME} PROPERTIES AUTORCC TRUE)
+set_target_properties(${PROJECT_NAME} PROPERTIES AUTOUIC TRUE)
 
 #
 # Include directories.
 #
-target_include_directories(app_bible_assistant
+target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/src
   PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
@@ -73,7 +100,7 @@ set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <S
 #
 # Set target sources.
 #
-target_sources(app_bible_assistant
+target_sources(${PROJECT_NAME}
   PRIVATE ${app_bible_assistant_CPP_FILES}
   PRIVATE ${CMAKE_CURRENT_LIST_DIR}/res/resource.rc
 )
@@ -81,7 +108,9 @@ target_sources(app_bible_assistant
 #
 # Link against external dependencies
 #
-target_link_libraries(app_bible_assistant
+target_link_libraries(${PROJECT_NAME}
+  PRIVATE Qt6::Quick
+  PRIVATE Qt6::Widgets
   PRIVATE bibstd
 )
 
@@ -102,7 +131,7 @@ message(STATUS "set tessdata folder: " ${TESSDATA_FOLDER})
 #
 # Copy files needed by binary
 #
-copy_folder(app_bible_assistant "${CMAKE_CURRENT_BINARY_DIR}/tessdata" "${TESSDATA_FOLDER}")
+copy_folder(${PROJECT_NAME} "${CMAKE_CURRENT_BINARY_DIR}/tessdata" "${TESSDATA_FOLDER}")
 
 #
 # Create Setup
@@ -111,16 +140,16 @@ set(TARGET_DEPLOY_DIR "${CMAKE_BINARY_DIR}/deploy/${APP_EXE_NAME}")
 add_custom_target(app_bible_assistant_setup
   ALL
   DEPENDS
-  app_bible_assistant
+  ${PROJECT_NAME}
   COMMENT
-  "create bible assistant setup"
+  "create ${PROJECT_NAME} setup"
 )
 
 #
 # Copy executable, needed *.dll's and other files.
 #
-copy_target_files(app_bible_assistant_setup ${TARGET_DEPLOY_DIR} ${MINGW_ROOT_DIRECTORY})
-copy_folder(app_bible_assistant_setup ${TARGET_DEPLOY_DIR}/tessdata ${TESSDATA_FOLDER})
+copy_target_files(${PROJECT_NAME}_setup ${TARGET_DEPLOY_DIR} ${MINGW_ROOT_DIRECTORY})
+copy_folder(${PROJECT_NAME}_setup ${TARGET_DEPLOY_DIR}/tessdata ${TESSDATA_FOLDER})
 
 include(FindInnoSetup)
 
@@ -131,7 +160,7 @@ set(INNO_SETUP_APP_EXE_NAME ${APP_EXE_NAME})
 set(INNO_SETUP_APP_VERSION_NUMBER ${APP_VERSION})
 set(INNO_SETUP_APP_VERSION_NAME ${APP_VERSION})
 set(INNO_SETUP_APP_INSTALL_FOLDER "${INNO_SETUP_APP_LONG_NAME}")
-set(INNO_SETUP_OUTPUT_NAME "setup_bible_assistant")
+set(INNO_SETUP_OUTPUT_NAME "setup_${PROJECT_NAME}")
 set(INNO_SETUP_OUTPUT_ICON "${CMAKE_CURRENT_LIST_DIR}/res/icon.ico")
 
-generate_inno_setup(app_bible_assistant_setup app_bible_assistant ${CMAKE_CURRENT_LIST_DIR}/setup/setup.iss ${TARGET_DEPLOY_DIR})
+generate_inno_setup(${PROJECT_NAME}_setup ${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/setup/setup.iss ${TARGET_DEPLOY_DIR})

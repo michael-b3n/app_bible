@@ -11,7 +11,7 @@ namespace bibstd::core
 ///
 /// Core bible reference OCR common. This helper struct contains helper types for core bible reference OCR.
 ///
-struct core_bible_reference_ocr_common final
+struct core_bible_ref_ocr_common final
 {
   // Typedefs
   using index_range_type = math::value_range<std::size_t>;

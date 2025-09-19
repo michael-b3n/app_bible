@@ -1,4 +1,4 @@
-#include <core/core_bible_reference.hpp>
+#include <core/core_bible_ref.hpp>
 #include <util/contains.hpp>
 
 #include <catch2/catch_all.hpp>
@@ -8,7 +8,7 @@ namespace bibstd::core
 
 TEST_CASE("reference_parser", "[bible]")
 {
-  core_bible_reference core;
+  core_bible_ref core;
   const auto ref_genesis_1_1 = bible::reference::create(bible::book_id::genesis, 1u, 1u).value();
   const auto ref_genesis_1_2 = bible::reference::create(bible::book_id::genesis, 1u, 2u).value();
   const auto genesis_1_1 = bible::reference_range(ref_genesis_1_1);

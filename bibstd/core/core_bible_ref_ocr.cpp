@@ -1,4 +1,4 @@
-#include "core/core_bible_reference_ocr.hpp"
+#include "core/core_bible_ref_ocr.hpp"
 #include "bible/book_name_variants_de.hpp"
 #include "core/core_tesseract.hpp"
 #include "system/screen.hpp"
@@ -64,19 +64,19 @@ auto right(const util::screen_types::screen_rect_type& rect) -> std::int32_t
 
 ///
 ///
-core_bible_reference_ocr::core_bible_reference_ocr(core_tesseract_common::language language)
+core_bible_ref_ocr::core_bible_ref_ocr(core_tesseract_common::language language)
   : core_tesseract_{std::make_unique<core::core_tesseract>(language)}
 {
 }
 
 ///
 ///
-core_bible_reference_ocr::~core_bible_reference_ocr() noexcept = default;
+core_bible_ref_ocr::~core_bible_ref_ocr() noexcept = default;
 
 ///
 ///
-auto core_bible_reference_ocr::capture_ocr_image(const screen_coordinates_type& cursor_position) const
-  -> std::optional<screen_coordinates_type>
+auto core_bible_ref_ocr::capture_screen(const screen_coordinates_type& cursor_position) const
+  -> std::optional<capture_screen_result>
 {
   SCOPED_TIMER_LOG();
   const auto window_rect = system::screen::window_at(cursor_position);
@@ -86,22 +86,23 @@ auto core_bible_reference_ocr::capture_ocr_image(const screen_coordinates_type& 
   }
   auto pixel_plane = pixel_plane_type{};
   auto success = system::screen::capture(*window_rect, pixel_plane);
-  if(success)
+  if(!success)
   {
-    core_tesseract_->set_image(std::move(pixel_plane));
+    return std::nullopt;
   }
-  return cursor_position - window_rect->origin();
+  return capture_screen_result{cursor_position - window_rect->origin(), std::move(pixel_plane)};
 }
 
 ///
 ///
-auto core_bible_reference_ocr::recognize_bounding_box(const screen_coordinates_type& relative_cursor_position) const
+auto core_bible_ref_ocr::recognize_bounding_box(capture_screen_result&& image_data) const
   -> std::optional<recognize_bounding_box_result>
 {
   SCOPED_TIMER_LOG();
+  core_tesseract_->set_image(std::move(image_data.image));
   const auto paragraph_bounding_boxes = core_tesseract_->bounding_boxes(core::core_tesseract::text_resolution::paragraph);
   const auto paragraph_bounding_box_iter = std::ranges::find_if(
-    paragraph_bounding_boxes, [&](const auto& rect) { return screen_rect_type::contains(rect, relative_cursor_position); }
+    paragraph_bounding_boxes, [&](const auto& rect) { return screen_rect_type::contains(rect, image_data.relative_cursor_pos); }
   );
   if(paragraph_bounding_box_iter == std::ranges::cend(paragraph_bounding_boxes))
   {
@@ -109,7 +110,7 @@ auto core_bible_reference_ocr::recognize_bounding_box(const screen_coordinates_t
   }
   const auto line_bounding_boxes = core_tesseract_->bounding_boxes(core::core_tesseract::text_resolution::line);
   const auto iter = std::ranges::find_if(
-    line_bounding_boxes, [&](const auto& rect) { return screen_rect_type::contains(rect, relative_cursor_position); }
+    line_bounding_boxes, [&](const auto& rect) { return screen_rect_type::contains(rect, image_data.relative_cursor_pos); }
   );
   if(iter != std::ranges::cend(line_bounding_boxes))
   {
@@ -166,37 +167,18 @@ auto core_bible_reference_ocr::recognize_bounding_box(const screen_coordinates_t
 
 ///
 ///
-auto core_bible_reference_ocr::recognize_capture_area(
-  const recognize_bounding_box_result& recognized_bounding_box, std::size_t step_index
+auto core_bible_ref_ocr::recognize_capture_area(
+  const recognize_bounding_box_result& recognized_bounding_box, const bool recognize_largest_bounding_box
 ) const -> bool
 {
   SCOPED_TIMER_LOG();
-  static_assert(recognition_area_step_count > 0);
-  if(step_index >= recognition_area_step_count)
-  {
-    LOG_ERROR("step index out of range: step_index={}, range=[0, {})", step_index, recognition_area_step_count);
-    return false;
-  }
-  const auto& [initial, largest] = recognized_bounding_box;
-  const auto expansion_multiplier = static_cast<double>(step_index) / static_cast<double>(recognition_area_step_count - 1);
-  const auto top = static_cast<std::int32_t>(
-    expansion_multiplier * std::abs(math::arithmetic::subtract(detail::top(largest), detail::top(initial)).value())
-  );
-  const auto bottom = static_cast<std::int32_t>(
-    expansion_multiplier * std::abs(math::arithmetic::subtract(detail::bottom(initial), detail::bottom(largest)).value())
-  );
-  // The area is expanded only vertically with each step.
-  const auto area = screen_rect_type(
-    {initial.origin().x(), math::arithmetic::subtract(initial.origin().y(), bottom).value()},
-    initial.horizontal_range(),
-    initial.vertical_range() + bottom + top
-  );
-  return core_tesseract_->recognize(area);
+  const auto& [reduced, largest] = recognized_bounding_box;
+  return core_tesseract_->recognize(recognize_largest_bounding_box ? largest : reduced);
 }
 
 ///
 ///
-auto core_bible_reference_ocr::find_main_reference_position_data(const screen_coordinates_type& relative_cursor_position) const
+auto core_bible_ref_ocr::find_main_reference_position_data(const screen_coordinates_type& relative_cursor_pos) const
   -> std::optional<reference_position_data>
 {
   SCOPED_TIMER_LOG();
@@ -208,7 +190,7 @@ auto core_bible_reference_ocr::find_main_reference_position_data(const screen_co
     [&](const auto text_character, const auto& bounding_box)
     {
       text.append(text_character.data(), text_character.size());
-      const auto abs_distance = std::abs(screen_coordinates_type::distance(bounding_box.center(), relative_cursor_position));
+      const auto abs_distance = std::abs(screen_coordinates_type::distance(bounding_box.center(), relative_cursor_pos));
       char_data.insert(char_data.cend(), text_character.size(), {abs_distance, bounding_box});
     }
   );
@@ -219,18 +201,17 @@ auto core_bible_reference_ocr::find_main_reference_position_data(const screen_co
     result = reference_position_data{std::move(text), std::move(char_data), *distance_index};
   }
   LOG_DEBUG(
-    "main reference position result: [{}], relative_cursor_position={}",
+    "main reference position result: [{}], relative_cursor_pos={}",
     result ? std::format("text=\"{}\", index={}", result->text, result->cursor_character_index) : std::string{"none"},
-    relative_cursor_position
+    relative_cursor_pos
   );
   return result;
 }
 
 ///
 ///
-auto core_bible_reference_ocr::find_reference_position_data_from_choices(
-  const screen_coordinates_type& relative_cursor_position
-) const -> std::vector<reference_position_data>
+auto core_bible_ref_ocr::find_reference_position_data_from_choices(const screen_coordinates_type& relative_cursor_pos) const
+  -> std::vector<reference_position_data>
 {
   SCOPED_TIMER_LOG();
   auto choices_list = std::vector<tesseract_choices>{};
@@ -239,7 +220,7 @@ auto core_bible_reference_ocr::find_reference_position_data_from_choices(
     [&](const auto& choices, const auto& bounding_box)
     {
       choices_list.emplace_back(choices);
-      const auto abs_distance = std::abs(screen_coordinates_type::distance(bounding_box.center(), relative_cursor_position));
+      const auto abs_distance = std::abs(screen_coordinates_type::distance(bounding_box.center(), relative_cursor_pos));
       choices_char_data.emplace_back(abs_distance, bounding_box);
     }
   );
@@ -284,13 +265,13 @@ auto core_bible_reference_ocr::find_reference_position_data_from_choices(
       );
     return util::format::join(result_range, ", ");
   };
-  LOG_DEBUG("reference position choices result: [{}], cursor_position={}", format_result(), relative_cursor_position);
+  LOG_DEBUG("reference position choices result: [{}], cursor_position={}", format_result(), relative_cursor_pos);
   return result;
 }
 
 ///
 ///
-auto core_bible_reference_ocr::match_choices_to_bible_book(
+auto core_bible_ref_ocr::match_choices_to_bible_book(
   const std::vector<tesseract_choices>& choices_list, const std::function<bool(const tesseract_choices&)>& choices_filter
 ) const -> std::vector<txt::indexed_strings>
 {
@@ -313,7 +294,7 @@ auto core_bible_reference_ocr::match_choices_to_bible_book(
 
 ///
 ///
-auto core_bible_reference_ocr::match_choices_to_string(
+auto core_bible_ref_ocr::match_choices_to_string(
   const std::vector<tesseract_choices>& choices_list,
   const std::string_view text_template,
   const std::function<bool(const tesseract_choices&)>& choices_filter
@@ -366,7 +347,7 @@ auto core_bible_reference_ocr::match_choices_to_string(
 
 ///
 ///
-auto core_bible_reference_ocr::find_chars_begin_match(const tesseract_choices& choices, const std::string_view chars) const
+auto core_bible_ref_ocr::find_chars_begin_match(const tesseract_choices& choices, const std::string_view chars) const
   -> std::optional<tesseract_choice>
 {
   auto result = std::optional<tesseract_choice>{};
@@ -386,8 +367,7 @@ auto core_bible_reference_ocr::find_chars_begin_match(const tesseract_choices& c
 
 ///
 ///
-auto core_bible_reference_ocr::min_distance_index(const std::vector<character_data>& char_data) const
-  -> std::optional<std::size_t>
+auto core_bible_ref_ocr::min_distance_index(const std::vector<character_data>& char_data) const -> std::optional<std::size_t>
 {
   auto result = std::optional<std::size_t>{};
   if(const auto min_element =
@@ -401,7 +381,7 @@ auto core_bible_reference_ocr::min_distance_index(const std::vector<character_da
 
 ///
 ///
-auto core_bible_reference_ocr::find_line_position_data(const screen_coordinates_type& relative_cursor_position) const
+auto core_bible_ref_ocr::find_line_position_data(const screen_coordinates_type& relative_cursor_pos) const
   -> std::optional<line_position_data>
 {
   auto line_bounding_boxes = decltype(line_position_data::line_bounding_boxes){};
@@ -411,7 +391,7 @@ auto core_bible_reference_ocr::find_line_position_data(const screen_coordinates_
     [&]([[maybe_unused]] const auto, const auto& line_bounding_box)
     {
       line_bounding_boxes.push_back(line_bounding_box);
-      const auto contains_cursor = screen_rect_type::contains(line_bounding_box, relative_cursor_position);
+      const auto contains_cursor = screen_rect_type::contains(line_bounding_box, relative_cursor_pos);
       if(contains_cursor)
       {
         cursor_line_index = line_bounding_boxes.size() - 1;

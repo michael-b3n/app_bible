@@ -1,11 +1,10 @@
 ///
 /// Main file.
 ///
+#include "framework/dispatcher.hpp"
+#include "version.hpp"
 
-#include "src/version.hpp"
-
-#include <app_framework/active_worker.hpp>
-#include <app_framework/main_loop.hpp>
+#include <framework/thread_pool.hpp>
 #include <system/filesystem.hpp>
 #include <system/hotkey.hpp>
 #include <system/open_browser.hpp>
@@ -13,9 +12,11 @@
 #include <util/date.hpp>
 #include <util/incbin.hpp>
 #include <util/log.hpp>
-#include <util/string.hpp>
 
-#include <workflow/workflow_bible_reference_ocr.hpp>
+#include <presenter/presenter_bible_ref_ocr.hpp>
+
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
 
 #include <filesystem>
 #include <format>
@@ -26,7 +27,7 @@ const auto icon_view = bibstd::util::incbin::to_span<std::byte>(res_icon_data, r
 ///
 /// Main function.
 ///
-int main()
+int main(int argc, char** argv)
 {
   const auto logger = bibstd::util::logger();
   LOG_INFO("executable: {}", bibstd::system::filesystem::executable_location().string());
@@ -34,20 +35,28 @@ int main()
   LOG_INFO("commit_hash: {}", bible_assistant::version::commit_hash);
   LOG_INFO("commit_date: {}", bible_assistant::version::commit_date);
 
-  // Init backend
-  auto workflow_reference_finder =
-    bibstd::workflow::workflow_bible_reference_ocr(bibstd::workflow::workflow_bible_reference_ocr::language::de);
-
-  // Init settings
-  auto workflow_reference_finder_settings = std::make_shared<bibstd::workflow::workflow_bible_reference_ocr_settings>();
-
   // Start system hotkey manager.
   const auto hotkey_guard = bibstd::system::hotkey::init();
-  const auto pool_guard = bibstd::app_framework::thread_pool::init();
+  const auto pool_guard = bibstd::framework::thread_pool::init();
 
-  const auto do_on_exit = [&]() { bibstd::app_framework::main_loop::exit(); };
+  // Init presenters
+  auto presenter_bible_ref_ocr = bibstd::presenter::presenter_bible_ref_ocr();
+
+  // Initialize Qt application.
+  QGuiApplication app(argc, argv);
+  QQmlApplicationEngine engine;
+  engine.load(QUrl(QStringLiteral("qrc:/qt/qml/module/src/main.qml")));
+  if(engine.rootObjects().isEmpty())
+  {
+    LOG_ERROR("exit application: failed to load QML root object");
+    return EXIT_FAILURE;
+  }
+
+  const auto dispatcher_guard = bible_assistant::framework::dispatcher::init();
+
+  // Connect tray signals
+  const auto do_on_exit = [&]() { bible_assistant::framework::dispatcher::run_in_ui_thread([&] { app.quit(); }); };
   const auto open_github = []() { bibstd::system::open_browser::open("https://github.com/michael-b3n/app_bible"); };
-
   // Start system tray.
   const auto tray_guard = bibstd::system::tray::init(
     bibstd::system::tray::icon_buffer{icon_view},
@@ -58,16 +67,8 @@ int main()
     }
   );
 
-  // Register hotkeys
-  bibstd::system::hotkey::register_callback(
-    bibstd::system::hotkey::key::vk_f,
-    bibstd::system::hotkey::key_modifier::alt,
-    [&]() { workflow_reference_finder.find_references(workflow_reference_finder_settings); }
-  );
+  const auto reval = app.exec();
 
-  // Enter main loop.
-  bibstd::app_framework::main_loop::run();
-
-  LOG_INFO("main", "Exit application: {}", bibstd::util::format_current_time_CET());
-  return EXIT_SUCCESS;
+  LOG_INFO("exit application: {}", reval);
+  return reval;
 }

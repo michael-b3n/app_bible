@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bible/reference_range.hpp"
-#include "core/core_bible_reference_ocr_common.hpp"
+#include "core/core_bible_ref_ocr_common.hpp"
 #include "core/core_tesseract_common.hpp"
 #include "math/value_range.hpp"
 #include "txt/indexed_strings.hpp"
@@ -19,7 +19,7 @@ class core_tesseract;
 ///
 /// Core bible reference OCR. This class calls contains functions to parse the OCR data for bible references.
 ///
-class core_bible_reference_ocr final
+class core_bible_ref_ocr final
 {
 public: // Typedefs
   using screen_rect_type = util::screen_types::screen_rect_type;
@@ -27,51 +27,54 @@ public: // Typedefs
   using pixel_plane_type = util::screen_types::pixel_plane_type;
   using tesseract_choice = core_tesseract_common::tesseract_choice;
   using tesseract_choices = core_tesseract_common::tesseract_choices;
-  using character_data = core_bible_reference_ocr_common::character_data;
-  using reference_position_data = core_bible_reference_ocr_common::reference_position_data;
+  using character_data = core_bible_ref_ocr_common::character_data;
+  using reference_position_data = core_bible_ref_ocr_common::reference_position_data;
 
   struct recognize_bounding_box_result final
   {
-    screen_rect_type initial;
+    screen_rect_type reduced;
     screen_rect_type largest;
   };
 
-public: // Constants
-  static constexpr auto recognition_area_step_count = std::size_t{3};
+  struct capture_screen_result final
+  {
+    screen_coordinates_type relative_cursor_pos;
+    pixel_plane_type image;
+  };
 
 public: // Structors
-  core_bible_reference_ocr(core_tesseract_common::language language);
-  ~core_bible_reference_ocr() noexcept;
+  core_bible_ref_ocr(core_tesseract_common::language language);
+  ~core_bible_ref_ocr() noexcept;
 
 public: // Operations
   ///
-  /// Capture an area of the screen and set as OCR recognition image.
+  /// Capture an area of the screen. This function does not modify core tesseract.
   /// \param cursor_position Cursor position on the screen
-  /// \return optional relative cursor position, std::nullopt if capturing image failed
+  /// \return optional relative cursor position and captured pixel plane, std::nullopt if capturing image failed
   ///
-  [[nodiscard]] auto capture_ocr_image(const screen_coordinates_type& cursor_position) const
-    -> std::optional<screen_coordinates_type>;
+  [[nodiscard]] auto capture_screen(const screen_coordinates_type& cursor_position) const
+    -> std::optional<capture_screen_result>;
 
   ///
   /// Find the bounding box of the lines containing the given cursor position with the reference.
-  /// If no paragraph is found at the specified position, returns std::nullopt.
-  /// \param relative_cursor_position The position of the cursor on the screen in the image.
+  /// If no paragraph is found at the specified position, returns std::nullopt
+  /// \param image_data The relative cursor position and the pixel plane containing the image data
   /// \return An optional screen rectangle representing the bounding box of the paragraph.
   /// If no paragraph is found, returns std::nullopt.
   ///
-  [[nodiscard]] auto recognize_bounding_box(const screen_coordinates_type& relative_cursor_position) const
+  [[nodiscard]] auto recognize_bounding_box(capture_screen_result&& image_data) const
     -> std::optional<recognize_bounding_box_result>;
 
   ///
-  /// Recognize capture area using OCR. The functions generates the area depending on the given initial capture rectangle.
-  /// With increasing step index the capture area is increased.
-  /// \param init_capture_rect Initial rectangle that is captured
-  /// \param step_index Step index that is used to increase the capture area
+  /// Recognize capture area using OCR. The functions generates the area depending on the structural
+  /// recognized bounding box.
+  /// \param recognized_bounding_box Structural recognized bounding box
+  /// \param recognize_largest_bounding_box If true, the largest bounding box is used for the recognition
   /// \return true if the OCR recognition was successful, otherwise false
   ///
-  [[nodiscard]]
-  auto recognize_capture_area(const recognize_bounding_box_result& recognized_bounding_box, std::size_t step_index) const
-    -> bool;
+  [[nodiscard]] auto recognize_capture_area(
+    const recognize_bounding_box_result& recognized_bounding_box, bool recognize_largest_bounding_box
+  ) const -> bool;
 
   ///
   /// Finds the main reference position data based on the given cursor position.
@@ -79,11 +82,11 @@ public: // Operations
   /// determine the corresponding reference position data. If a valid reference position
   /// is found, it returns the data wrapped in a std::optional. Otherwise, it returns
   /// an empty std::optional.
-  /// \param relative_cursor_position The screen coordinates of the cursor position in the image.
+  /// \param relative_cursor_pos The screen coordinates of the cursor position in the image.
   /// \return std::optional<reference_position_data> The reference position data if found,
   /// otherwise an empty std::optional.
   ///
-  auto find_main_reference_position_data(const screen_coordinates_type& relative_cursor_position) const
+  auto find_main_reference_position_data(const screen_coordinates_type& relative_cursor_pos) const
     -> std::optional<reference_position_data>;
 
   ///
@@ -91,10 +94,10 @@ public: // Operations
   /// This function analyzes the provided cursor position and determines the
   /// corresponding reference position data from a set of OCR choices. The result
   /// is a list of possible `reference_position_data` objects.
-  /// \param relative_cursor_position The screen coordinates of the cursor position in the image.
+  /// \param relative_cursor_pos The screen coordinates of the cursor position in the image.
   /// \return A vector containing the reference position data associated with the given cursor position.
   ///
-  auto find_reference_position_data_from_choices(const screen_coordinates_type& relative_cursor_position) const
+  auto find_reference_position_data_from_choices(const screen_coordinates_type& relative_cursor_pos) const
     -> std::vector<reference_position_data>;
 
 private: // Typedefs
@@ -158,11 +161,10 @@ private: // Implementation
 
   ///
   /// Get the bounding boxes of each recognized line and the index of the line containing the cursor.
-  /// \param relative_cursor_position The screen coordinates of the cursor position in the image.
+  /// \param relative_cursor_pos The screen coordinates of the cursor position in the image.
   /// \return Optional line position data, std::nullopt if no line contains the cursor position.
   ///
-  auto find_line_position_data(const screen_coordinates_type& relative_cursor_position) const
-    -> std::optional<line_position_data>;
+  auto find_line_position_data(const screen_coordinates_type& relative_cursor_pos) const -> std::optional<line_position_data>;
 
 private: // Variables
   const std::unique_ptr<core::core_tesseract> core_tesseract_;

@@ -1,0 +1,106 @@
+#pragma once
+
+#include "bible/reference_range.hpp"
+#include "core/core_bible_ref_ocr_common.hpp"
+#include "framework/settings_base.hpp"
+#include "framework/settings_owner.hpp"
+#include "framework/signal_adapter.hpp"
+#include "framework/thread_pool.hpp"
+#include "util/screen_types.hpp"
+#include "workflow/workflow_base.hpp"
+
+
+#include <expected>
+#include <memory>
+#include <stop_token>
+#include <vector>
+
+namespace bibstd::core
+{
+// Forward declarations
+class core_bible_ref_ocr;
+class core_bible_ref;
+class core_bibleserver_lookup;
+} // namespace bibstd::core
+
+namespace bibstd::workflow
+{
+// Forward declarations
+class workflow_bible_ref_ocr;
+
+///
+/// Settings corresponding to workflow bible reference ocr.
+///
+class workflow_bible_ref_ocr_settings final : public framework::settings_base
+{
+public: // Structors
+  workflow_bible_ref_ocr_settings();
+  ~workflow_bible_ref_ocr_settings() noexcept = default;
+
+public: // Variables
+  const setting_type<core::core_tesseract_common::language> language;
+  const setting_type<std::vector<bible::translation>> translations;
+};
+
+///
+/// Start parameters for workflow bible reference ocr.
+///
+struct workflow_bible_ref_ocr_start_params final
+{
+  util::screen_types::screen_coordinates_type cursor_position{0, 0};
+  bool recognize_largest_bounding_box{false};
+};
+
+using workflow_base_type = workflow_base<
+  workflow_bible_ref_ocr,               // derived workflow
+  workflow_bible_ref_ocr_start_params,  // start params type,
+  std::vector<bible::reference_range>>; // expected result type
+
+///
+/// Bible reference ocr: this workflow searches for bible references on a screen area using OCR around the cursor position.
+/// Signal IDs to connect to:
+/// - started: Emitted when the OCR process starts. Slots receive the start parameters `start_params`.
+/// - ended: Emitted when the OCR process ends. Slots receive the result parameters `result_params`.
+///
+class workflow_bible_ref_ocr final
+  : public workflow_base_type
+  , public framework::settings_owner<workflow_bible_ref_ocr_settings>
+  // clang-format off
+  , public framework::signal_adapter<
+      framework::named_signal<framework::common_signal_id::started, util::signal_type<void(const workflow_base_type::start_params&)>>,
+      framework::named_signal<framework::common_signal_id::ended, util::signal_type<void(const workflow_base_type::result_params&)>>>
+// clang-format on
+{
+public: // Typedefs
+  using start_params = workflow_base_type::start_params;
+  using result_params = workflow_base_type::result_params;
+
+public: // Structors
+  workflow_bible_ref_ocr();
+  ~workflow_bible_ref_ocr() noexcept;
+
+public: // Modifiers
+  ///
+  /// Search bible references on a screen area using OCR around the cursor position.
+  /// \param cursor_position Position of the cursor on the screen
+  /// \return start result containing a process ID and a stop source for stopping the search
+  ///
+  auto start(const start_params& params) -> std::stop_source;
+
+private: // Typedefs
+  using result_type = workflow_base_type::result_type;
+  using screen_rect_type = util::screen_types::screen_rect_type;
+
+private: // Implementation
+  auto find_references_impl(auto&& image_data, bool recognize_largest_bounding_box, std::stop_token stop_token) -> result_type;
+  auto parse_tesseract_recognition(const util::screen_types::screen_coordinates_type& relative_cursor_pos)
+    -> std::vector<bible::reference_range>;
+
+private: // Variables
+  const framework::thread_pool::strand_id_type strand_id_{framework::thread_pool::strand_id()};
+  const std::unique_ptr<core::core_bible_ref_ocr> core_bible_ref_ocr_;
+  const std::unique_ptr<core::core_bible_ref> core_bible_ref_;
+  const std::unique_ptr<core::core_bibleserver_lookup> core_bibleserver_lookup_;
+};
+
+} // namespace bibstd::workflow
