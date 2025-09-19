@@ -135,8 +135,8 @@ auto property_parser::write(const property_path_type& path, property_tree_type& 
 template<property_parser_pair_type T>
 auto property_parser::read(const property_path_type& path, const property_tree_type& tree) -> std::optional<T>
 {
-  const auto first = read<T::first_type>(path / "first", tree);
-  const auto second = read<T::second_type>(path / "second", tree);
+  const auto first = read<typename T::first_type>(path / "first", tree);
+  const auto second = read<typename T::second_type>(path / "second", tree);
   return first.has_value() && second.has_value() ? T{first.value(), second.value()} : std::optional<T>{};
 }
 

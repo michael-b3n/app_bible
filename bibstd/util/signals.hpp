@@ -17,6 +17,12 @@ template<typename T>
 using signal_type = boost::signals2::signal<T>;
 
 ///
+/// Type alias for connection type from boost::signals2.
+/// A connection can be used to disconnect a slot from a signal.
+///
+using connection_type = boost::signals2::connection;
+
+///
 /// Boost::signals2 scoped connection type.
 /// Disconnects the connection when it goes out of scope.
 ///

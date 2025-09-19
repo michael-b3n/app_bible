@@ -22,24 +22,24 @@ struct index_t
 } // namespace detail
 
 ///
-/// pack_type trait.
+/// packable trait.
 ///
 template<typename T>
-struct is_pack : std::false_type
+struct is_packable : std::false_type
 {};
 template<template<typename...> typename T, typename... Args>
-struct is_pack<T<Args...>> : std::true_type
+struct is_packable<T<Args...>> : std::true_type
 {};
 template<typename T>
-constexpr bool is_pack_v = is_pack<T>::value;
+constexpr bool is_pack_v = is_packable<T>::value;
 
 template<typename T>
-concept pack_type = is_pack_v<T>;
+concept packable = is_pack_v<T>;
 
 ///
 /// Unpack all types in pack like type P into template T.
 ///
-template<template<typename...> typename T, pack_type P>
+template<template<typename...> typename T, packable P>
 struct unpack;
 
 template<template<typename...> typename T, template<typename...> typename P, typename... Args>
@@ -54,13 +54,13 @@ struct unpack<T, P<Args...>>
 /// \tparam P pack of types
 /// \result type of T<P<0>, P<1>, ... P<n>>
 ///
-template<template<typename...> class T, typename P>
+template<template<typename...> typename T, typename P>
 using unpack_t = typename unpack<T, P>::type;
 
 ///
 /// Add type to pack like type from the left side.
 ///
-template<typename T, pack_type P>
+template<typename T, packable P>
 struct add_to_pack;
 
 template<typename T, template<typename...> typename P, typename... Args>
@@ -81,7 +81,7 @@ using add_to_pack_t = typename add_to_pack<T, P>::type;
 ///
 /// Combine two pack types to one pack type. Pack type type is of first type.
 ///
-template<pack_type T, pack_type P>
+template<packable T, packable P>
 struct combine_pack;
 
 template<template<typename...> typename P1, template<typename...> typename P2, typename... Ts, typename... Args>
@@ -102,7 +102,7 @@ using combine_pack_t = typename combine_pack<T, P>::type;
 ///
 /// Remove first type from pack.
 ///
-template<pack_type P>
+template<packable P>
 struct remove_from_pack;
 
 template<template<typename...> typename P, typename T, typename... Args>
@@ -126,13 +126,13 @@ template<template<typename...> typename P, typename T, std::size_t N>
 struct pack_n_types
 {
 private:
-  template<pack_type P_, typename T_, std::size_t N_>
+  template<packable P_, typename T_, std::size_t N_>
   struct pack_n_types_helper
   {
     using type = typename pack_n_types_helper<add_to_pack_t<T_, P_>, T_, N_ - 1>::type;
   };
 
-  template<pack_type P_, typename T_>
+  template<packable P_, typename T_>
   struct pack_n_types_helper<P_, T_, 0>
   {
     using type = P_;
@@ -154,7 +154,7 @@ using pack_n_types_t = typename pack_n_types<P, T, N>::type;
 ///
 /// Deduce type in pack like type at index N.
 ///
-template<pack_type P, std::size_t N>
+template<packable P, std::size_t N>
 struct type_from_pack;
 
 template<template<typename...> typename P, std::size_t N, typename... Args>
@@ -168,13 +168,13 @@ struct type_from_pack<P<Args...>, N>
 /// \tparam P pack of types pack<...>
 /// \tparam N index of type in pack as pack<T<0>, T<1>, ... T<N>, ... T<M>>
 ///
-template<pack_type P, std::size_t N>
+template<packable P, std::size_t N>
 using type_from_pack_t = type_from_pack<P, N>::type;
 
 ///
 /// Deduce index of specific type in pack like type.
 ///
-template<pack_type P, typename T>
+template<packable P, typename T>
 struct type_index;
 
 template<template<typename...> typename P, typename... Args, typename T>
@@ -193,8 +193,10 @@ private:
   template<typename T_, std::size_t I0_, std::size_t... I_, typename A_, typename... Args_>
   struct type_index_helper<T_, std::index_sequence<I0_, I_...>, A_, Args_...>
   {
-    using type =
-      std::conditional_t<std::is_same_v<T_, A_>, detail::index_t<I0_>, typename type_index_helper<T_, std::index_sequence<I_...>, Args_...>::type>;
+    using type = std::conditional_t<
+      std::is_same_v<T_, A_>,
+      detail::index_t<I0_>,
+      typename type_index_helper<T_, std::index_sequence<I_...>, Args_...>::type>;
   };
 
 public:
@@ -207,7 +209,7 @@ public:
 /// \tparam T type to be searched in pack P
 /// \return index of T in pack, if P does not contain T, index is equal to the size of pack
 ///
-template<pack_type P, typename T>
+template<packable P, typename T>
 constexpr std::size_t type_index_v = type_index<P, T>::index;
 
 ///
@@ -241,7 +243,7 @@ struct pack<T, Args...>
 ///
 /// Get size of a generic pack like type.
 ///
-template<pack_type P>
+template<packable P>
 struct pack_size;
 
 template<template<typename...> typename P, typename... Args>
@@ -255,7 +257,7 @@ struct pack_size<P<Args...>>
 /// \tparam P pack type containing generic types
 /// \return sizeof...(Args) in pack P<Args...>
 ///
-template<pack_type P>
+template<packable P>
 constexpr std::size_t pack_size_v = pack_size<P>::value;
 
 } // namespace bibstd::meta

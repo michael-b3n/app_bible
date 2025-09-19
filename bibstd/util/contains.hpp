@@ -14,7 +14,7 @@ namespace bibstd::util
 /// \param element Element of container that might be contained in the container
 /// \return true if `element` is found in container, false if not
 ///
-template<typename Container>
+template<std::ranges::range Container>
 constexpr auto contains(const Container& container, const std::ranges::range_value_t<Container>& element) -> bool
 {
   return std::ranges::find(container, element) != std::ranges::cend(container);
