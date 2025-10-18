@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/core_tesseract_common.hpp"
-#include "system/filesystem.hpp"
 #include "util/screen_types.hpp"
 
 #include <optional>
@@ -24,12 +23,6 @@ namespace bibstd::core
 ///
 class core_tesseract final
 {
-public: // Constants
-  static constexpr std::string_view tessdata_folder_name = "tessdata"; // TODO make executable independent
-  inline static const std::filesystem::path tessdata_folder_path{
-    system::filesystem::executable_folder() / tessdata_folder_name
-  };
-
 public: // Typedefs
   using screen_rect_type = util::screen_types::screen_rect_type;
   using screen_coordinates_type = util::screen_types::screen_coordinates_type;
@@ -44,6 +37,9 @@ public: // Typedefs
   using choices_while_callback_type = std::function<bool(const tesseract_choices&, const screen_rect_type&)>;
   // clang-format on
 
+  ///
+  /// Text resolution levels for text recognition.
+  ///
   enum class text_resolution
   {
     character,
@@ -53,7 +49,7 @@ public: // Typedefs
   };
 
 public: // Structors
-  core_tesseract(core_tesseract_common::language language);
+  core_tesseract(const std::filesystem::path& tessdata_path, core_tesseract_common::language language);
   ~core_tesseract() noexcept;
 
 public: // Modifiers

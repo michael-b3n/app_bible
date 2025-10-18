@@ -10,6 +10,7 @@
 #include "util/property.hpp"
 
 #include <chrono>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -48,6 +49,7 @@ struct workflow_settings_common final
     std::vector<std::uint64_t>,
     std::vector<double>,
     std::vector<std::string>,
+    std::filesystem::path,
 
     // Backend types
     core::core_tesseract_common::language,

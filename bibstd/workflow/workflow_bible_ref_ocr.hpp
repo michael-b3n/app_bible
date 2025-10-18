@@ -9,7 +9,6 @@
 #include "util/screen_types.hpp"
 #include "workflow/workflow_base.hpp"
 
-
 #include <expected>
 #include <memory>
 #include <stop_token>
@@ -38,6 +37,7 @@ public: // Structors
   ~workflow_bible_ref_ocr_settings() noexcept = default;
 
 public: // Variables
+  const setting_type<std::filesystem::path> tessdata_path;
   const setting_type<core::core_tesseract_common::language> language;
   const setting_type<std::vector<bible::translation>> translations;
 };
@@ -92,15 +92,22 @@ private: // Typedefs
   using screen_rect_type = util::screen_types::screen_rect_type;
 
 private: // Implementation
-  auto find_references_impl(auto&& image_data, bool recognize_largest_bounding_box, std::stop_token stop_token) -> result_type;
-  auto parse_tesseract_recognition(const util::screen_types::screen_coordinates_type& relative_cursor_pos)
-    -> std::vector<bible::reference_range>;
+  auto find_references(
+    const std::shared_ptr<core::core_bible_ref_ocr>& core_bible_ref_ocr,
+    auto&& image_data,
+    bool recognize_largest_bounding_box,
+    std::stop_token stop_token
+  ) -> result_type;
+  auto parse_tesseract_recognition(
+    const std::shared_ptr<core::core_bible_ref_ocr>& core_bible_ref_ocr,
+    const util::screen_types::screen_coordinates_type& relative_cursor_pos
+  ) -> std::vector<bible::reference_range>;
 
 private: // Variables
   const framework::thread_pool::strand_id_type strand_id_{framework::thread_pool::strand_id()};
-  const std::unique_ptr<core::core_bible_ref_ocr> core_bible_ref_ocr_;
   const std::unique_ptr<core::core_bible_ref> core_bible_ref_;
   const std::unique_ptr<core::core_bibleserver_lookup> core_bibleserver_lookup_;
+  std::atomic<std::shared_ptr<core::core_bible_ref_ocr>> core_bible_ref_ocr_;
 };
 
 } // namespace bibstd::workflow

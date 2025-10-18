@@ -43,7 +43,7 @@ public: // Typedefs
   };
 
 public: // Structors
-  core_bible_ref_ocr(core_tesseract_common::language language);
+  core_bible_ref_ocr(const std::filesystem::path& tessdata_path, core_tesseract_common::language language);
   ~core_bible_ref_ocr() noexcept;
 
 public: // Operations

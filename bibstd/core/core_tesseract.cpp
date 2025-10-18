@@ -1,5 +1,6 @@
 #include "core/core_tesseract.hpp"
 #include "data/pix.hpp"
+#include "system/filesystem.hpp"
 #include "util/boost_numeric_cast.hpp"
 #include "util/const_bimap.hpp"
 #include "util/enum.hpp"
@@ -21,11 +22,16 @@ constexpr auto resolution_map = util::const_bimap{
 
 ///
 ///
-core_tesseract::core_tesseract(const core_tesseract_common::language language)
+core_tesseract::core_tesseract(const std::filesystem::path& tessdata_path, const core_tesseract_common::language language)
   : tesseract_{new tesseract::TessBaseAPI()}
   , pix_{std::make_unique<data::pix>()}
 {
-  const auto tessdata_string = tessdata_folder_path.generic_string();
+  if(!std::filesystem::exists(tessdata_path))
+  {
+    LOG_ERROR("tessdata path does not exist: \"{}\"", tessdata_path.generic_string());
+    THROW_EXCEPTION(std::invalid_argument("non existent tessdata path"));
+  }
+  auto tessdata_string = tessdata_path.generic_string();
   tesseract_->Init(tessdata_string.data(), language_map.at(language).data(), tesseract::OEM_LSTM_ONLY);
   tesseract_->SetVariable("lstm_choice_mode", "2"); // set lstm_choice_mode to alternative symbol choices per character
 }
@@ -68,8 +74,7 @@ auto core_tesseract::recognize(std::optional<screen_rect_type> bounding_box) con
     );
     return tesseract_->Recognize(nullptr) == 0;
   }
-  else
-  {
+  else {
     return tesseract_->Recognize(nullptr) == 0;
   }
 }
@@ -91,8 +96,7 @@ auto core_tesseract::bounding_boxes(const text_resolution resolution) const -> s
       {
         result.emplace_back(screen_rect_type(screen_coordinates_type(left, top), right - left, bottom - top));
       }
-      else
-      {
+      else {
         LOG_WARN("invalid bounding box in analyze_bounding_boxes: resolution={}", util::to_string_view(resolution));
       }
     }
@@ -141,8 +145,7 @@ auto core_tesseract::for_each_while(const text_resolution resolution, const text
           const auto box = screen_rect_type(screen_coordinates_type(left, top), right - left, bottom - top);
           found = do_with_text(std::string_view(txt.get()), box);
         }
-        else
-        {
+        else {
           LOG_WARN("invalid bounding box in for_each_while: txt={}", txt.get());
         }
       }
@@ -210,8 +213,7 @@ auto core_tesseract::for_each_choices_while(const choices_while_callback_type& d
         const auto box = screen_rect_type(screen_coordinates_type(left, top), right - left, bottom - top);
         found = do_with_choices(choices, box);
       }
-      else
-      {
+      else {
         LOG_WARN("invalid bounding box in for_each_choices_while: main_symbol={}", main_symbol);
       }
     }

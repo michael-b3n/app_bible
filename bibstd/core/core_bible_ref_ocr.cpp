@@ -64,8 +64,8 @@ auto right(const util::screen_types::screen_rect_type& rect) -> std::int32_t
 
 ///
 ///
-core_bible_ref_ocr::core_bible_ref_ocr(core_tesseract_common::language language)
-  : core_tesseract_{std::make_unique<core::core_tesseract>(language)}
+core_bible_ref_ocr::core_bible_ref_ocr(const std::filesystem::path& tessdata_path, core_tesseract_common::language language)
+  : core_tesseract_{std::make_unique<core::core_tesseract>(tessdata_path, language)}
 {
 }
 

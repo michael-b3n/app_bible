@@ -122,11 +122,6 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 #
-# Copy to binary to allow execution from build folder
-#
-copy_folder(${PROJECT_NAME} "${CMAKE_CURRENT_BINARY_DIR}/${TESSDATA_FOLDER_NAME}" "${TESSDATA_FOLDER_PATH}")
-
-#
 # Configure installation
 #
 set_mingw_path(MINGW_ROOT_DIRECTORY MINGW_SHARE_DIRECTORY)
@@ -143,7 +138,7 @@ install(
   PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-"
   POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
 )
-install(DIRECTORY ${TESSDATA_FOLDER_PATH} DESTINATION bin)
+install(DIRECTORY ${TESSDATA_FOLDER_PATH} DESTINATION share)
 install(SCRIPT ${QT_DEPLOY_SCRIPT})
 
 #

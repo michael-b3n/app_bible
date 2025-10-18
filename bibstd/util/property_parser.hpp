@@ -12,6 +12,7 @@
 #include <format>
 #include <ranges>
 #include <string>
+#include <vector>
 
 namespace bibstd::util
 {
@@ -83,9 +84,18 @@ struct property_parser final
     requires meta::is_duration_v<T>
   static auto write(const property_path_type& path, property_tree_type& tree, const T& value) -> void;
 
+  template<typename T>
+    requires std::is_same_v<T, std::filesystem::path>
+  static inline auto read(const property_path_type& path, const property_tree_type& tree) -> std::optional<T>;
+  template<typename T>
+    requires std::is_same_v<T, std::filesystem::path>
+  static inline auto write(const property_path_type& path, property_tree_type& tree, const T& value) -> void;
+
   template<typename Container>
+    requires std::is_same_v<Container, std::vector<typename Container::value_type>>
   static auto read(const property_path_type& path, const property_tree_type& tree) -> std::optional<Container>;
   template<typename Container>
+    requires std::is_same_v<Container, std::vector<typename Container::value_type>>
   static auto write(const property_path_type& path, property_tree_type& tree, const Container& value) -> void;
 };
 
@@ -170,7 +180,27 @@ auto property_parser::write(const property_path_type& path, property_tree_type& 
 
 ///
 ///
+template<typename T>
+  requires std::is_same_v<T, std::filesystem::path>
+auto property_parser::read(const property_path_type& path, const property_tree_type& tree) -> std::optional<T>
+{
+  const auto path_string = read<std::string>(path, tree);
+  return path_string ? std::optional<T>{std::filesystem::path{*path_string}} : std::optional<T>{};
+}
+
+///
+///
+template<typename T>
+  requires std::is_same_v<T, std::filesystem::path>
+auto property_parser::write(const property_path_type& path, property_tree_type& tree, const T& value) -> void
+{
+  write(path, tree, value.generic_string());
+}
+
+///
+///
 template<typename Container>
+  requires std::is_same_v<Container, std::vector<typename Container::value_type>>
 auto property_parser::read(const property_path_type& path, const property_tree_type& tree) -> std::optional<Container>
 {
   const auto size = read<std::uint64_t>(path / "size", tree);
@@ -183,11 +213,11 @@ auto property_parser::read(const property_path_type& path, const property_tree_t
     std::views::iota(decltype(size.value()){0}, size.value()),
     [&](const auto i)
     {
-      const auto element = read<typename Container::value_type>(path / std::format("index_{}", i), tree);
+      auto element = read<typename Container::value_type>(path / std::format("index_{}", i), tree);
       const auto success = element.has_value();
       if(success)
       {
-        retval.at(i) = element.value();
+        retval.at(i) = std::move(element.value());
       }
       return success;
     }
@@ -198,6 +228,7 @@ auto property_parser::read(const property_path_type& path, const property_tree_t
 ///
 ///
 template<typename Container>
+  requires std::is_same_v<Container, std::vector<typename Container::value_type>>
 auto property_parser::write(const property_path_type& path, property_tree_type& tree, const Container& value) -> void
 {
   write(path / "size", tree, static_cast<std::uint64_t>(value.size()));
