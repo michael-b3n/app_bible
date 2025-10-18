@@ -25,7 +25,7 @@ namespace bibstd::core
 class core_tesseract final
 {
 public: // Constants
-  static constexpr std::string_view tessdata_folder_name = "tessdata";
+  static constexpr std::string_view tessdata_folder_name = "tessdata"; // TODO make executable independent
   inline static const std::filesystem::path tessdata_folder_path{
     system::filesystem::executable_folder() / tessdata_folder_name
   };

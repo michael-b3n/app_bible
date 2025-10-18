@@ -29,7 +29,7 @@ DefaultGroupName=${INNO_SETUP_APP_INSTALL_FOLDER}
 OutputDir=.
 OutputBaseFilename=${INNO_SETUP_OUTPUT_NAME}
 SetupIconFile=${INNO_SETUP_OUTPUT_ICON}
-UninstallDisplayIcon={app}\{#AppExeName}
+UninstallDisplayIcon={app}\bin\{#AppExeName}
 UninstallDisplayName={#AppLongName}
 Compression=lzma
 SolidCompression=yes
@@ -46,14 +46,13 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "*.exe"; Excludes: "${INNO_SETUP_OUTPUT_NAME}.exe"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
-Source: "*.dll"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
-Source: "tessdata\*"; DestDir: "{app}\tessdata"; Flags: ignoreversion recursesubdirs
+Source: "bin\*"; DestDir: "{app}\bin"; Flags: ignoreversion recursesubdirs
+Source: "share\*"; DestDir: "{app}\share"; Flags: ignoreversion recursesubdirs
 
 [Icons]
-Name: "{group}\{#AppLongName}"; Filename: "{app}\{#AppExeName}"
-Name: "{commondesktop}\{#AppLongName}"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
-Name: "{commonappdata}\Microsoft\Internet Explorer\Quick Launch\{#AppLongName}"; Filename: "{app}\{#AppExeName}"; Tasks: quicklaunchicon
+Name: "{group}\{#AppLongName}"; Filename: "{app}\bin\{#AppExeName}"
+Name: "{commondesktop}\{#AppLongName}"; Filename: "{app}\bin\{#AppExeName}"; Tasks: desktopicon
+Name: "{commonappdata}\Microsoft\Internet Explorer\Quick Launch\{#AppLongName}"; Filename: "{app}\bin\{#AppExeName}"; Tasks: quicklaunchicon
 
 [Run]
-Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppLongName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\bin\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppLongName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent

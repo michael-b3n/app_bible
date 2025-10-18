@@ -45,12 +45,18 @@ int main(int argc, char** argv)
   // Initialize Qt application.
   QGuiApplication app(argc, argv);
   QQmlApplicationEngine engine;
-  engine.load(QUrl(QStringLiteral("qrc:/qt/qml/module/src/main.qml")));
-  if(engine.rootObjects().isEmpty())
-  {
-    LOG_ERROR("exit application: failed to load QML root object");
-    return EXIT_FAILURE;
-  }
+  QObject::connect(
+    &engine,
+    &QQmlApplicationEngine::objectCreationFailed,
+    &app,
+    [](const QUrl& url)
+    {
+      LOG_INFO("qml object creation failed: url: \"{}\"", url.toString().toStdString());
+      QCoreApplication::exit(EXIT_FAILURE);
+    },
+    Qt::QueuedConnection
+  );
+  engine.loadFromModule("main", "Main");
 
   const auto dispatcher_guard = bible_assistant::framework::dispatcher::init();
 
@@ -68,7 +74,6 @@ int main(int argc, char** argv)
   );
 
   const auto reval = app.exec();
-
   LOG_INFO("exit application: {}", reval);
   return reval;
 }
