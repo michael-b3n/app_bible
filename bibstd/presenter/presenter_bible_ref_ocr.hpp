@@ -3,6 +3,7 @@
 #include "framework/settings_base.hpp"
 #include "framework/settings_owner.hpp"
 #include "util/signals.hpp"
+#include "system/hotkey.hpp"
 
 #include <mutex>
 
@@ -28,7 +29,8 @@ public: // Structors
   ~presenter_bible_ref_ocr_settings() noexcept = default;
 
 public: // Variables
-  const setting_type<std::pair<system::hotkey_common::key_modifier, system::hotkey_common::key>> hotkey;
+  const setting_type<system::hotkey_common::key_modifier> hotkey_modifier;
+  const setting_type<system::hotkey_common::key> hotkey;
 };
 
 ///

@@ -2,6 +2,7 @@
 
 #include "bible/reference_range.hpp"
 #include "core/core_bible_ref_ocr_common.hpp"
+#include "core/core_tesseract_common.hpp"
 #include "framework/settings_base.hpp"
 #include "framework/settings_owner.hpp"
 #include "framework/signal_adapter.hpp"

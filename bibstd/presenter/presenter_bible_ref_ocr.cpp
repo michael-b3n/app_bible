@@ -12,7 +12,8 @@ namespace bibstd::presenter
 // clang-format off
 presenter_bible_ref_ocr_settings::presenter_bible_ref_ocr_settings()
   : framework::settings_base{"OCR"}
-  , hotkey{workflow_settings_->create_setting("ocr.hotkey", "Hotkey", std::pair{system::hotkey_common::key_modifier::alt, system::hotkey_common::key::vk_f})}
+  , hotkey_modifier{workflow_settings_->create_setting("ocr.hotkey_modifier", "Hotkey Modifier", system::hotkey_common::key_modifier::alt)}
+  , hotkey{workflow_settings_->create_setting("ocr.hotkey", "Hotkey", system::hotkey_common::key::vk_f)}
 // clang-format on
 {
 }
@@ -28,8 +29,8 @@ presenter_bible_ref_ocr::presenter_bible_ref_ocr()
 
   // Register hotkeys. Currently no hotkey change is supported.
   system::hotkey::register_callback(
-    system::hotkey::key::vk_f,
-    system::hotkey::key_modifier::alt,
+    settings->hotkey->value(),
+    settings->hotkey_modifier->value(),
     [this, stop_source = std::stop_source()]() mutable
     {
       stop_source.request_stop();
