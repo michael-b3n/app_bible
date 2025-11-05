@@ -5,7 +5,7 @@
 #include <mutex>
 #include <vector>
 
-namespace bibstd::util
+namespace bibstd::signal
 {
 
 ///
@@ -60,4 +60,4 @@ private: // Variables
   std::vector<scoped_connection_type> connections_;
 };
 
-} // namespace bibstd::util
+} // namespace bibstd::signal

@@ -24,8 +24,8 @@ presenter_bible_ref_ocr::presenter_bible_ref_ocr()
   : workflow_bible_ref_ocr_{std::make_unique<workflow::workflow_bible_ref_ocr>()}
 {
   // Connect signals
-  connections_.add_connection(workflow_bible_ref_ocr_->connect<framework::common_signal_id::started>([this](...) {}));
-  connections_.add_connection(workflow_bible_ref_ocr_->connect<framework::common_signal_id::ended>([this](...) {}));
+  connections_.add_connection(workflow_bible_ref_ocr_->connect<signal::common_id::started>([this](...) {}));
+  connections_.add_connection(workflow_bible_ref_ocr_->connect<signal::common_id::ended>([this](...) {}));
 
   // Register hotkeys. Currently no hotkey change is supported.
   system::hotkey::register_callback(

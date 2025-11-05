@@ -21,7 +21,7 @@ namespace detail
 ///
 /// Basic settings types.
 ///
-using default_setting_basic_variant = std::variant<
+using setting_basic_variant = std::variant<
   bool,
   std::int32_t,
   std::int64_t,
@@ -37,12 +37,12 @@ using default_setting_basic_variant = std::variant<
 ///
 /// Basic settings optional variant.
 ///
-using default_setting_optional_variant = meta::for_each_t<default_setting_basic_variant, std::optional>;
+using setting_basic_optional_variant = meta::for_each_t<setting_basic_variant, std::optional>;
 
 ///
 /// Basic settings list variant.
 ///
-using default_setting_list_variant = meta::for_each_t<default_setting_basic_variant, std::vector>;
+using setting_basic_list_variant = meta::for_each_t<setting_basic_variant, std::vector>;
 
 ///
 /// To enum setting type converter implementation.
@@ -134,16 +134,16 @@ concept type_erasable = requires(E e) {
 ///
 /// All supported setting types as a variant type.
 ///
-using default_setting_variant = meta::combine_pack_t<
-  detail::default_setting_basic_variant,
-  meta::combine_pack_t<detail::default_setting_optional_variant, detail::default_setting_list_variant>>;
+using setting_type_erased_variant = meta::combine_pack_t<
+  detail::setting_basic_variant,
+  meta::combine_pack_t<detail::setting_basic_optional_variant, detail::setting_basic_list_variant>>;
 
 ///
 /// Concept for all supported base setting types. These types are type erased settings. Supported are:
 /// - default types including optional and list variants
 ///
 template<typename T>
-concept erased_setting_type = meta::contains_v<default_setting_variant, T>;
+concept underlying_setting_type_erased_type = meta::contains_v<setting_type_erased_variant, T>;
 
 ///
 /// Concept for all supported setting types. Base settings types are a subgroup of this. Supported are:
@@ -151,15 +151,15 @@ concept erased_setting_type = meta::contains_v<default_setting_variant, T>;
 /// - enum types
 ///
 template<typename T>
-concept underlying_setting_type = erased_setting_type<T> || detail::type_erasable<T>;
+concept underlying_setting_type = underlying_setting_type_erased_type<T> || detail::type_erasable<T>;
 
 ///
 /// Dummy implementation for from_type_erased_setting for erased setting types.
-/// This allows an easy implementation of erased_setting_type_from.
+/// This allows an easy implementation of setting_type_erased_type_from.
 ///
 namespace detail
 {
-template<erased_setting_type E>
+template<underlying_setting_type_erased_type E>
 auto to_type_erased_setting(const E& v) -> E
 {
   return v;
@@ -170,8 +170,8 @@ auto to_type_erased_setting(const E& v) -> E
 /// Type mapping from underlying setting type to type erased setting type.
 ///
 template<underlying_setting_type T>
-using erased_setting_type_from =
-  std::conditional_t<erased_setting_type<T>, T, decltype(detail::to_type_erased_setting(std::declval<T>()))>;
+using setting_type_erased_type_from =
+  std::conditional_t<underlying_setting_type_erased_type<T>, T, decltype(detail::to_type_erased_setting(std::declval<T>()))>;
 
 ///
 /// Create setting type converter.
@@ -180,18 +180,18 @@ using erased_setting_type_from =
 /// \return Converter function from F to T
 ///
 template<underlying_setting_type F, underlying_setting_type T>
-  requires(std::is_same_v<erased_setting_type_from<F>, T> || std::is_same_v<F, erased_setting_type_from<T>>)
-constexpr auto create_setting_converter() -> auto
+  requires(std::is_same_v<setting_type_erased_type_from<F>, T> || std::is_same_v<F, setting_type_erased_type_from<T>>)
+constexpr auto create_setting_value_converter() -> auto
 {
   if constexpr(std::is_same_v<F, T>)
   {
     return [](const F& v) -> T { return v; };
   }
-  else if constexpr(std::is_same_v<erased_setting_type_from<F>, T>)
+  else if constexpr(std::is_same_v<setting_type_erased_type_from<F>, T>)
   {
     return [](const F& v) -> T { return detail::to_type_erased_setting(v); };
   }
-  else if constexpr(std::is_same_v<F, erased_setting_type_from<T>>)
+  else if constexpr(std::is_same_v<F, setting_type_erased_type_from<T>>)
   {
     return [](const F& v) -> T { return detail::from_type_erased_setting<T>(v); };
   }

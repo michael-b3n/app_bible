@@ -5,8 +5,8 @@
 #include "core/core_tesseract_common.hpp"
 #include "framework/settings_base.hpp"
 #include "framework/settings_owner.hpp"
-#include "framework/signal_adapter.hpp"
 #include "framework/thread_pool.hpp"
+#include "signal/adapter.hpp"
 #include "util/screen_types.hpp"
 #include "workflow/workflow_base.hpp"
 
@@ -67,9 +67,9 @@ class workflow_bible_ref_ocr final
   : public workflow_base_type
   , public framework::settings_owner<workflow_bible_ref_ocr_settings>
   // clang-format off
-  , public framework::signal_adapter<
-      framework::named_signal<framework::common_signal_id::started, util::signal_type<void(const workflow_base_type::start_params&)>>,
-      framework::named_signal<framework::common_signal_id::ended, util::signal_type<void(const workflow_base_type::result_params&)>>>
+  , public signal::adapter<
+      signal::named_signal<signal::common_id::started, signal::signal_type<void(const workflow_base_type::start_params&)>>,
+      signal::named_signal<signal::common_id::ended, signal::signal_type<void(const workflow_base_type::result_params&)>>>
 // clang-format on
 {
 public: // Typedefs

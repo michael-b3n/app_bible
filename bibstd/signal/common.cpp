@@ -1,6 +1,6 @@
-#include "util/signals.hpp"
+#include "signal/common.hpp"
 
-namespace bibstd::util
+namespace bibstd::signal
 {
 
 ///
@@ -26,4 +26,4 @@ auto connection_store::clear() -> void
   connections_.clear();
 }
 
-} // namespace bibstd::util
+} // namespace bibstd::signal

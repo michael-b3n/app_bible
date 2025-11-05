@@ -1,12 +1,6 @@
 #pragma once
 
-#include "workflow/workflow_settings_common.hpp"
-
-namespace bibstd::workflow
-{
-// Forward declarations
-class workflow_settings;
-} // namespace bibstd::workflow
+#include "workflow/workflow_settings.hpp"
 
 namespace bibstd::framework
 {
@@ -22,7 +16,7 @@ public: // Structors
 
 protected: // Typedefs
   template<typename T>
-  using setting_type = workflow::workflow_settings_common::setting_non_owning_ptr_type<T>;
+  using setting_type = workflow::workflow_settings::setting_non_owning_ptr_type<T>;
 
 protected: // Variables
   std::unique_ptr<workflow::workflow_settings> workflow_settings_;

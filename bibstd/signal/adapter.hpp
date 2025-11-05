@@ -2,18 +2,18 @@
 
 #include "meta/pack.hpp"
 #include "meta/type_traits.hpp"
-#include "util/signals.hpp"
+#include "signal/common.hpp"
 
 #include <concepts>
 #include <string_view>
 
-namespace bibstd::framework
+namespace bibstd::signal
 {
 
 ///
 /// Common signal IDs. They shall be used in various adapters.
 ///
-enum class common_signal_id
+enum class common_id
 {
   queued,
   started,
@@ -33,17 +33,13 @@ struct named_signal;
 /// Named signal specification
 ///
 template<auto ID, typename T>
-struct named_signal<ID, util::signal_type<T>>
+struct named_signal<ID, signal_type<T>>
 {
-  // Typedefs
-  using signal_id = decltype(ID);
-  using signal_type = util::signal_type<T>;
-
   // Constants
   static constexpr auto id = ID;
 
   // Variables
-  signal_type signal;
+  signal_type<T> signal;
 };
 
 namespace detail
@@ -53,23 +49,23 @@ template<typename T>
 struct is_named_signal : std::false_type
 {};
 template<auto I, typename T>
-struct is_named_signal<named_signal<I, util::signal_type<T>>> : std::true_type
+struct is_named_signal<named_signal<I, signal_type<T>>> : std::true_type
 {};
 template<typename T>
-concept signal_adapter_arg = is_named_signal<T>::value;
+concept adapter_arg = is_named_signal<T>::value;
 
 } // namespace detail
 
 ///
 /// Signal adapter class.
 ///
-template<detail::signal_adapter_arg... Args>
-class signal_adapter
+template<detail::adapter_arg... Args>
+class adapter
 {
-  static_assert(meta::are_same_v<typename Args::signal_id...>, "registered signals must have same ID types");
+  static_assert(meta::are_same_v<decltype(Args::id)...>, "registered signals must have same ID types");
 
 public: // Typedefs
-  using signal_id = meta::pack<Args...>::first_type::signal_id;
+  using signal_id = decltype(meta::pack<Args...>::first_type::id);
 
 public: // Constants
   static constexpr auto registered_ids = std::array{Args::id...};
@@ -81,7 +77,7 @@ public: // Modifiers
   /// \return scoped connection corresponding to connected slot
   ///
   template<signal_id ID, typename Slot>
-  [[nodiscard]] auto connect(Slot&& slot) -> util::scoped_connection_type;
+  [[nodiscard]] auto connect(Slot&& slot) -> scoped_connection_type;
 
   ///
   /// Connect a slot to the signal with the specified ID, allowing extended functionality.
@@ -89,7 +85,7 @@ public: // Modifiers
   /// \return connection corresponding to connected slot
   ///
   template<signal_id ID, typename Slot>
-  auto connect_extended(Slot&& slot) -> util::connection_type;
+  auto connect_extended(Slot&& slot) -> connection_type;
 
 protected: // Accessors
   ///
@@ -110,9 +106,9 @@ private: // Variables
 
 ///
 ///
-template<detail::signal_adapter_arg... Args>
-template<signal_adapter<Args...>::signal_id ID, typename Slot>
-auto signal_adapter<Args...>::connect(Slot&& slot) -> util::scoped_connection_type
+template<detail::adapter_arg... Args>
+template<adapter<Args...>::signal_id ID, typename Slot>
+auto adapter<Args...>::connect(Slot&& slot) -> scoped_connection_type
 {
   constexpr auto index = find_index<ID>();
   return std::get<index>(signals_).signal.connect(std::forward<Slot>(slot));
@@ -120,9 +116,9 @@ auto signal_adapter<Args...>::connect(Slot&& slot) -> util::scoped_connection_ty
 
 ///
 ///
-template<detail::signal_adapter_arg... Args>
-template<signal_adapter<Args...>::signal_id ID, typename Slot>
-auto signal_adapter<Args...>::connect_extended(Slot&& slot) -> util::connection_type
+template<detail::adapter_arg... Args>
+template<adapter<Args...>::signal_id ID, typename Slot>
+auto adapter<Args...>::connect_extended(Slot&& slot) -> connection_type
 {
   constexpr auto index = find_index<ID>();
   return std::get<index>(signals_).signal.connect_extended(std::forward<Slot>(slot));
@@ -130,9 +126,9 @@ auto signal_adapter<Args...>::connect_extended(Slot&& slot) -> util::connection_
 
 ///
 ///
-template<detail::signal_adapter_arg... Args>
-template<signal_adapter<Args...>::signal_id ID, typename... SignalArgs>
-auto signal_adapter<Args...>::emit(SignalArgs... args) -> auto
+template<detail::adapter_arg... Args>
+template<adapter<Args...>::signal_id ID, typename... SignalArgs>
+auto adapter<Args...>::emit(SignalArgs... args) -> auto
 {
   constexpr auto index = find_index<ID>();
   return std::get<index>(signals_).signal(args...);
@@ -140,9 +136,9 @@ auto signal_adapter<Args...>::emit(SignalArgs... args) -> auto
 
 ///
 ///
-template<detail::signal_adapter_arg... Args>
-template<signal_adapter<Args...>::signal_id ID>
-consteval auto signal_adapter<Args...>::find_index() const -> std::size_t
+template<detail::adapter_arg... Args>
+template<adapter<Args...>::signal_id ID>
+consteval auto adapter<Args...>::find_index() const -> std::size_t
 {
   constexpr auto find_index = [&]<std::size_t I>(std::size_t& retval_index)
   {
@@ -161,4 +157,4 @@ consteval auto signal_adapter<Args...>::find_index() const -> std::size_t
   return index;
 }
 
-} // namespace bibstd::framework
+} // namespace bibstd::signal

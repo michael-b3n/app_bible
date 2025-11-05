@@ -2,7 +2,7 @@
 
 #include "framework/settings_base.hpp"
 #include "framework/settings_owner.hpp"
-#include "util/signals.hpp"
+#include "signal/common.hpp"
 #include "system/hotkey.hpp"
 
 #include <mutex>
@@ -50,7 +50,7 @@ private: // Implementation
 
 private: // Variables
   std::unique_ptr<workflow::workflow_bible_ref_ocr> workflow_bible_ref_ocr_;
-  util::connection_store connections_;
+  signal::connection_store connections_;
 };
 
 } // namespace bibstd::presenter
