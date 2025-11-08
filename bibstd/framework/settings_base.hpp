@@ -1,6 +1,6 @@
 #pragma once
 
-#include "workflow/workflow_settings.hpp"
+#include "bibstd/workflow/workflow_settings.hpp"
 
 namespace bibstd::framework
 {

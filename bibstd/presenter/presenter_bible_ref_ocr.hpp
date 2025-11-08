@@ -1,9 +1,9 @@
 #pragma once
 
-#include "framework/settings_base.hpp"
-#include "framework/settings_owner.hpp"
-#include "signal/common.hpp"
-#include "system/hotkey.hpp"
+#include "bibstd/framework/settings_base.hpp"
+#include "bibstd/framework/settings_owner.hpp"
+#include "bibstd/signal/common.hpp"
+#include "bibstd/system/hotkey.hpp"
 
 #include <mutex>
 

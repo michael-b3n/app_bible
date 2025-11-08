@@ -1,5 +1,5 @@
-#include "framework/main_loop.hpp"
-#include "util/log.hpp"
+#include "bibstd/framework/main_loop.hpp"
+#include "bibstd/util/log.hpp"
 
 #include <cassert>
 

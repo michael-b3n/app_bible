@@ -1,7 +1,7 @@
-#include "bible/reference_formatter.hpp"
-#include "bible/book_name_variants_de.hpp"
-#include "util/const_bimap.hpp"
-#include "util/log.hpp"
+#include "bibstd/bible/reference_formatter.hpp"
+#include "bibstd/bible/book_name_variants_de.hpp"
+#include "bibstd/util/const_bimap.hpp"
+#include "bibstd/util/log.hpp"
 
 #include <algorithm>
 #include <format>

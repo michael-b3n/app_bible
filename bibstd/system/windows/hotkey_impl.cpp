@@ -1,10 +1,10 @@
-#include "system/windows/hotkey_impl.hpp"
-#include "framework/task_queue.hpp"
-#include "framework/thread_pool.hpp"
-#include "system/windows/win.hpp"
-#include "util/const_bimap.hpp"
-#include "util/enum.hpp"
-#include "util/log.hpp"
+#include "bibstd/system/windows/hotkey_impl.hpp"
+#include "bibstd/framework/task_queue.hpp"
+#include "bibstd/framework/thread_pool.hpp"
+#include "bibstd/system/windows/win.hpp"
+#include "bibstd/util/const_bimap.hpp"
+#include "bibstd/util/enum.hpp"
+#include "bibstd/util/log.hpp"
 
 #include <algorithm>
 #include <cassert>

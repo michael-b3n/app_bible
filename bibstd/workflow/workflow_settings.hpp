@@ -1,11 +1,11 @@
 #pragma once
 
-#include "meta/for_each.hpp"
-#include "util/contains.hpp"
-#include "util/exception.hpp"
-#include "util/non_owning_ptr.hpp"
-#include "util/property_tree.hpp"
-#include "util/setting_type_erased.hpp"
+#include "bibstd/meta/for_each.hpp"
+#include "bibstd/util/contains.hpp"
+#include "bibstd/util/exception.hpp"
+#include "bibstd/util/non_owning_ptr.hpp"
+#include "bibstd/util/property_tree.hpp"
+#include "bibstd/util/setting_type_erased.hpp"
 
 #include <filesystem>
 #include <functional>

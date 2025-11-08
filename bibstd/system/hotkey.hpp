@@ -1,7 +1,7 @@
 #pragma once
 
-#include "system/hotkey_common.hpp"
-#include "util/scoped_guard.hpp"
+#include "bibstd/system/hotkey_common.hpp"
+#include "bibstd/util/scoped_guard.hpp"
 
 #include <functional>
 

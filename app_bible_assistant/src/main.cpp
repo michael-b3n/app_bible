@@ -4,16 +4,16 @@
 #include "framework/dispatcher.hpp"
 #include "version.hpp"
 
-#include <framework/thread_pool.hpp>
-#include <system/filesystem.hpp>
-#include <system/hotkey.hpp>
-#include <system/open_browser.hpp>
-#include <system/tray.hpp>
-#include <util/date.hpp>
-#include <util/incbin.hpp>
-#include <util/log.hpp>
+#include <bibstd/framework/thread_pool.hpp>
+#include <bibstd/system/filesystem.hpp>
+#include <bibstd/system/hotkey.hpp>
+#include <bibstd/system/open_browser.hpp>
+#include <bibstd/system/tray.hpp>
+#include <bibstd/util/date.hpp>
+#include <bibstd/util/incbin.hpp>
+#include <bibstd/util/log.hpp>
 
-#include <presenter/presenter_bible_ref_ocr.hpp>
+#include <bibstd/presenter/presenter_bible_ref_ocr.hpp>
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>

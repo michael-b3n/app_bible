@@ -1,9 +1,9 @@
 #pragma once
 
-#include "meta/contains.hpp"
-#include "meta/for_each.hpp"
-#include "util/enum.hpp"
-#include "util/exception.hpp"
+#include "bibstd/meta/contains.hpp"
+#include "bibstd/meta/for_each.hpp"
+#include "bibstd/util/enum.hpp"
+#include "bibstd/util/exception.hpp"
 
 #include <chrono>
 #include <filesystem>

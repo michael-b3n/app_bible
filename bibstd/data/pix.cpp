@@ -1,5 +1,5 @@
-#include "data/pix.hpp"
-#include "util/exception.hpp"
+#include "bibstd/data/pix.hpp"
+#include "bibstd/util/exception.hpp"
 #include <leptonica/imageio.h>
 
 #include <algorithm>

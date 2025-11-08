@@ -72,4 +72,5 @@ ENDIF()
 #
 # Add target include dirs and target sources.
 #
-target_include_directories(bibstd PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+cmake_path(GET CMAKE_CURRENT_SOURCE_DIR PARENT_PATH CMAKE_CURRENT_LIST_DIR_PARENT_PATH)
+target_include_directories(bibstd PUBLIC ${CMAKE_CURRENT_LIST_DIR_PARENT_PATH})

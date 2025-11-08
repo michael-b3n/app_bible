@@ -1,10 +1,10 @@
-#include "core/core_tesseract.hpp"
-#include "data/pix.hpp"
-#include "system/filesystem.hpp"
-#include "util/boost_numeric_cast.hpp"
-#include "util/const_bimap.hpp"
-#include "util/enum.hpp"
-#include "util/log.hpp"
+#include "bibstd/core/core_tesseract.hpp"
+#include "bibstd/data/pix.hpp"
+#include "bibstd/system/filesystem.hpp"
+#include "bibstd/util/boost_numeric_cast.hpp"
+#include "bibstd/util/const_bimap.hpp"
+#include "bibstd/util/enum.hpp"
+#include "bibstd/util/log.hpp"
 
 #include <leptonica/allheaders.h>
 #include <tesseract/baseapi.h>

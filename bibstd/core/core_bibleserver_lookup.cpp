@@ -1,8 +1,8 @@
-#include "core/core_bibleserver_lookup.hpp"
-#include "bible/book_name_variants_de.hpp"
-#include "system/open_browser.hpp"
-#include "util/enum.hpp"
-#include "util/log.hpp"
+#include "bibstd/core/core_bibleserver_lookup.hpp"
+#include "bibstd/bible/book_name_variants_de.hpp"
+#include "bibstd/system/open_browser.hpp"
+#include "bibstd/util/enum.hpp"
+#include "bibstd/util/log.hpp"
 
 namespace bibstd::core
 {

@@ -1,13 +1,13 @@
-#include "core/core_bible_ref_ocr.hpp"
-#include "bible/book_name_variants_de.hpp"
-#include "core/core_tesseract.hpp"
-#include "system/screen.hpp"
-#include "txt/chars.hpp"
-#include "util/boost_numeric_cast.hpp"
-#include "util/format.hpp"
-#include "util/log.hpp"
-#include "util/string.hpp"
-#include "util/timer.hpp"
+#include "bibstd/core/core_bible_ref_ocr.hpp"
+#include "bibstd/bible/book_name_variants_de.hpp"
+#include "bibstd/core/core_tesseract.hpp"
+#include "bibstd/system/screen.hpp"
+#include "bibstd/txt/chars.hpp"
+#include "bibstd/util/boost_numeric_cast.hpp"
+#include "bibstd/util/format.hpp"
+#include "bibstd/util/log.hpp"
+#include "bibstd/util/string.hpp"
+#include "bibstd/util/timer.hpp"
 
 #include <algorithm>
 

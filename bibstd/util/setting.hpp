@@ -1,10 +1,10 @@
 #pragma once
 
-#include "signal/adapter.hpp"
-#include "util/property.hpp"
-#include "util/setting_common.hpp"
-#include "util/setting_validator.hpp"
-#include "util/visit_helper.hpp"
+#include "bibstd/signal/adapter.hpp"
+#include "bibstd/util/property.hpp"
+#include "bibstd/util/setting_common.hpp"
+#include "bibstd/util/setting_validator.hpp"
+#include "bibstd/util/visit_helper.hpp"
 
 #include <memory>
 

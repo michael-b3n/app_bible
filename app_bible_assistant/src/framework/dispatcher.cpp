@@ -1,7 +1,7 @@
 #include "framework/dispatcher.hpp"
 
-#include <util/concurrent_queue.hpp>
-#include <util/log.hpp>
+#include <bibstd/util/concurrent_queue.hpp>
+#include <bibstd/util/log.hpp>
 
 #include <QGuiApplication>
 #include <QObject>

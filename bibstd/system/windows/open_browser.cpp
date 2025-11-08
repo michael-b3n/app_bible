@@ -1,6 +1,6 @@
-#include "system/open_browser.hpp"
-#include "system/windows/win.hpp"
-#include "util/exception.hpp"
+#include "bibstd/system/open_browser.hpp"
+#include "bibstd/system/windows/win.hpp"
+#include "bibstd/util/exception.hpp"
 
 #include <combaseapi.h>
 #include <shellapi.h>

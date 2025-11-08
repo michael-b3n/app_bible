@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/core_tesseract_common.hpp"
-#include "util/screen_types.hpp"
+#include "bibstd/core/core_tesseract_common.hpp"
+#include "bibstd/util/screen_types.hpp"
 
 #include <optional>
 #include <string_view>

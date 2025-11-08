@@ -1,5 +1,5 @@
-#include "bible/common.hpp"
-#include "util/enum.hpp"
+#include "bibstd/bible/common.hpp"
+#include "bibstd/util/enum.hpp"
 
 #include <cassert>
 #include <map>

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "math/value_range.hpp"
-#include "util/setting_common.hpp"
+#include "bibstd/math/value_range.hpp"
+#include "bibstd/util/setting_common.hpp"
 
 #include <algorithm>
 #include <concepts>

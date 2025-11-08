@@ -1,10 +1,10 @@
 #pragma once
 
-#include "data/pixel.hpp"
-#include "data/plane.hpp"
-#include "math/rect.hpp"
-#include "util/const_bimap.hpp"
-#include "util/screen_types.hpp"
+#include "bibstd/data/pixel.hpp"
+#include "bibstd/data/plane.hpp"
+#include "bibstd/math/rect.hpp"
+#include "bibstd/util/const_bimap.hpp"
+#include "bibstd/util/screen_types.hpp"
 
 #include <filesystem>
 #include <optional>

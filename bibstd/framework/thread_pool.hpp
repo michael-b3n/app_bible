@@ -1,10 +1,10 @@
 #pragma once
 
-#include "framework/active_worker.hpp"
-#include "framework/task_queue.hpp"
-#include "util/non_owning_ptr.hpp"
-#include "util/scoped_guard.hpp"
-#include "util/uid.hpp"
+#include "bibstd/framework/active_worker.hpp"
+#include "bibstd/framework/task_queue.hpp"
+#include "bibstd/util/non_owning_ptr.hpp"
+#include "bibstd/util/scoped_guard.hpp"
+#include "bibstd/util/uid.hpp"
 
 #include <atomic>
 #include <chrono>

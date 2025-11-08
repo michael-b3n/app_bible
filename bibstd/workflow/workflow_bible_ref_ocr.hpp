@@ -1,14 +1,14 @@
 #pragma once
 
-#include "bible/reference_range.hpp"
-#include "core/core_bible_ref_ocr_common.hpp"
-#include "core/core_tesseract_common.hpp"
-#include "framework/settings_base.hpp"
-#include "framework/settings_owner.hpp"
-#include "framework/thread_pool.hpp"
-#include "signal/adapter.hpp"
-#include "util/screen_types.hpp"
-#include "workflow/workflow_base.hpp"
+#include "bibstd/bible/reference_range.hpp"
+#include "bibstd/core/core_bible_ref_ocr_common.hpp"
+#include "bibstd/core/core_tesseract_common.hpp"
+#include "bibstd/framework/settings_base.hpp"
+#include "bibstd/framework/settings_owner.hpp"
+#include "bibstd/framework/thread_pool.hpp"
+#include "bibstd/signal/adapter.hpp"
+#include "bibstd/util/screen_types.hpp"
+#include "bibstd/workflow/workflow_base.hpp"
 
 #include <expected>
 #include <memory>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "util/log.hpp"
+#include "bibstd/util/log.hpp"
 
 #include <source_location>
 #include <stacktrace>

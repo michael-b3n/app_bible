@@ -1,8 +1,8 @@
-#include "presenter/presenter_bible_ref_ocr.hpp"
-#include "system/hotkey.hpp"
-#include "system/screen.hpp"
-#include "workflow/workflow_bible_ref_ocr.hpp"
-#include "workflow/workflow_settings.hpp"
+#include "bibstd/presenter/presenter_bible_ref_ocr.hpp"
+#include "bibstd/system/hotkey.hpp"
+#include "bibstd/system/screen.hpp"
+#include "bibstd/workflow/workflow_bible_ref_ocr.hpp"
+#include "bibstd/workflow/workflow_settings.hpp"
 
 namespace bibstd::presenter
 {

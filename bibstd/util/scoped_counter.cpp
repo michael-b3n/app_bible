@@ -1,4 +1,4 @@
-#include "util/scoped_counter.hpp"
+#include "bibstd/util/scoped_counter.hpp"
 
 namespace bibstd::util
 {

@@ -1,13 +1,13 @@
-#include "core/core_bible_ref.hpp"
-#include "bible/book_name_variants_de.hpp"
-#include "math/value_range.hpp"
-#include "txt/chars.hpp"
-#include "txt/find_uint.hpp"
-#include "util/contains.hpp"
-#include "util/format.hpp"
-#include "util/log.hpp"
-#include "util/string.hpp"
-#include "util/visit_helper.hpp"
+#include "bibstd/core/core_bible_ref.hpp"
+#include "bibstd/bible/book_name_variants_de.hpp"
+#include "bibstd/math/value_range.hpp"
+#include "bibstd/txt/chars.hpp"
+#include "bibstd/txt/find_uint.hpp"
+#include "bibstd/util/contains.hpp"
+#include "bibstd/util/format.hpp"
+#include "bibstd/util/log.hpp"
+#include "bibstd/util/string.hpp"
+#include "bibstd/util/visit_helper.hpp"
 
 #include <algorithm>
 #include <cassert>

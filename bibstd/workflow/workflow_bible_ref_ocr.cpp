@@ -1,13 +1,13 @@
-#include "workflow/workflow_bible_ref_ocr.hpp"
-#include "bible/reference_range.hpp"
-#include "core/core_bible_ref.hpp"
-#include "core/core_bible_ref_ocr.hpp"
-#include "core/core_bibleserver_lookup.hpp"
-#include "data/pixel.hpp"
-#include "data/plane.hpp"
-#include "system/screen.hpp"
-#include "util/format.hpp"
-#include "workflow/workflow_settings.hpp"
+#include "bibstd/workflow/workflow_bible_ref_ocr.hpp"
+#include "bibstd/bible/reference_range.hpp"
+#include "bibstd/core/core_bible_ref.hpp"
+#include "bibstd/core/core_bible_ref_ocr.hpp"
+#include "bibstd/core/core_bibleserver_lookup.hpp"
+#include "bibstd/data/pixel.hpp"
+#include "bibstd/data/plane.hpp"
+#include "bibstd/system/screen.hpp"
+#include "bibstd/util/format.hpp"
+#include "bibstd/workflow/workflow_settings.hpp"
 
 namespace bibstd::workflow
 {

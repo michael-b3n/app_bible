@@ -1,8 +1,8 @@
 #pragma once
 
-#include "meta/pack.hpp"
-#include "meta/type_traits.hpp"
-#include "util/exception.hpp"
+#include "bibstd/meta/pack.hpp"
+#include "bibstd/meta/type_traits.hpp"
+#include "bibstd/util/exception.hpp"
 
 #include <algorithm>
 #include <array>

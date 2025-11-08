@@ -1,11 +1,11 @@
 #pragma once
 
-#include "bible/reference_range.hpp"
-#include "core/core_bible_ref_ocr_common.hpp"
-#include "core/core_tesseract_common.hpp"
-#include "math/value_range.hpp"
-#include "txt/indexed_strings.hpp"
-#include "util/screen_types.hpp"
+#include "bibstd/bible/reference_range.hpp"
+#include "bibstd/core/core_bible_ref_ocr_common.hpp"
+#include "bibstd/core/core_tesseract_common.hpp"
+#include "bibstd/math/value_range.hpp"
+#include "bibstd/txt/indexed_strings.hpp"
+#include "bibstd/util/screen_types.hpp"
 
 #include <memory>
 #include <optional>

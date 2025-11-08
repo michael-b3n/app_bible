@@ -1,8 +1,8 @@
 #pragma once
 
-#include "meta/pack.hpp"
-#include "meta/type_traits.hpp"
-#include "signal/common.hpp"
+#include "bibstd/meta/pack.hpp"
+#include "bibstd/meta/type_traits.hpp"
+#include "bibstd/signal/common.hpp"
 
 #include <concepts>
 #include <string_view>

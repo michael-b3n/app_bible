@@ -1,8 +1,8 @@
 #pragma once
 
-#include "framework/active_worker.hpp"
-#include "system/hotkey_common.hpp"
-#include "util/scoped_guard.hpp"
+#include "bibstd/framework/active_worker.hpp"
+#include "bibstd/system/hotkey_common.hpp"
+#include "bibstd/util/scoped_guard.hpp"
 
 #include <atomic>
 #include <functional>

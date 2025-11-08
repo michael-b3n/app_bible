@@ -1,5 +1,5 @@
-#include "data/save_as_bitmap.hpp"
-#include "util/log.hpp"
+#include "bibstd/data/save_as_bitmap.hpp"
+#include "bibstd/util/log.hpp"
 
 #include <algorithm>
 #include <fstream>

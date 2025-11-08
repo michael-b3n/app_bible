@@ -1,6 +1,6 @@
 #pragma once
 
-#include "util/scoped_guard.hpp"
+#include "bibstd/util/scoped_guard.hpp"
 
 #include <tray.hpp>
 

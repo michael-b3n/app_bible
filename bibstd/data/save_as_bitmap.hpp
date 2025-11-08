@@ -1,7 +1,7 @@
 #pragma once
 
-#include "data/pixel.hpp"
-#include "data/plane.hpp"
+#include "bibstd/data/pixel.hpp"
+#include "bibstd/data/plane.hpp"
 
 #include <filesystem>
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "math/sign.hpp"
-#include "util/exception.hpp"
+#include "bibstd/math/sign.hpp"
+#include "bibstd/util/exception.hpp"
 
 #include <cassert>
 #include <cmath>

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "bible/reference_range.hpp"
-#include "math/value_range.hpp"
-#include "txt/chars.hpp"
+#include "bibstd/bible/reference_range.hpp"
+#include "bibstd/math/value_range.hpp"
+#include "bibstd/txt/chars.hpp"
 
 #include <optional>
 #include <string_view>

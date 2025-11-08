@@ -1,8 +1,8 @@
 #pragma once
 
-#include "math/arithmetic.hpp"
-#include "math/is_equal.hpp"
-#include "util/enum.hpp"
+#include "bibstd/math/arithmetic.hpp"
+#include "bibstd/math/is_equal.hpp"
+#include "bibstd/util/enum.hpp"
 
 #include <algorithm>
 #include <optional>

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "math/arithmetic.hpp"
-#include "math/coordinates.hpp"
-#include "math/value_range.hpp"
-#include "meta/type_traits.hpp"
-#include "util/boost_numeric_cast.hpp"
-#include "util/enum.hpp"
+#include "bibstd/math/arithmetic.hpp"
+#include "bibstd/math/coordinates.hpp"
+#include "bibstd/math/value_range.hpp"
+#include "bibstd/meta/type_traits.hpp"
+#include "bibstd/util/boost_numeric_cast.hpp"
+#include "bibstd/util/enum.hpp"
 
 #include <cassert>
 #include <optional>

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "util/non_owning_ptr.hpp"
-#include "util/setting.hpp"
+#include "bibstd/util/non_owning_ptr.hpp"
+#include "bibstd/util/setting.hpp"
 
 #include <functional>
 #include <memory>

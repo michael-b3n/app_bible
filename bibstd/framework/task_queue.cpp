@@ -1,5 +1,5 @@
-#include "framework/task_queue.hpp"
-#include "util/log.hpp"
+#include "bibstd/framework/task_queue.hpp"
+#include "bibstd/util/log.hpp"
 
 namespace bibstd::framework
 {

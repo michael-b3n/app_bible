@@ -1,9 +1,9 @@
 #pragma once
 
-#include "meta/chrono.hpp"
-#include "meta/contains.hpp"
-#include "meta/pack.hpp"
-#include "util/enum.hpp"
+#include "bibstd/meta/chrono.hpp"
+#include "bibstd/meta/contains.hpp"
+#include "bibstd/meta/pack.hpp"
+#include "bibstd/util/enum.hpp"
 
 #include <boost/property_tree/ptree.hpp>
 

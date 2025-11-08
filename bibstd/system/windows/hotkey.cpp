@@ -1,5 +1,5 @@
-#include "system/hotkey.hpp"
-#include "system/windows/hotkey_impl.hpp"
+#include "bibstd/system/hotkey.hpp"
+#include "bibstd/system/windows/hotkey_impl.hpp"
 
 namespace bibstd::system
 {

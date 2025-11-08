@@ -1,7 +1,7 @@
-#include "framework/thread_pool.hpp"
-#include "util/contains.hpp"
-#include "util/exception.hpp"
-#include "util/log.hpp"
+#include "bibstd/framework/thread_pool.hpp"
+#include "bibstd/util/contains.hpp"
+#include "bibstd/util/exception.hpp"
+#include "bibstd/util/log.hpp"
 
 #include <algorithm>
 #include <ranges>

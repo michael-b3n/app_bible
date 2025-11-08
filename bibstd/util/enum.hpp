@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math/arithmetic.hpp"
+#include "bibstd/math/arithmetic.hpp"
 #include <magic_enum/magic_enum.hpp>
 
 #include <concepts>

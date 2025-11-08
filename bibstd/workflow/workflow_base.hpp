@@ -1,8 +1,8 @@
 #pragma once
 
-#include "framework/runtime_uid.hpp"
-#include "util/non_owning_ptr.hpp"
-#include "util/uid.hpp"
+#include "bibstd/framework/runtime_uid.hpp"
+#include "bibstd/util/non_owning_ptr.hpp"
+#include "bibstd/util/uid.hpp"
 
 #include <expected>
 #include <stop_token>

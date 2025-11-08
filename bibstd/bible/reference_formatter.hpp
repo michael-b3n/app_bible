@@ -1,7 +1,7 @@
 #pragma once
 
-#include "bible/reference_range.hpp"
-#include "util/exception.hpp"
+#include "bibstd/bible/reference_range.hpp"
+#include "bibstd/util/exception.hpp"
 
 #include <optional>
 #include <string>

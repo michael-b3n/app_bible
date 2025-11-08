@@ -1,6 +1,6 @@
-#include "txt/indexed_strings.hpp"
-#include "util/log.hpp"
-#include "util/string.hpp"
+#include "bibstd/txt/indexed_strings.hpp"
+#include "bibstd/util/log.hpp"
+#include "bibstd/util/string.hpp"
 
 #include <algorithm>
 #include <ranges>

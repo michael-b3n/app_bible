@@ -1,6 +1,6 @@
 #pragma once
 
-#include "util/non_owning_ptr.hpp"
+#include "bibstd/util/non_owning_ptr.hpp"
 
 #include <atomic>
 

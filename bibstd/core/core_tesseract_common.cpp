@@ -1,5 +1,5 @@
-#include "core/core_tesseract_common.hpp"
-#include "system/filesystem.hpp"
+#include "bibstd/core/core_tesseract_common.hpp"
+#include "bibstd/system/filesystem.hpp"
 
 #include <string_view>
 
