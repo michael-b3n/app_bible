@@ -91,7 +91,7 @@ private: // Typedefs
 private: // Variables
   inline static std::mutex settings_mtx_{};
   inline static std::vector<setting_data> settings_{};
-  util::property_tree::sptr_type tree_{util::property_tree::create(settings_file_path())};
+  const util::property_tree::sptr_type tree_{util::property_tree::create(settings_file_path())};
 };
 
 ///
