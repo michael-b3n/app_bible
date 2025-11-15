@@ -16,10 +16,9 @@ namespace bibstd::workflow
 ///
 // clang-format off
 workflow_bible_ref_ocr_settings::workflow_bible_ref_ocr_settings()
-  : framework::settings_base{"OCR"}
-  , tessdata_path{workflow_settings_->create_setting("ocr.tessdata_path", "Tessdata Path", core::core_tesseract_common::tessdata_folder_finder().value_or("unknown"))} // TODO use optional
-  , language{workflow_settings_->create_setting("ocr.language", "Language", core::core_tesseract_common::language::de)}
-  , translations{workflow_settings_->create_setting("ocr.translations", "Translations", std::vector<bible::translation>{bible::translation::ngu, bible::translation::elb})}
+  : tessdata_path{workflow_settings_->create_setting("ocr.tessdata_path", core::core_tesseract_common::tessdata_folder_finder())}
+  , language{workflow_settings_->create_setting("ocr.language", core::core_tesseract_common::language::de)}
+  , translations{workflow_settings_->create_setting("ocr.translations", std::vector<bible::translation>{bible::translation::ngu, bible::translation::elb})}
 // clang-format on
 {
 }
@@ -30,7 +29,7 @@ workflow_bible_ref_ocr::workflow_bible_ref_ocr()
   : core_bible_ref_{std::make_unique<core::core_bible_ref>()}
   , core_bibleserver_lookup_{std::make_unique<core::core_bibleserver_lookup>()}
 {
-  if(!std::filesystem::exists(settings->tessdata_path->value()))
+  if(!settings->tessdata_path->value() || !std::filesystem::exists(*settings->tessdata_path->value()))
   {
     if(const auto found_tessdata_folder = core::core_tesseract_common::tessdata_folder_finder())
     {
@@ -39,9 +38,9 @@ workflow_bible_ref_ocr::workflow_bible_ref_ocr()
     }
   }
   const auto path = settings->tessdata_path->value();
-  if(std::filesystem::exists(path))
+  if(path && std::filesystem::exists(*path))
   {
-    core_bible_ref_ocr_ = std::make_shared<core::core_bible_ref_ocr>(path, settings->language->value());
+    core_bible_ref_ocr_ = std::make_shared<core::core_bible_ref_ocr>(*path, settings->language->value());
   }
 }
 

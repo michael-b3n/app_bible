@@ -32,9 +32,16 @@ auto workflow_settings::type_erased_settings() -> std::vector<setting_type_erase
 
 ///
 ///
-workflow_settings::workflow_settings(std::string&& parent)
-  : parent_{std::move(parent)}
+auto workflow_settings::type_erased_setting(const std::string& path)
+  -> std::optional<setting_type_erased_non_owning_ptr_variant_type>
 {
+  const auto lock = std::lock_guard(settings_mtx_);
+  const auto it = std::ranges::find_if(settings_, [&path](const auto& data) { return data.path == path; });
+  if(it != std::ranges::cend(settings_))
+  {
+    return std::visit([](const auto& e) -> setting_type_erased_non_owning_ptr_variant_type { return e.get(); }, it->setting);
+  }
+  return std::nullopt;
 }
 
 } // namespace bibstd::workflow

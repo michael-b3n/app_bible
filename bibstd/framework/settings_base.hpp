@@ -11,7 +11,7 @@ namespace bibstd::framework
 class settings_base
 {
 public: // Structors
-  settings_base(std::string&& parent);
+  settings_base();
   virtual ~settings_base() noexcept;
 
 protected: // Typedefs

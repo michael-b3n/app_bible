@@ -57,23 +57,21 @@ file(GLOB_RECURSE app_bible_assistant_QML_FILES CONFIGURE_DEPENDS "${CMAKE_CURRE
 #
 # Setup Qt6 and executable
 #
-set(QT_VERSION_NAME Qt6)
-set(QT_VERSION_NUMBER 6.9)
-
 set(QT_FORCE_CMP0156_TO_VALUE NEW)
-set(CMAKE_AUTOMOC ON)
 
 find_package(${QT_VERSION_NAME} ${QT_VERSION_NUMBER} REQUIRED COMPONENTS Quick)
 qt_standard_project_setup(REQUIRES ${QT_VERSION_NUMBER})
 qt_add_executable(${PROJECT_NAME} WIN32)
 
-# add_subdirectory(qml)
 qt_add_qml_module(
   ${PROJECT_NAME}
-  URI "main"
+  URI "ui"
+  VERSION ${APP_VERSION}
   QML_FILES
-  src/Main.qml
+  qml/main.qml
   IMPORTS
+  BibQml
+  IMPORT_PATH "${CMAKE_BINARY_DIR}/bibqml"
 )
 qt_generate_deploy_qml_app_script(
   TARGET ${PROJECT_NAME}
@@ -119,6 +117,7 @@ target_sources(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
   PRIVATE Qt6::Quick
   PRIVATE bibstd
+  PRIVATE BibQmlplugin
 )
 
 #

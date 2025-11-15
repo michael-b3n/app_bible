@@ -16,7 +16,10 @@ namespace bibstd::util
 ///
 enum class setting_sig_id
 {
+  /// Value changed signal: will be emitted when the setting value changes.
   value_changed,
+  /// Validator changed signal: will be emitted when the setting validator changes. A change of the setting validator
+  /// can change the value of the setting. In the case the signal `value_changed` will be emitted first.
   validator_changed,
 };
 
@@ -38,7 +41,7 @@ public: // Typedefs
   using sptr_type = std::shared_ptr<setting<T>>;
 
 public: // Structors
-  setting(const std::string& parent, const std::string& name, util::property<T>&& value, setting_validator<T>&& validator);
+  setting(const std::string& path, util::property<T>&& value, setting_validator<T>&& validator);
 
 public: // Accessors
   ///
@@ -55,8 +58,7 @@ public: // Setters
   auto value(const T& v) -> bool;
 
 public: // Variables
-  const std::string parent;
-  const std::string name;
+  const std::string path;
   const setting_validator<T> validator;
 
 private: // Variables
@@ -66,16 +68,23 @@ private: // Variables
 ///
 ///
 template<underlying_setting_type T>
-setting<T>::setting(
-  const std::string& parent_, const std::string& name_, util::property<T>&& value, setting_validator<T>&& validator_
-)
-  : parent{parent_}
-  , name{name_}
+setting<T>::setting(const std::string& path_, util::property<T>&& value, setting_validator<T>&& validator_)
+  : path{path_}
   , validator{std::move(validator_)}
   , value_{std::move(value)}
 {
   std::visit(
-    [this](const auto& v) { v->connect_on_changed([this] { emit<setting_sig_id::validator_changed>(); }); }, validator
+    [this](const auto& v)
+    {
+      v->connect_on_changed(
+        [this]
+        {
+          this->value(value_.value());
+          emit<setting_sig_id::validator_changed>();
+        }
+      );
+    },
+    validator
   );
 }
 

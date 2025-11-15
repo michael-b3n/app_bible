@@ -1,5 +1,5 @@
-#include <core/core_bible_ref.hpp>
-#include <util/contains.hpp>
+#include <bibstd/core/core_bible_ref.hpp>
+#include <bibstd/util/contains.hpp>
 
 #include <catch2/catch_all.hpp>
 

@@ -11,9 +11,8 @@ namespace bibstd::presenter
 ///
 // clang-format off
 presenter_bible_ref_ocr_settings::presenter_bible_ref_ocr_settings()
-  : framework::settings_base{"OCR"}
-  , hotkey_modifier{workflow_settings_->create_setting("ocr.hotkey_modifier", "Hotkey Modifier", system::hotkey_common::key_modifier::alt)}
-  , hotkey{workflow_settings_->create_setting("ocr.hotkey", "Hotkey", system::hotkey_common::key::vk_f)}
+  : hotkey_modifier{workflow_settings_->create_setting("ocr.hotkey_modifier", system::hotkey_common::key_modifier::alt)}
+  , hotkey{workflow_settings_->create_setting("ocr.hotkey", system::hotkey_common::key::vk_f)}
 // clang-format on
 {
 }

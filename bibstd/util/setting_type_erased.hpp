@@ -44,8 +44,7 @@ private: // Variables
 
 public: // Variables
   const setting_sig_adapter& signal_adapter;
-  const std::string parent;
-  const std::string name;
+  const std::string path;
   const setting_validator_type_erased<T> validator;
 };
 
@@ -89,8 +88,7 @@ setting_type_erased<T>::setting_type_erased(const std::shared_ptr<setting<U>>& s
   : get_{[setting, converter = create_setting_value_converter<U, T>()]() { return converter(setting->value()); }}
   , set_{[setting, converter = create_setting_value_converter<T, U>()](const T& v) { return setting->value(converter(v)); }}
   , signal_adapter{*setting}
-  , parent{setting->parent}
-  , name{setting->name}
+  , path{setting->path}
   , validator{detail::validator_type_erased<U>(setting->validator)}
 {
 }

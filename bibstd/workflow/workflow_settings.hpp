@@ -55,8 +55,15 @@ public: // Static interface
   ///
   static auto type_erased_settings() -> std::vector<setting_type_erased_non_owning_ptr_variant_type>;
 
+  ///
+  /// Access a type erased setting for the specified path.
+  /// \param path Setting path
+  /// \return type erased setting or nullopt if no setting with the specified path exists
+  ///
+  static auto type_erased_setting(const std::string& path) -> std::optional<setting_type_erased_non_owning_ptr_variant_type>;
+
 public: // Structors
-  workflow_settings(std::string&& parent);
+  workflow_settings() = default;
 
 public: // Modifiers
   ///
@@ -70,7 +77,6 @@ public: // Modifiers
   template<util::underlying_setting_type T>
   [[nodiscard]] auto create_setting(
     const std::string& path,
-    const std::string& name,
     T&& default_value,
     util::setting_validator<T>&& validator = std::make_shared<util::setting_validator_unbound>()
   ) -> setting_non_owning_ptr_type<T>;
@@ -83,7 +89,6 @@ private: // Typedefs
   };
 
 private: // Variables
-  const std::string parent_;
   inline static std::mutex settings_mtx_{};
   inline static std::vector<setting_data> settings_{};
   util::property_tree::sptr_type tree_{util::property_tree::create(settings_file_path())};
@@ -92,13 +97,11 @@ private: // Variables
 ///
 ///
 template<util::underlying_setting_type T>
-auto workflow_settings::create_setting(
-  const std::string& path, const std::string& name, T&& default_value, util::setting_validator<T>&& validator
-) -> setting_non_owning_ptr_type<T>
+auto workflow_settings::create_setting(const std::string& path, T&& default_value, util::setting_validator<T>&& validator)
+  -> setting_non_owning_ptr_type<T>
 {
   const auto setting = std::make_shared<util::setting<T>>(
-    parent_,
-    name,
+    path,
     std::move(tree_->create_property(util::property_tree::path_type{path}, std::move(default_value))),
     std::move(validator)
   );
@@ -109,8 +112,7 @@ auto workflow_settings::create_setting(
   const auto contains_path = util::contains(settings_, [&path](const auto& data) { return data.path == path; });
   if(contains_path)
   {
-    const auto value_name = name.empty() ? "<unnamed>" : name;
-    THROW_EXCEPTION(util::exception(std::format("setting already created: path=\"{}\", name=\"{}\"", path, value_name)));
+    THROW_EXCEPTION(util::exception(std::format("setting already created: path=\"{}\"", path)));
   }
   settings_.emplace_back(setting_data{.path = path, .setting = std::make_unique<underlying_setting_type_erased_type>(setting)});
   return setting_ptr;

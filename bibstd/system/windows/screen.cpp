@@ -16,11 +16,16 @@ namespace bibstd::system
 
 ///
 ///
+auto screen::init() -> bool
+{
+  // We set the Dpi awareness explicitly for this process.
+  return SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+}
+
+///
+///
 auto screen::metrics() -> screen_rect_type
 {
-  // This should be set with a application manifest. This did not work
-  // We set the Dpi awareness explicitly for this process.
-  SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
   const auto x = GetSystemMetrics(SM_XVIRTUALSCREEN);
   const auto y = GetSystemMetrics(SM_YVIRTUALSCREEN);
   const auto width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
@@ -33,9 +38,6 @@ auto screen::metrics() -> screen_rect_type
 auto screen::cursor_position() -> screen_coordinates_type
 {
   POINT point;
-  // This should be set with a application manifest. This did not work
-  // We set the Dpi awareness explicitly for this process.
-  SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
   if(!GetCursorPos(&point))
   {
     THROW_EXCEPTION(util::exception("failed to get cursor position"));
@@ -47,9 +49,6 @@ auto screen::cursor_position() -> screen_coordinates_type
 ///
 auto screen::window_at(const screen_coordinates_type coordinates) -> std::optional<screen_rect_type>
 {
-  // This should be set with a application manifest. This did not work
-  // We set the Dpi awareness explicitly for this process.
-  SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
   const auto hwnd = WindowFromPoint(POINT{coordinates.x(), coordinates.y()});
   if(hwnd != nullptr)
   {

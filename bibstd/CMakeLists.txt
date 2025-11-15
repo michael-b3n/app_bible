@@ -52,7 +52,7 @@ target_include_directories(bibstd PUBLIC ${LEPTONICA_INCLUDE_DIRS})
 #
 target_link_libraries(bibstd
   PUBLIC ${Boost_LIBRARIES}
-  PUBLIC fmt
+  PUBLIC spdlog::spdlog
   PUBLIC libs_external::all
   ${TESSERACT_LIBRARIES}
   ${LEPTONICA_LIBRARIES}

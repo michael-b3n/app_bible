@@ -8,6 +8,7 @@
 #include <bibstd/system/filesystem.hpp>
 #include <bibstd/system/hotkey.hpp>
 #include <bibstd/system/open_browser.hpp>
+#include <bibstd/system/screen.hpp>
 #include <bibstd/system/tray.hpp>
 #include <bibstd/util/date.hpp>
 #include <bibstd/util/incbin.hpp>
@@ -17,9 +18,12 @@
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QtQml/QQmlExtensionPlugin>
 
 #include <filesystem>
 #include <format>
+
+Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
 
 INC_RESOURCE(icon, "res/icon.ico");
 const auto icon_view = bibstd::util::incbin::to_span<std::byte>(res_icon_data, res_icon_size);
@@ -35,7 +39,12 @@ int main(int argc, char** argv)
   LOG_INFO("commit_hash: {}", bible_assistant::version::commit_hash);
   LOG_INFO("commit_date: {}", bible_assistant::version::commit_date);
 
-  // Start system hotkey manager.
+  if(bibstd::system::screen::init())
+  {
+    LOG_ERROR("failed to initialize screen settings");
+    return EXIT_FAILURE;
+  }
+
   const auto hotkey_guard = bibstd::system::hotkey::init();
   const auto pool_guard = bibstd::framework::thread_pool::init();
 
@@ -56,7 +65,7 @@ int main(int argc, char** argv)
     },
     Qt::QueuedConnection
   );
-  engine.loadFromModule("main", "Main");
+  engine.load(QUrl(QStringLiteral("qrc:/qt/qml/ui/qml/main.qml")));
 
   const auto dispatcher_guard = bible_assistant::framework::dispatcher::init();
 
