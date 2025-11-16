@@ -11,20 +11,7 @@ namespace bibstd::signal
 {
 
 ///
-/// Common signal IDs. They shall be used in various adapters.
-///
-enum class common_id
-{
-  queued,
-  started,
-  progress,
-  ended,
-  applied,
-  changed,
-};
-
-///
-///
+/// Named signal template.
 ///
 template<auto ID, typename T>
 struct named_signal;

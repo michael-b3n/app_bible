@@ -25,8 +25,40 @@ class core_bibleserver_lookup;
 
 namespace bibstd::workflow
 {
+
 // Forward declarations
 class workflow_bible_ref_ocr;
+
+namespace detail
+{
+
+///
+/// Available signal IDs.
+///
+enum class workflow_bible_ref_ocr_signal_id
+{
+  started,
+  ended
+};
+
+///
+/// Start parameters for workflow bible reference ocr.
+///
+struct workflow_bible_ref_ocr_start_params final
+{
+  util::screen_types::screen_coordinates_type cursor_position{0, 0};
+  bool recognize_largest_bounding_box{false};
+};
+
+///
+/// Base type definition.
+///
+using workflow_base_type = workflow_base<
+  workflow_bible_ref_ocr,               // derived workflow
+  workflow_bible_ref_ocr_start_params,  // start params type,
+  std::vector<bible::reference_range>>; // expected result type
+
+} // namespace detail
 
 ///
 /// Settings corresponding to workflow bible reference ocr.
@@ -44,37 +76,25 @@ public: // Variables
 };
 
 ///
-/// Start parameters for workflow bible reference ocr.
-///
-struct workflow_bible_ref_ocr_start_params final
-{
-  util::screen_types::screen_coordinates_type cursor_position{0, 0};
-  bool recognize_largest_bounding_box{false};
-};
-
-using workflow_base_type = workflow_base<
-  workflow_bible_ref_ocr,               // derived workflow
-  workflow_bible_ref_ocr_start_params,  // start params type,
-  std::vector<bible::reference_range>>; // expected result type
-
-///
 /// Bible reference ocr: this workflow searches for bible references on a screen area using OCR around the cursor position.
 /// Signal IDs to connect to:
 /// - started: Emitted when the OCR process starts. Slots receive the start parameters `start_params`.
 /// - ended: Emitted when the OCR process ends. Slots receive the result parameters `result_params`.
 ///
 class workflow_bible_ref_ocr final
-  : public workflow_base_type
+  : public detail::workflow_base_type
   , public framework::settings_owner<workflow_bible_ref_ocr_settings>
-  // clang-format off
   , public signal::adapter<
-      signal::named_signal<signal::common_id::started, signal::signal_type<void(const workflow_base_type::start_params&)>>,
-      signal::named_signal<signal::common_id::ended, signal::signal_type<void(const workflow_base_type::result_params&)>>>
-// clang-format on
+      signal::named_signal<
+        detail::workflow_bible_ref_ocr_signal_id::started,
+        signal::signal_type<void(const detail::workflow_base_type::start_params&)>>,
+      signal::named_signal<
+        detail::workflow_bible_ref_ocr_signal_id::ended,
+        signal::signal_type<void(const detail::workflow_base_type::result_params&)>>>
 {
 public: // Typedefs
-  using start_params = workflow_base_type::start_params;
-  using result_params = workflow_base_type::result_params;
+  using start_params = detail::workflow_base_type::start_params;
+  using result_params = detail::workflow_base_type::result_params;
 
 public: // Structors
   workflow_bible_ref_ocr();
@@ -89,7 +109,7 @@ public: // Modifiers
   auto start(const start_params& params) -> std::stop_source;
 
 private: // Typedefs
-  using result_type = workflow_base_type::result_type;
+  using result_type = detail::workflow_base_type::result_type;
   using screen_rect_type = util::screen_types::screen_rect_type;
 
 private: // Implementation

@@ -14,7 +14,7 @@ namespace bibstd::util
 ///
 /// Signaling IDs for setting class.
 ///
-enum class setting_sig_id
+enum class setting_signal_id
 {
   /// Value changed signal: will be emitted when the setting value changes.
   value_changed,
@@ -26,15 +26,15 @@ enum class setting_sig_id
 ///
 /// Setting signal adapter type.
 ///
-using setting_sig_adapter = signal::adapter<
-  signal::named_signal<setting_sig_id::value_changed, signal::signal_type<void()>>,
-  signal::named_signal<setting_sig_id::validator_changed, signal::signal_type<void()>>>;
+using setting_signal_adapter = signal::adapter<
+  signal::named_signal<setting_signal_id::value_changed, signal::signal_type<void()>>,
+  signal::named_signal<setting_signal_id::validator_changed, signal::signal_type<void()>>>;
 
 ///
 /// Setting class.
 ///
 template<underlying_setting_type T>
-class setting final : public setting_sig_adapter
+class setting final : public setting_signal_adapter
 {
 public: // Typedefs
   using value_type = T;
@@ -80,7 +80,7 @@ setting<T>::setting(const std::string& path_, util::property<T>&& value, setting
         [this]
         {
           this->value(value_.value());
-          emit<setting_sig_id::validator_changed>();
+          emit<setting_signal_id::validator_changed>();
         }
       );
     },
@@ -108,7 +108,7 @@ auto setting<T>::value(const T& v) -> bool
       decltype(auto) old_value = value_.exchange(v);
       if(old_value != v)
       {
-        emit<setting_sig_id::value_changed>();
+        emit<setting_signal_id::value_changed>();
       }
       return true;
     },
@@ -118,7 +118,7 @@ auto setting<T>::value(const T& v) -> bool
       decltype(auto) old_value = value_.exchange(validated_value);
       if(old_value != validated_value)
       {
-        emit<setting_sig_id::value_changed>();
+        emit<setting_signal_id::value_changed>();
       }
       return validated_value == v;
     },
@@ -130,7 +130,7 @@ auto setting<T>::value(const T& v) -> bool
         decltype(auto) old_value = value_.exchange(v);
         if(old_value != v)
         {
-          emit<setting_sig_id::value_changed>();
+          emit<setting_signal_id::value_changed>();
         }
       }
       return contains;

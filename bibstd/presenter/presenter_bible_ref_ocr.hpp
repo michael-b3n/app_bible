@@ -2,6 +2,7 @@
 
 #include "bibstd/framework/settings_base.hpp"
 #include "bibstd/framework/settings_owner.hpp"
+#include "bibstd/signal/adapter.hpp"
 #include "bibstd/signal/common.hpp"
 #include "bibstd/system/hotkey.hpp"
 
@@ -17,6 +18,20 @@ class widget_main;
 } // namespace bibstd::visual
 namespace bibstd::presenter
 {
+namespace detail
+{
+
+///
+/// Available signal IDs.
+///
+enum class presenter_bible_ref_ocr_signal_id
+{
+  queued,
+  started,
+  ended
+};
+
+} // namespace detail
 
 ///
 /// Settings corresponding to presenter bible reference ocr.
@@ -35,16 +50,21 @@ public: // Variables
 
 ///
 /// Presenter bible reference ocr.
+/// Signals:
+/// - queued: Emitted when the OCR is started. Slots receive (int x, int y).
+/// - started: Emitted when the OCR process starts.
+/// - ended: Emitted when the OCR process ends.
 ///
-class presenter_bible_ref_ocr final : public framework::settings_owner<presenter_bible_ref_ocr_settings>
+class presenter_bible_ref_ocr final
+  : public framework::settings_owner<presenter_bible_ref_ocr_settings>
+  , public signal::adapter<
+      signal::named_signal<detail::presenter_bible_ref_ocr_signal_id::queued, signal::signal_type<void(int, int)>>,
+      signal::named_signal<detail::presenter_bible_ref_ocr_signal_id::started, signal::signal_type<void()>>,
+      signal::named_signal<detail::presenter_bible_ref_ocr_signal_id::ended, signal::signal_type<void()>>>
 {
-public: // Typedefs
-
 public: // Structors
   presenter_bible_ref_ocr();
   ~presenter_bible_ref_ocr() noexcept;
-
-public: // Modifiers
 
 private: // Implementation
 
