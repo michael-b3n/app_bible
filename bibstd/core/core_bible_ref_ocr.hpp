@@ -22,9 +22,9 @@ class core_tesseract;
 class core_bible_ref_ocr final
 {
 public: // Typedefs
-  using screen_rect_type = util::screen_types::screen_rect_type;
-  using screen_coordinates_type = util::screen_types::screen_coordinates_type;
-  using pixel_plane_type = util::screen_types::pixel_plane_type;
+  using screen_rect_type = util::screen_rect_type;
+  using screen_coordinates_type = util::screen_coordinates_type;
+  using pixel_plane_type = util::pixel_plane_type;
   using tesseract_choice = core_tesseract_common::tesseract_choice;
   using tesseract_choices = core_tesseract_common::tesseract_choices;
   using character_data = core_bible_ref_ocr_common::character_data;

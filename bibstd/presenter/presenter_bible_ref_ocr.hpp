@@ -5,8 +5,11 @@
 #include "bibstd/signal/adapter.hpp"
 #include "bibstd/signal/common.hpp"
 #include "bibstd/system/hotkey.hpp"
+#include "bibstd/util/screen_types.hpp"
 
+#include <memory>
 #include <mutex>
+#include <stop_token>
 
 namespace bibstd::workflow
 {
@@ -46,6 +49,7 @@ public: // Structors
 public: // Variables
   const setting_type<system::hotkey_common::key_modifier> hotkey_modifier;
   const setting_type<system::hotkey_common::key> hotkey;
+  const setting_type<bool> recognize_largest_bounding_box;
 };
 
 ///
@@ -66,7 +70,13 @@ public: // Structors
   presenter_bible_ref_ocr();
   ~presenter_bible_ref_ocr() noexcept;
 
-private: // Implementation
+public: // Operations
+  ///
+  /// Start the bible reference recognition.
+  /// \param position The position on the screen where to start the recognition.
+  /// \return stop source to cancel the recognition
+  ///
+  auto start(const util::screen_coordinates_type& position) -> std::stop_source;
 
 private: // Variables
   std::unique_ptr<workflow::workflow_bible_ref_ocr> workflow_bible_ref_ocr_;

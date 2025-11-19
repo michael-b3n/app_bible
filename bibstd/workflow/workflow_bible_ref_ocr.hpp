@@ -46,7 +46,7 @@ enum class workflow_bible_ref_ocr_signal_id
 ///
 struct workflow_bible_ref_ocr_start_params final
 {
-  util::screen_types::screen_coordinates_type cursor_position{0, 0};
+  util::screen_coordinates_type cursor_position{0, 0};
   bool recognize_largest_bounding_box{false};
 };
 
@@ -110,7 +110,7 @@ public: // Modifiers
 
 private: // Typedefs
   using result_type = detail::workflow_base_type::result_type;
-  using screen_rect_type = util::screen_types::screen_rect_type;
+  using screen_rect_type = util::screen_rect_type;
 
 private: // Implementation
   auto find_references(
@@ -121,7 +121,7 @@ private: // Implementation
   ) -> result_type;
   auto parse_tesseract_recognition(
     const std::shared_ptr<core::core_bible_ref_ocr>& core_bible_ref_ocr,
-    const util::screen_types::screen_coordinates_type& relative_cursor_pos
+    const util::screen_coordinates_type& relative_cursor_pos
   ) -> std::vector<bible::reference_range>;
 
 private: // Variables

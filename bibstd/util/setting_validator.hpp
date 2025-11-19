@@ -20,7 +20,7 @@ namespace detail
 /// Concept for types that can be used as range type in setting_validator_range.
 ///
 template<typename T>
-concept setting_validator_range_type = underlying_setting_type<T> && std::is_arithmetic_v<T>;
+concept setting_validator_range_type = underlying_setting_type<T> && std::is_arithmetic_v<T> && !std::is_same_v<T, bool>;
 
 ///
 /// Helper type to extract validator type from smart pointer.

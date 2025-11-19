@@ -13,9 +13,9 @@ namespace bibstd::system
 class screen final
 {
 public: // Typedefs
-  using screen_rect_type = util::screen_types::screen_rect_type;
-  using screen_coordinates_type = util::screen_types::screen_coordinates_type;
-  using pixel_plane_type = util::screen_types::pixel_plane_type;
+  using screen_rect_type = util::screen_rect_type;
+  using screen_coordinates_type = util::screen_coordinates_type;
+  using pixel_plane_type = util::pixel_plane_type;
 
 public: // Static accessors
   ///

@@ -22,7 +22,7 @@ namespace detail
 /// \param rect Rectangle for which the top position is calculated
 /// \return top position of the rectangle
 ///
-auto top(const util::screen_types::screen_rect_type& rect) -> std::int32_t
+auto top(const util::screen_rect_type& rect) -> std::int32_t
 {
   return rect.origin().y() + rect.vertical_range();
 }
@@ -33,7 +33,7 @@ auto top(const util::screen_types::screen_rect_type& rect) -> std::int32_t
 /// \param rect Rectangle for which the bottom position is calculated
 /// \return bottom position of the rectangle
 ///
-auto bottom(const util::screen_types::screen_rect_type& rect) -> std::int32_t
+auto bottom(const util::screen_rect_type& rect) -> std::int32_t
 {
   return rect.origin().y();
 }
@@ -44,7 +44,7 @@ auto bottom(const util::screen_types::screen_rect_type& rect) -> std::int32_t
 /// \param rect Rectangle for which the left position is calculated
 /// \return left position of the rectangle
 ///
-auto left(const util::screen_types::screen_rect_type& rect) -> std::int32_t
+auto left(const util::screen_rect_type& rect) -> std::int32_t
 {
   return rect.origin().x();
 }
@@ -55,7 +55,7 @@ auto left(const util::screen_types::screen_rect_type& rect) -> std::int32_t
 /// \param rect Rectangle for which the right position is calculated
 /// \return right position of the rectangle
 ///
-auto right(const util::screen_types::screen_rect_type& rect) -> std::int32_t
+auto right(const util::screen_rect_type& rect) -> std::int32_t
 {
   return rect.origin().x() + rect.horizontal_range();
 }

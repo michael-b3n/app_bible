@@ -24,9 +24,9 @@ namespace bibstd::core
 class core_tesseract final
 {
 public: // Typedefs
-  using screen_rect_type = util::screen_types::screen_rect_type;
-  using screen_coordinates_type = util::screen_types::screen_coordinates_type;
-  using pixel_plane_type = util::screen_types::pixel_plane_type;
+  using screen_rect_type = util::screen_rect_type;
+  using screen_coordinates_type = util::screen_coordinates_type;
+  using pixel_plane_type = util::pixel_plane_type;
   using text_callback_type = std::function<void(std::string_view, const screen_rect_type&)>;
   using text_while_callback_type = std::function<bool(std::string_view, const screen_rect_type&)>;
   using tesseract_choice = core_tesseract_common::tesseract_choice;

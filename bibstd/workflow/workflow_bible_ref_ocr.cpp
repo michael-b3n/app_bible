@@ -129,7 +129,7 @@ auto workflow_bible_ref_ocr::find_references(
 ///
 auto workflow_bible_ref_ocr::parse_tesseract_recognition(
   const std::shared_ptr<core::core_bible_ref_ocr>& core_bible_ref_ocr,
-  const util::screen_types::screen_coordinates_type& relative_cursor_pos
+  const util::screen_coordinates_type& relative_cursor_pos
 ) -> std::vector<bible::reference_range>
 {
   auto references = std::vector<bible::reference_range>{};

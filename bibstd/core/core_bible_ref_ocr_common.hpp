@@ -15,7 +15,7 @@ struct core_bible_ref_ocr_common final
 {
   // Typedefs
   using index_range_type = math::value_range<std::size_t>;
-  using screen_rect_type = util::screen_types::screen_rect_type;
+  using screen_rect_type = util::screen_rect_type;
 
   ///
   /// This struct contains OCR data for recognized symbol (character).

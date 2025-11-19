@@ -13,6 +13,7 @@ namespace bibstd::presenter
 presenter_bible_ref_ocr_settings::presenter_bible_ref_ocr_settings()
   : hotkey_modifier{workflow_settings_->create_setting("ocr.hotkey_modifier", system::hotkey_common::key_modifier::alt)}
   , hotkey{workflow_settings_->create_setting("ocr.hotkey", system::hotkey_common::key::vk_f)}
+  , recognize_largest_bounding_box{workflow_settings_->create_setting("ocr.recognize_largest_bounding_box", false)}
 // clang-format on
 {
 }
@@ -38,14 +39,7 @@ presenter_bible_ref_ocr::presenter_bible_ref_ocr()
     {
       stop_source.request_stop();
       const auto cursor_pos = system::screen::cursor_position();
-
-      // Emit shortcut pressed signal
-      emit<signal_id::queued>(cursor_pos.x(), cursor_pos.y());
-
-      const auto start_params = workflow::workflow_bible_ref_ocr::start_params{
-        {cursor_pos, false}
-      };
-      stop_source = workflow_bible_ref_ocr_->start(start_params);
+      stop_source = start(cursor_pos);
     }
   );
 }
@@ -53,5 +47,17 @@ presenter_bible_ref_ocr::presenter_bible_ref_ocr()
 ///
 ///
 presenter_bible_ref_ocr::~presenter_bible_ref_ocr() noexcept = default;
+
+///
+///
+auto presenter_bible_ref_ocr::start(const util::screen_coordinates_type& position) -> std::stop_source
+{
+  emit<signal_id::queued>(position.x(), position.y());
+
+  const auto start_params = workflow::workflow_bible_ref_ocr::start_params{
+    {position, settings->recognize_largest_bounding_box->value()}
+  };
+  return workflow_bible_ref_ocr_->start(start_params);
+}
 
 } // namespace bibstd::presenter
