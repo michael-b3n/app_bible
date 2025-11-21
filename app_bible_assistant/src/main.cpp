@@ -17,6 +17,7 @@
 #include <bibstd/presenter/presenter_bible_ref_ocr.hpp>
 
 #include <QGuiApplication>
+#include <QMetaObject>
 #include <QQmlApplicationEngine>
 #include <QtQml/QQmlExtensionPlugin>
 
@@ -81,10 +82,8 @@ int main(int argc, char** argv)
   );
   engine.load(QUrl(QStringLiteral("qrc:/qt/qml/ui/qml/main.qml")));
 
-  const auto dispatcher_guard = bible_assistant::framework::dispatcher::init();
-
   // Connect tray signals
-  const auto do_on_exit = [&]() { bible_assistant::framework::dispatcher::run_in_ui_thread([&] { app.quit(); }); };
+  const auto do_on_exit = [&]() { QMetaObject::invokeMethod(&app, [&app]{ app.quit(); }, Qt::QueuedConnection); };
   const auto open_github = []() { bibstd::system::open_browser::open("https://github.com/michael-b3n/app_bible"); };
   // Start system tray.
   const auto tray_guard = bibstd::system::tray::init(
