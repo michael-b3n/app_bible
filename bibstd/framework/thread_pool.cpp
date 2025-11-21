@@ -28,7 +28,7 @@ auto thread_pool::init() -> util::scoped_guard
     {
       {
         initialized_ = false;
-        // Make sure the lock is not used by anyone else anymore. The shutdown flag ensures,
+        // Make sure the lock is not used by anyone else anymore. The initialized flag ensures,
         // that the pool_ member is not modified or read from external threads anymore.
         const auto lock = std::lock_guard(mtx_);
       }

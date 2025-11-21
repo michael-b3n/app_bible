@@ -45,11 +45,25 @@ int main(int argc, char** argv)
     return EXIT_FAILURE;
   }
 
-  const auto hotkey_guard = bibstd::system::hotkey::init();
+  // Init backend
+  auto presenter_bible_ref_ocr = bibstd::presenter::presenter_bible_ref_ocr();
+
+  // Init thread pool
   const auto pool_guard = bibstd::framework::thread_pool::init();
 
-  // Init presenters
-  auto presenter_bible_ref_ocr = bibstd::presenter::presenter_bible_ref_ocr();
+  // Init hotkey system
+  const auto hotkey_guard = bibstd::system::hotkey::init();
+  // Register hotkeys. Currently no hotkey change is supported.
+  bibstd::system::hotkey::register_callback(
+    presenter_bible_ref_ocr.settings->hotkey->value(),
+    presenter_bible_ref_ocr.settings->hotkey_modifier->value(),
+    [&presenter_bible_ref_ocr, stop_source = std::stop_source()]() mutable
+    {
+      stop_source.request_stop();
+      const auto cursor_pos = bibstd::system::screen::cursor_position();
+      stop_source = presenter_bible_ref_ocr.start(cursor_pos);
+    }
+  );
 
   // Initialize Qt application.
   QGuiApplication app(argc, argv);

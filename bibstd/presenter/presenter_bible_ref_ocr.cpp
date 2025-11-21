@@ -30,18 +30,6 @@ presenter_bible_ref_ocr::presenter_bible_ref_ocr()
   connections_.add_connection(workflow_bible_ref_ocr_->connect<workflow::workflow_bible_ref_ocr::signal_id::ended>(
     [this]([[maybe_unused]] const auto& /*params*/) { emit<signal_id::ended>(); }
   ));
-
-  // Register hotkeys. Currently no hotkey change is supported.
-  system::hotkey::register_callback(
-    settings->hotkey->value(),
-    settings->hotkey_modifier->value(),
-    [this, stop_source = std::stop_source()]() mutable
-    {
-      stop_source.request_stop();
-      const auto cursor_pos = system::screen::cursor_position();
-      stop_source = start(cursor_pos);
-    }
-  );
 }
 
 ///
