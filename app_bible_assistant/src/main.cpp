@@ -15,15 +15,18 @@
 
 #include <bibstd/presenter/presenter_bible_ref_ocr.hpp>
 
+#include <bibqml/BridgeBibleRefOcr.hpp>
+
 #include <QGuiApplication>
 #include <QMetaObject>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
+
 #include <QtQml/QQmlExtensionPlugin>
+Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
 
 #include <filesystem>
 #include <format>
-
-Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
 
 INC_RESOURCE(icon, "res/icon.ico");
 const auto icon_view = bibstd::util::incbin::to_span<std::byte>(res_icon_data, res_icon_size);
@@ -68,6 +71,15 @@ int main(int argc, char** argv)
   // Initialize Qt application.
   QGuiApplication app(argc, argv);
   QQmlApplicationEngine engine;
+
+  // Create OCR bridge and pass ownership to QML engine
+  auto bridge_bible_ref_ocr = bibqml::BridgeBibleRefOcr(presenter_bible_ref_ocr);
+
+  // Set initial properties for the QML root component
+  engine.setInitialProperties({
+    {"bridge", QVariant::fromValue(&bridge_bible_ref_ocr)}
+  });
+
   QObject::connect(
     &engine,
     &QQmlApplicationEngine::objectCreationFailed,
