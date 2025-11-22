@@ -270,7 +270,7 @@ setting_validator_range<T>::setting_validator_range(const T min, const T max)
 {
   if(math::value_range<T>::empty(range_))
   {
-    THROW_EXCEPTION(std::invalid_argument("invalid empty range as setting_validator_range argument"));
+    THROW_EXCEPTION("invalid empty range as setting_validator_range argument");
   }
 }
 
@@ -298,7 +298,7 @@ template<underlying_setting_type T>
 setting_validator_range<T>::setting_validator_range([[maybe_unused]] T, [[maybe_unused]] T)
   requires(!detail::setting_validator_range_type<T>)
 {
-  THROW_EXCEPTION(std::invalid_argument("unsupported range value type"));
+  THROW_EXCEPTION("unsupported range value type");
 }
 
 ///
@@ -307,7 +307,7 @@ template<underlying_setting_type T>
 auto setting_validator_range<T>::validate(const T& value) const -> T
   requires(!detail::setting_validator_range_type<T>)
 {
-  THROW_EXCEPTION(std::invalid_argument("unsupported value type for validate"));
+  THROW_EXCEPTION("unsupported value type for validate");
   return value;
 }
 
@@ -317,7 +317,7 @@ template<underlying_setting_type T>
 auto setting_validator_range<T>::contains([[maybe_unused]] const T&) const -> bool
   requires(!detail::setting_validator_range_type<T>)
 {
-  THROW_EXCEPTION(std::invalid_argument("unsupported value type for contains"));
+  THROW_EXCEPTION("unsupported value type for contains");
   return false;
 }
 
@@ -367,7 +367,7 @@ setting_validator_list<T>::setting_validator_list(std::vector<T> list)
 {
   if(list_.empty())
   {
-    THROW_EXCEPTION(std::invalid_argument("invalid empty list as setting_validator_list argument"));
+    THROW_EXCEPTION("invalid empty list as setting_validator_list argument");
   }
 }
 

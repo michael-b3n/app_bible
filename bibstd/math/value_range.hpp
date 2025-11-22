@@ -212,7 +212,7 @@ constexpr auto value_range<ValueType>::clamp(const value_range& range, const val
   {
     if(empty(range))
     {
-      THROW_EXCEPTION(std::invalid_argument("cannot clamp to empty value_range"));
+      THROW_EXCEPTION("cannot clamp to empty value_range");
     }
     return std::clamp(value, range.begin, range.end - 1);
   }
@@ -231,7 +231,7 @@ constexpr value_range<ValueType>::value_range(value_type begin_, value_type to_)
 {
   if(!arithmetic::subtract(end, begin).has_value() || !arithmetic::add(begin, static_cast<value_type>(1)).has_value())
   {
-    THROW_EXCEPTION(std::invalid_argument("invalid value_range arguments"));
+    THROW_EXCEPTION("invalid value_range arguments");
   }
 }
 

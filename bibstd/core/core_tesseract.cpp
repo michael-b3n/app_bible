@@ -29,7 +29,7 @@ core_tesseract::core_tesseract(const std::filesystem::path& tessdata_path, const
   if(!std::filesystem::exists(tessdata_path))
   {
     LOG_ERROR("tessdata path does not exist: \"{}\"", tessdata_path.generic_string());
-    THROW_EXCEPTION(std::invalid_argument("non existent tessdata path"));
+    THROW_EXCEPTION("non existent tessdata path");
   }
   auto tessdata_string = tessdata_path.generic_string();
   tesseract_->Init(tessdata_string.data(), language_map.at(language).data(), tesseract::OEM_LSTM_ONLY);

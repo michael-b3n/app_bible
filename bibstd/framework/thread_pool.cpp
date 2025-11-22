@@ -43,7 +43,7 @@ auto thread_pool::queue_task(task_type&& task) -> void
 {
   if(!initialized_)
   {
-    return;
+    THROW_EXCEPTION("thread pool not initialized");
   }
   const auto lock = std::lock_guard(mtx_);
   static const auto internal_strand_id = strand_id();
@@ -56,7 +56,7 @@ auto thread_pool::queue_task(task_type&& task, const strand_id_type id) -> void
 {
   if(!initialized_)
   {
-    return;
+    THROW_EXCEPTION("thread pool not initialized");
   }
   const auto lock = std::lock_guard(mtx_);
   const auto dest_thread = std::ranges::find_if(

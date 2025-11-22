@@ -19,6 +19,7 @@ workflow_bible_ref_ocr_settings::workflow_bible_ref_ocr_settings()
   : tessdata_path{workflow_settings_->create_setting("ocr.tessdata_path", core::core_tesseract_common::tessdata_folder_finder())}
   , language{workflow_settings_->create_setting("ocr.language", core::core_tesseract_common::language::de)}
   , translations{workflow_settings_->create_setting("ocr.translations", std::vector<bible::translation>{bible::translation::ngu, bible::translation::elb})}
+  , recognize_largest_bounding_box{workflow_settings_->create_setting("ocr.recognize_largest_bounding_box", false)}
 // clang-format on
 {
 }
@@ -52,41 +53,59 @@ workflow_bible_ref_ocr::~workflow_bible_ref_ocr() noexcept = default;
 ///
 auto workflow_bible_ref_ocr::start(const start_params& params) -> std::stop_source
 {
-  const auto core_bible_ref_ocr = core_bible_ref_ocr_.load();
-  if(!core_bible_ref_ocr)
-  {
-    LOG_WARN("failed to start bible reference ocr search: not fully initialized");
-    return {};
-  }
-  // Capture screen directly on call of this function to ensure the cursor position is up-to-date.
-  // This is usually called from the main thread and takes only a few milliseconds.
-  // This also ensures that no displayed windows are blocking the screen capture.
-  auto image_data = core_bible_ref_ocr->capture_screen(params->cursor_position);
-  if(!image_data)
-  {
-    LOG_WARN("capture screen failed: cursor_position={}", params->cursor_position);
-    return {};
-  }
-  LOG_INFO("find references: cursor_position={}", params->cursor_position);
   const std::stop_source stop_source;
-  framework::thread_pool::queue_task(
-    [this, params, core_bible_ref_ocr, data = std::move(*image_data), token = stop_source.get_token()]() mutable
+  try
+  {
+    const auto core_bible_ref_ocr = core_bible_ref_ocr_.load();
+    if(!core_bible_ref_ocr)
     {
-      emit<signal_id::started>(params);
-      const auto translations = settings->translations->value();
-      const auto references =
-        find_references(core_bible_ref_ocr, std::move(data), params->recognize_largest_bounding_box, token);
-      if(references.has_value())
+      LOG_WARN("failed to start bible reference ocr search: not fully initialized");
+      emit<signal_id::ended>(result_type{params.process_id(), return_failure});
+      return {};
+    }
+    // Capture screen directly on call of this function to ensure the cursor position is up-to-date.
+    // This is usually called from the main thread and takes only a few milliseconds.
+    // This also ensures that no displayed windows are blocking the screen capture.
+    auto image_data = core_bible_ref_ocr->capture_screen(params->cursor_position);
+    if(!image_data)
+    {
+      LOG_WARN("capture screen failed: cursor_position={}", params->cursor_position);
+      emit<signal_id::ended>(result_type{params.process_id(), return_failure});
+      return {};
+    }
+    LOG_INFO("find references: cursor_position={}", params->cursor_position);
+    const std::stop_source stop_source;
+    framework::thread_pool::queue_task(
+      [this, params, core_bible_ref_ocr, data = std::move(*image_data), token = stop_source.get_token()]() mutable
       {
-        LOG_INFO("reference search finished: references=[{}]", util::format::join(*references, ", "));
-        std::ranges::for_each(
-          *references, [&](const auto& reference_range) { core_bibleserver_lookup_->open(reference_range, translations); }
-        );
-      }
-      emit<signal_id::ended>(result_params{params.process_id(), references});
-    },
-    strand_id_
-  );
+        try
+        {
+          const auto translations = settings->translations->value();
+          const auto references =
+            find_references(core_bible_ref_ocr, std::move(data), settings->recognize_largest_bounding_box->value(), token);
+          if(references.has_value())
+          {
+            LOG_INFO("reference search finished: references=[{}]", util::format::join(*references, ", "));
+            std::ranges::for_each(
+              *references, [&](const auto& reference_range) { core_bibleserver_lookup_->open(reference_range, translations); }
+            );
+          }
+          emit<signal_id::ended>(result_type{params.process_id(), references});
+        }
+        catch(const util::exception& e)
+        {
+          LOG_ERROR("exception occurred: {}", e);
+          emit<signal_id::ended>(result_type{params.process_id(), return_failure});
+        }
+      },
+      strand_id_
+    );
+  }
+  catch(const util::exception& e)
+  {
+    LOG_ERROR("exception occurred: {}", e);
+    emit<signal_id::ended>(result_type{params.process_id(), return_failure});
+  }
   return stop_source;
 }
 
@@ -97,7 +116,7 @@ auto workflow_bible_ref_ocr::find_references(
   auto&& image_data,
   const bool recognize_largest_bounding_box,
   const std::stop_token stop_token
-) -> result_type
+) -> decltype(result_type::result)
 {
   if(stop_token.stop_requested())
   {
@@ -128,8 +147,7 @@ auto workflow_bible_ref_ocr::find_references(
 ///
 ///
 auto workflow_bible_ref_ocr::parse_tesseract_recognition(
-  const std::shared_ptr<core::core_bible_ref_ocr>& core_bible_ref_ocr,
-  const util::screen_coordinates_type& relative_cursor_pos
+  const std::shared_ptr<core::core_bible_ref_ocr>& core_bible_ref_ocr, const util::screen_coordinates_type& relative_cursor_pos
 ) -> std::vector<bible::reference_range>
 {
   auto references = std::vector<bible::reference_range>{};

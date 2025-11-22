@@ -71,17 +71,12 @@ protected: // Typedefs
   };
 
   ///
-  /// Default result type for workflows.
-  ///
-  using result_type = std::expected<ExpectedResultType, unexpected_result>;
-
-  ///
   /// Default result parameters for workflows containing process ID and result of result type.
   ///
-  struct result_params final
+  struct result_type final
   {
     framework::runtime_uid_type process_id{};
-    result_type result{std::unexpected{unexpected_result::failure}};
+    std::expected<ExpectedResultType, unexpected_result> result{std::unexpected{unexpected_result::failure}};
   };
 
 protected: // Constants

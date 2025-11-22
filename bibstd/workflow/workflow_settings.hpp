@@ -112,7 +112,7 @@ auto workflow_settings::create_setting(const std::string& path, T&& default_valu
   const auto contains_path = util::contains(settings_, [&path](const auto& data) { return data.path == path; });
   if(contains_path)
   {
-    THROW_EXCEPTION(util::exception(std::format("setting already created: path=\"{}\"", path)));
+    THROW_EXCEPTION(std::format("setting already created: path=\"{}\"", path));
   }
   settings_.emplace_back(setting_data{.path = path, .setting = std::make_unique<underlying_setting_type_erased_type>(setting)});
   return setting_ptr;

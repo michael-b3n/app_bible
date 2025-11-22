@@ -52,7 +52,12 @@ project(
 #
 file(GLOB_RECURSE app_bible_assistant_CPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.cpp")
 file(GLOB_RECURSE app_bible_assistant_HPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.hpp")
-file(GLOB_RECURSE app_bible_assistant_QML_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.qml")
+
+file(GLOB_RECURSE ${PROJECT_NAME}_QML_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/qml/*.qml")
+foreach(file ${${PROJECT_NAME}_QML_FILES})
+  cmake_path(RELATIVE_PATH file BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  list(APPEND ${PROJECT_NAME}_QML_FILES_RELATIVE ${file})
+endforeach()
 
 #
 # Setup Qt6 and executable
@@ -68,7 +73,7 @@ qt_add_qml_module(
   URI "ui"
   VERSION ${APP_VERSION}
   QML_FILES
-  qml/main.qml
+  ${${PROJECT_NAME}_QML_FILES_RELATIVE}
   IMPORTS
   BibQml
   IMPORT_PATH "${CMAKE_BINARY_DIR}/bibqml"

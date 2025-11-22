@@ -1,5 +1,7 @@
 #pragma once
 
+#include "bibstd/bible/reference_range.hpp"
+#include "bibstd/framework/runtime_uid.hpp"
 #include "bibstd/framework/settings_base.hpp"
 #include "bibstd/framework/settings_owner.hpp"
 #include "bibstd/signal/adapter.hpp"
@@ -29,7 +31,6 @@ namespace detail
 ///
 enum class presenter_bible_ref_ocr_signal_id
 {
-  queued,
   started,
   ended
 };
@@ -49,7 +50,6 @@ public: // Structors
 public: // Variables
   const setting_type<system::hotkey_common::key_modifier> hotkey_modifier;
   const setting_type<system::hotkey_common::key> hotkey;
-  const setting_type<bool> recognize_largest_bounding_box;
 };
 
 ///
@@ -62,9 +62,12 @@ public: // Variables
 class presenter_bible_ref_ocr final
   : public framework::settings_owner<presenter_bible_ref_ocr_settings>
   , public signal::adapter<
-      signal::named_signal<detail::presenter_bible_ref_ocr_signal_id::queued, signal::signal_type<void(int, int)>>,
-      signal::named_signal<detail::presenter_bible_ref_ocr_signal_id::started, signal::signal_type<void()>>,
-      signal::named_signal<detail::presenter_bible_ref_ocr_signal_id::ended, signal::signal_type<void()>>>
+      signal::named_signal<
+        detail::presenter_bible_ref_ocr_signal_id::started,
+        signal::signal_type<void(framework::runtime_uid_type)>>,
+      signal::named_signal<
+        detail::presenter_bible_ref_ocr_signal_id::ended,
+        signal::signal_type<void(framework::runtime_uid_type, std::vector<bible::reference_range>)>>>
 {
 public: // Structors
   presenter_bible_ref_ocr();

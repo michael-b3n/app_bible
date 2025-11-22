@@ -37,7 +37,6 @@ namespace detail
 ///
 enum class workflow_bible_ref_ocr_signal_id
 {
-  started,
   ended
 };
 
@@ -47,16 +46,20 @@ enum class workflow_bible_ref_ocr_signal_id
 struct workflow_bible_ref_ocr_start_params final
 {
   util::screen_coordinates_type cursor_position{0, 0};
-  bool recognize_largest_bounding_box{false};
 };
+
+///
+/// Expected result type for workflow bible reference ocr.
+///
+using workflow_bible_ref_ocr_expected_result_type = std::vector<bible::reference_range>;
 
 ///
 /// Base type definition.
 ///
-using workflow_base_type = workflow_base<
-  workflow_bible_ref_ocr,               // derived workflow
-  workflow_bible_ref_ocr_start_params,  // start params type,
-  std::vector<bible::reference_range>>; // expected result type
+using workflow_bible_ref_ocr_base_type = workflow_base<
+  workflow_bible_ref_ocr,                       // derived workflow
+  workflow_bible_ref_ocr_start_params,          // start params type,
+  workflow_bible_ref_ocr_expected_result_type>; // expected result type
 
 } // namespace detail
 
@@ -73,28 +76,25 @@ public: // Variables
   const setting_type<std::optional<std::filesystem::path>> tessdata_path;
   const setting_type<core::core_tesseract_common::language> language;
   const setting_type<std::vector<bible::translation>> translations;
+  const setting_type<bool> recognize_largest_bounding_box;
 };
 
 ///
 /// Bible reference ocr: this workflow searches for bible references on a screen area using OCR around the cursor position.
 /// Signal IDs to connect to:
 /// - started: Emitted when the OCR process starts. Slots receive the start parameters `start_params`.
-/// - ended: Emitted when the OCR process ends. Slots receive the result parameters `result_params`.
+/// - ended: Emitted when the OCR process ends. Slots receive the result parameters `result_type`.
 ///
 class workflow_bible_ref_ocr final
-  : public detail::workflow_base_type
+  : public detail::workflow_bible_ref_ocr_base_type
   , public framework::settings_owner<workflow_bible_ref_ocr_settings>
-  , public signal::adapter<
-      signal::named_signal<
-        detail::workflow_bible_ref_ocr_signal_id::started,
-        signal::signal_type<void(const detail::workflow_base_type::start_params&)>>,
-      signal::named_signal<
-        detail::workflow_bible_ref_ocr_signal_id::ended,
-        signal::signal_type<void(const detail::workflow_base_type::result_params&)>>>
+  , public signal::adapter<signal::named_signal<
+      detail::workflow_bible_ref_ocr_signal_id::ended,
+      signal::signal_type<void(const detail::workflow_bible_ref_ocr_base_type::result_type&)>>>
 {
 public: // Typedefs
-  using start_params = detail::workflow_base_type::start_params;
-  using result_params = detail::workflow_base_type::result_params;
+  using start_params = detail::workflow_bible_ref_ocr_base_type::start_params;
+  using result_type = detail::workflow_bible_ref_ocr_base_type::result_type;
 
 public: // Structors
   workflow_bible_ref_ocr();
@@ -109,7 +109,6 @@ public: // Modifiers
   auto start(const start_params& params) -> std::stop_source;
 
 private: // Typedefs
-  using result_type = detail::workflow_base_type::result_type;
   using screen_rect_type = util::screen_rect_type;
 
 private: // Implementation
@@ -118,7 +117,7 @@ private: // Implementation
     auto&& image_data,
     bool recognize_largest_bounding_box,
     std::stop_token stop_token
-  ) -> result_type;
+  ) -> decltype(result_type::result);
   auto parse_tesseract_recognition(
     const std::shared_ptr<core::core_bible_ref_ocr>& core_bible_ref_ocr,
     const util::screen_coordinates_type& relative_cursor_pos

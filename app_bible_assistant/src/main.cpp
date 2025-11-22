@@ -1,7 +1,6 @@
 ///
 /// Main file.
 ///
-#include "framework/dispatcher.hpp"
 #include "version.hpp"
 
 #include <bibstd/framework/thread_pool.hpp>
