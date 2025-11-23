@@ -104,6 +104,16 @@ auto new_hotkey_id() -> int
 }
 
 ///
+/// Create a static MSG object for message handling.
+/// \return Reference to static MSG object
+///
+auto message() -> MSG&
+{
+  static MSG msg;
+  return msg;
+}
+
+///
 /// Message handler for Windows hotkey callbacks.
 /// \param msg The message received from the Windows message queue
 /// \param callback_map Map of hotkey IDs to their corresponding callback functions
@@ -137,8 +147,16 @@ auto hotkey_impl::init() -> util::scoped_guard
     [&]()
     {
       windows_thread_id_ = GetCurrentThreadId();
+      worker_->queue_task(
+        [&]()
+        {
+          // PeekMessage to create the message queue for this thread.
+          // This is needed such that PostThreadMessage can post messages to it.
+          PeekMessage(&message(), nullptr, 0, 0, PM_REMOVE);
+          promise.set_value();
+        }
+      );
       worker_->queue_task(get_message);
-      promise.set_value();
     }
   );
   future.get();
@@ -202,10 +220,9 @@ auto hotkey_impl::unregister_callback(const hotkey_common::key key, const hotkey
 ///
 auto hotkey_impl::get_message() -> void
 {
-  static MSG msg;
   if(listen_to_msg_)
   {
-    if(const auto ret = GetMessage(&msg, nullptr, 0, 0); ret != 0)
+    if(const auto ret = GetMessage(&message(), nullptr, 0, 0); ret != 0)
     {
       if(ret == -1)
       {
@@ -217,9 +234,9 @@ auto hotkey_impl::get_message() -> void
         {
           register_queue_.try_do_task();
         }
-        TranslateMessage(&msg);
-        message_handler(msg, callback_map_);
-        DispatchMessage(&msg);
+        TranslateMessage(&message());
+        message_handler(message(), callback_map_);
+        DispatchMessage(&message());
       }
       worker_->queue_task(get_message);
     }

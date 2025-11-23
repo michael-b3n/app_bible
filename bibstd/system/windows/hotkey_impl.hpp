@@ -17,8 +17,6 @@ namespace bibstd::system
 ///
 class hotkey_impl final
 {
-public: // Typedefs
-
 public: // Static modifiers
   ///
   /// \see hotkey::init
