@@ -1,18 +1,24 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Universal
+import QtQuick.Layouts
+import QtQuick.VectorImage
 import BibQml
 
 ApplicationWindow {
+    Universal.theme: Universal.Dark
+    Universal.accent: Universal.Violet
+
     required property BridgeBibleRefOcr bridge
 
     id: root
     visible: bridge.visible
-    width: 640
-    height: 480
-    title: qsTr("Bible Assistant")
+    color: "transparent"
+    width: 48
+    height: 16
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
-    x: bridge.cursorX
-    y: bridge.cursorY
+    x: bridge.cursorX + root.width > Screen.desktopAvailableWidth ? bridge.cursorX - root.width : bridge.cursorX
+    y: bridge.cursorY + root.height > Screen.desktopAvailableHeight ? bridge.cursorY - root.height : bridge.cursorY
 
     onVisibleChanged: {
         if (visible)
@@ -23,30 +29,36 @@ ApplicationWindow {
     }
 
     Rectangle {
+        id: mainRect
         anchors.fill: parent
-        color: "lightgray"
-        border.color: "black"
-        border.width: 1
-        radius: 5
+        color: Universal.background
+        radius: root.height * 0.1
 
-        Row {
+        RowLayout {
+            id: layout
             anchors.fill: parent
-            anchors.margins: 5
-            spacing: 5
-
-            Label {
-                text: qsTr("Processing OCR...")
-                verticalAlignment: Text.AlignVCenter
-                width: parent.width - closeButton.width - spacing
-            }
+            spacing: root.height * 0.05
 
             Button {
                 id: closeButton
-                width: 20
-                height: 20
-                text: "×"
+                Layout.preferredWidth: parent.height
+                Layout.preferredHeight: parent.height
+
+                VectorImage {
+                    width: parent.width
+                    height: parent.height
+                    preferredRendererType: VectorImage.CurveRenderer
+                    source: "qrc:/qt/qml/ui/qml/res/close.svg"
+                }
 
                 onClicked: bridge.visible = false
+            }
+
+            ProgressBar {
+                id: control
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                indeterminate: true
             }
         }
     }

@@ -21,6 +21,7 @@
 #include <QMetaObject>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QQuickStyle>
 
 #include <QtQml/QQmlExtensionPlugin>
 Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
@@ -94,7 +95,7 @@ int main(int argc, char** argv)
   engine.load(QUrl(QStringLiteral("qrc:/qt/qml/ui/qml/main.qml")));
 
   // Connect tray signals
-  const auto do_on_exit = [&]() { QMetaObject::invokeMethod(&app, [&app]{ app.quit(); }, Qt::QueuedConnection); };
+  const auto do_on_exit = [&]() { QMetaObject::invokeMethod(&app, [&app] { app.quit(); }, Qt::QueuedConnection); };
   const auto open_github = []() { bibstd::system::open_browser::open("https://github.com/michael-b3n/app_bible"); };
   // Start system tray.
   const auto tray_guard = bibstd::system::tray::init(

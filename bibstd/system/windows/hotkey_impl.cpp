@@ -168,9 +168,13 @@ auto hotkey_impl::register_callback(
     {
       callback_map_[hotkey_id] = std::move(c);
       id_map_[std::pair{key, mod}] = hotkey_id;
-      if(!RegisterHotKey(nullptr, hotkey_id, key_modifier_map.at(mod), key_map.at(key)))
+      if(RegisterHotKey(nullptr, hotkey_id, key_modifier_map.at(mod), key_map.at(key)))
       {
-        LOG_ERROR("failed to register hotkey: key={}, modifier={}", util::to_integral(mod), util::to_integral(key));
+        LOG_DEBUG("registered hotkey: id={}, key={}, modifier={}", hotkey_id, util::to_integral(key), util::to_integral(mod));
+      }
+      else
+      {
+        LOG_ERROR("failed to register hotkey: key={}, modifier={}", util::to_integral(key), util::to_integral(mod));
       }
     }
   );

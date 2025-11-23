@@ -58,13 +58,18 @@ foreach(file ${${PROJECT_NAME}_QML_FILES})
   cmake_path(RELATIVE_PATH file BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
   list(APPEND ${PROJECT_NAME}_QML_FILES_RELATIVE ${file})
 endforeach()
+file(GLOB_RECURSE ${PROJECT_NAME}_SVG_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/qml/*.svg")
+foreach(file ${${PROJECT_NAME}_SVG_FILES})
+  cmake_path(RELATIVE_PATH file BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  list(APPEND ${PROJECT_NAME}_SVG_FILES_RELATIVE ${file})
+endforeach()
 
 #
 # Setup Qt6 and executable
 #
 set(QT_FORCE_CMP0156_TO_VALUE NEW)
 
-find_package(${QT_VERSION_NAME} ${QT_VERSION_NUMBER} REQUIRED COMPONENTS Quick)
+find_package(${QT_VERSION_NAME} ${QT_VERSION_NUMBER} REQUIRED COMPONENTS Quick QuickControls2 Svg)
 qt_standard_project_setup(REQUIRES ${QT_VERSION_NUMBER})
 qt_add_executable(${PROJECT_NAME} WIN32)
 
@@ -76,7 +81,9 @@ qt_add_qml_module(
   ${${PROJECT_NAME}_QML_FILES_RELATIVE}
   IMPORTS
   BibQml
-  IMPORT_PATH "${CMAKE_BINARY_DIR}/bibqml"
+  DEPENDENCIES TARGET BibQml
+  RESOURCES
+  ${${PROJECT_NAME}_SVG_FILES_RELATIVE}
 )
 qt_generate_deploy_qml_app_script(
   TARGET ${PROJECT_NAME}
@@ -121,6 +128,8 @@ target_sources(${PROJECT_NAME}
 #
 target_link_libraries(${PROJECT_NAME}
   PRIVATE Qt6::Quick
+  PRIVATE Qt6::QuickControls2
+  PRIVATE Qt6::Svg
   PRIVATE bibstd
   PRIVATE BibQmlplugin
 )

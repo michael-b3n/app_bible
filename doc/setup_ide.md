@@ -21,6 +21,7 @@
 -  **Tesseract** run `pacman -S mingw-w64-x86_64-tesseract-ocr` in `msys2_shell.cmd`
 -  **Tesseract Data (deu)** run `pacman -S mingw-w64-x86_64-tesseract-data-deu` in `msys2_shell.cmd`
 -  **Qt6** run `pacman -S mingw-w64-x86_64-qt6-declarative` in `msys2_shell.cmd`
+-  **Qt6 SVG** run `pacman -S mingw-w64-x86_64-qt6-svg` in `msys2_shell.cmd`
 
 #### Add other dependencies
 
