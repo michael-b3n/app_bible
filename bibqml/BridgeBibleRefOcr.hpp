@@ -3,6 +3,7 @@
 #include <bibstd/framework/runtime_uid.hpp>
 
 #include <QObject>
+#include <QPoint>
 #include <QtQml/qqmlregistration.h>
 
 namespace bibstd::presenter
@@ -28,22 +29,19 @@ class BridgeBibleRefOcr final : public QObject
   QML_ELEMENT
 
   Q_PROPERTY(bool visible MEMBER visible_ NOTIFY visibleChanged)
-  Q_PROPERTY(int cursorX MEMBER cursorX_ NOTIFY cursorXChanged)
-  Q_PROPERTY(int cursorY MEMBER cursorY_ NOTIFY cursorYChanged)
+  Q_PROPERTY(QPoint cursorPosition MEMBER cursorPosition_ NOTIFY cursorPositionChanged)
 
 public: // Structors
   explicit BridgeBibleRefOcr(bibstd::presenter::presenter_bible_ref_ocr& presenter, QObject* parent = nullptr);
   ~BridgeBibleRefOcr() noexcept override;
 
 signals:
-  void visibleChanged();
-  void cursorXChanged();
-  void cursorYChanged();
+  void visibleChanged(bool visible);
+  void cursorPositionChanged(const QPoint& cursorPosition);
 
 private: // Variables
   bool visible_{false};
-  int cursorX_{0};
-  int cursorY_{0};
+  QPoint cursorPosition_{0, 0};
   bibstd::framework::runtime_uid_type processId_{};
   std::unique_ptr<bibstd::signal::connection_store> connections_;
 };
