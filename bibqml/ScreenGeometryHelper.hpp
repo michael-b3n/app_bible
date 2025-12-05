@@ -9,18 +9,18 @@ namespace bibqml
 {
 
 ///
-/// QML ScreenHelper singleton.
+/// QML ScreenGeometryHelper singleton.
 /// This class provides application wide helpers for screens.
 ///
-class ScreenHelper final : public QObject
+class ScreenGeometryHelper final : public QObject
 {
   Q_OBJECT
   QML_ELEMENT
   QML_SINGLETON
 
 public: // Structors
-  explicit ScreenHelper(QObject* parent = nullptr);
-  ~ScreenHelper() noexcept override;
+  explicit ScreenGeometryHelper(QObject* parent = nullptr);
+  ~ScreenGeometryHelper() noexcept override;
 
 public: // Accessors
   ///

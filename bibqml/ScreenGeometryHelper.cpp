@@ -1,4 +1,4 @@
-#include "bibqml/ScreenHelper.hpp"
+#include "bibqml/ScreenGeometryHelper.hpp"
 
 #include <QGuiApplication>
 #include <QScreen>
@@ -8,18 +8,18 @@ namespace bibqml
 
 ///
 ///
-ScreenHelper::ScreenHelper(QObject* parent)
+ScreenGeometryHelper::ScreenGeometryHelper(QObject* parent)
   : QObject(parent)
 {
 }
 
 ///
 ///
-ScreenHelper::~ScreenHelper() noexcept = default;
+ScreenGeometryHelper::~ScreenGeometryHelper() noexcept = default;
 
 ///
 ///
-QRect ScreenHelper::screenGeometryAt(const QPoint& global_pos)
+QRect ScreenGeometryHelper::screenGeometryAt(const QPoint& global_pos)
 {
   const auto screen = QGuiApplication::screenAt(global_pos);
   if(screen)
