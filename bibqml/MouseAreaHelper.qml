@@ -9,18 +9,18 @@ Item
   required property bool movable
 
   readonly property bool containsMouse:
-    mouseAreaCenter.containsMouse ||
-    mouseAreaTopLeft.containsMouse || mouseAreaTopLeft.pressed ||
-    mouseAreaTopRight.containsMouse || mouseAreaTopRight.pressed ||
-    mouseAreaBottomLeft.containsMouse || mouseAreaBottomLeft.pressed ||
-    mouseAreaBottomRight.containsMouse || mouseAreaBottomRight.pressed
+    center.containsMouse ||
+    topLeft.containsMouse || topLeft.pressed ||
+    topRight.containsMouse || topRight.pressed ||
+    bottomLeft.containsMouse || bottomLeft.pressed ||
+    bottomRight.containsMouse || bottomRight.pressed
 
   readonly property bool pressed:
-    mouseAreaCenter.pressed ||
-    mouseAreaTopLeft.pressed ||
-    mouseAreaTopRight.pressed ||
-    mouseAreaBottomLeft.pressed ||
-    mouseAreaBottomRight.pressed
+    center.pressed ||
+    topLeft.pressed ||
+    topRight.pressed ||
+    bottomLeft.pressed ||
+    bottomRight.pressed
 
   implicitHeight: 100
   implicitWidth: 200
@@ -30,7 +30,7 @@ Item
 
   MouseArea
   {
-    id: mouseAreaCenter
+    id: center
 
     property int clickX: 0
     property int clickY: 0
@@ -53,122 +53,86 @@ Item
     }
   }
 
-  MouseArea
+  MouseAreaCornerHelper
   {
-    id: mouseAreaTopLeft
-
-    property int clickX: 0
-    property int clickY: 0
-
-    hoverEnabled: true
+    id: topLeft
     anchors.top: parent.top
     anchors.left: parent.left
     width: root.expandAreaWidth
     height: root.expandAreaWidth
     cursorShape: Qt.SizeFDiagCursor
-
-    onPressed: (mouse) =>
+    deltaXMultiplier: 1
+    deltaYMultiplier: 1
+    deltaWidthMultiplier: -1
+    deltaHeightMultiplier: -1
+    onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {
-      clickX = mouse.x
-      clickY = mouse.y
-    }
-    onPositionChanged: (mouse) =>
-    {
-      if(root.expandable && pressed)
+      if(root.expandable)
       {
-        let deltaX = mouse.x - clickX
-        let deltaY = mouse.y - clickY
-        root.expandRequested(deltaX, deltaY, -deltaX, -deltaY)
+        root.expandRequested(deltaX, deltaY, deltaWidth, deltaHeight)
       }
     }
   }
 
-  MouseArea
+  MouseAreaCornerHelper
   {
-    id: mouseAreaTopRight
-
-    property int clickX: 0
-    property int clickY: 0
-
-    hoverEnabled: true
+    id: topRight
     anchors.top: parent.top
     anchors.right: parent.right
     width: root.expandAreaWidth
     height: root.expandAreaWidth
     cursorShape: Qt.SizeBDiagCursor
-
-    onPressed: (mouse) =>
+    deltaXMultiplier: 0
+    deltaYMultiplier: 1
+    deltaWidthMultiplier: 1
+    deltaHeightMultiplier: -1
+    onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {
-      clickX = mouse.x
-      clickY = mouse.y
-    }
-    onPositionChanged: (mouse) =>
-    {
-      if(root.expandable && pressed)
+      if(root.expandable)
       {
-        let deltaX = mouse.x - clickX
-        let deltaY = mouse.y - clickY
-        root.expandRequested(0, deltaY, deltaX, -deltaY)
+        root.expandRequested(deltaX, deltaY, deltaWidth, deltaHeight)
       }
     }
   }
 
-  MouseArea
+  MouseAreaCornerHelper
   {
-    id: mouseAreaBottomLeft
-
-    property int clickX: 0
-    property int clickY: 0
-
-    hoverEnabled: true
+    id: bottomLeft
     anchors.bottom: parent.bottom
     anchors.left: parent.left
     width: root.expandAreaWidth
     height: root.expandAreaWidth
     cursorShape: Qt.SizeBDiagCursor
-
-    onPressed: (mouse) =>
+    deltaXMultiplier: 1
+    deltaYMultiplier: 0
+    deltaWidthMultiplier: -1
+    deltaHeightMultiplier: 1
+    onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {
-      clickX = mouse.x
-      clickY = mouse.y
-    }
-    onPositionChanged: (mouse) =>
-    {
-      if(root.expandable && pressed)
+      if(root.expandable)
       {
-        let deltaX = mouse.x - clickX
-        let deltaY = mouse.y - clickY
-        root.expandRequested(deltaX, 0, -deltaX, deltaY)
+        root.expandRequested(deltaX, deltaY, deltaWidth, deltaHeight)
       }
     }
   }
 
-  MouseArea
+  MouseAreaCornerHelper
   {
-    id: mouseAreaBottomRight
-
-    property int clickX: 0
-    property int clickY: 0
-
-    hoverEnabled: true
+    id: bottomRight
     anchors.bottom: parent.bottom
     anchors.right: parent.right
     width: root.expandAreaWidth
     height: root.expandAreaWidth
     cursorShape: Qt.SizeFDiagCursor
-
-    onPressed: (mouse) =>
+    deltaXMultiplier: 0
+    deltaYMultiplier: 0
+    deltaWidthMultiplier: 1
+    deltaHeightMultiplier: 1
+    onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {
-      clickX = mouse.x
-      clickY = mouse.y
-    }
-    onPositionChanged: (mouse) =>
-    {
-      if(root.expandable && pressed)
+      if(root.expandable)
       {
-        let deltaX = mouse.x - clickX
-        let deltaY = mouse.y - clickY
-        root.expandRequested(0, 0, deltaX, deltaY)
+        root.expandRequested(deltaX, deltaY, deltaWidth, deltaHeight)
       }
     }
   }

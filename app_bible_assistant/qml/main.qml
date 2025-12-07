@@ -47,11 +47,11 @@ Window
   readonly property int contentRight: Math.max(bubbleRight, root.cursorX + 1)
   readonly property int contentBottom: Math.max(bubbleBottom, root.cursorY + 1)
 
-  // Window position and size
-  readonly property int windowX: Math.max(root.screenLeftBorder, contentLeft)
-  readonly property int windowY: Math.max(root.screenTopBorder, contentTop)
-  readonly property int windowWidth: Math.min(root.screenGeometry.width, contentRight - windowX)
-  readonly property int windowHeight: Math.min(root.screenGeometry.height, contentBottom - windowY)
+  // Window position and size (constrained to screen)
+  readonly property int windowX: Math.max(root.screenLeftBorder, Math.min(contentLeft, root.screenRightBorder - (contentRight - contentLeft)))
+  readonly property int windowY: Math.max(root.screenTopBorder, Math.min(contentTop, root.screenBottomBorder - (contentBottom - contentTop)))
+  readonly property int windowWidth: Math.min(root.screenGeometry.width, contentRight - contentLeft)
+  readonly property int windowHeight: Math.min(root.screenGeometry.height, contentBottom - contentTop)
 
   // Object properties
   visible: bridge.visible || speechBubble.opacity > 0
@@ -71,6 +71,74 @@ Window
       root.raise()
       root.requestActivate()
     }
+  }
+
+  // Helper functions
+  //
+  // Constrains the bubble offset to keep it within screen bounds
+  // Returns adjusted offset coordinates that ensure the bubble stays fully visible
+  //
+  function constrainOffset(newOffsetX, newOffsetY, width, height)
+  {
+    let bubbleLeft = root.cursorX + newOffsetX
+    let bubbleTop = root.cursorY + newOffsetY
+    let bubbleRight = bubbleLeft + width
+    let bubbleBottom = bubbleTop + height
+
+    if(bubbleLeft < root.screenLeftBorder)
+    {
+      newOffsetX = root.screenLeftBorder - root.cursorX
+    }
+    else if(bubbleRight > root.screenRightBorder)
+    {
+      newOffsetX = root.screenRightBorder - width - root.cursorX
+    }
+
+    if(bubbleTop < root.screenTopBorder)
+    {
+      newOffsetY = root.screenTopBorder - root.cursorY
+    }
+    else if(bubbleBottom > root.screenBottomBorder)
+    {
+      newOffsetY = root.screenBottomBorder - height - root.cursorY
+    }
+    return {x: newOffsetX, y: newOffsetY}
+  }
+
+  //
+  // Constrains the bubble size and offset during resize operations
+  // Ensures the bubble stays within screen bounds and maintains minimum size
+  // Returns adjusted offset and size that respect screen boundaries
+  //
+  function constrainSize(newOffsetX, newOffsetY, newWidth, newHeight)
+  {
+    let bubbleLeft = root.cursorX + newOffsetX
+    let bubbleTop = root.cursorY + newOffsetY
+    let bubbleRight = bubbleLeft + newWidth
+    let bubbleBottom = bubbleTop + newHeight
+
+    if(bubbleLeft < root.screenLeftBorder)
+    {
+      newWidth -= (root.screenLeftBorder - bubbleLeft)
+      newOffsetX = root.screenLeftBorder - root.cursorX
+    }
+    if(bubbleTop < root.screenTopBorder)
+    {
+      newHeight -= (root.screenTopBorder - bubbleTop)
+      newOffsetY = root.screenTopBorder - root.cursorY
+    }
+    if(bubbleRight > root.screenRightBorder)
+    {
+      newWidth = root.screenRightBorder - (root.cursorX + newOffsetX)
+    }
+    if(bubbleBottom > root.screenBottomBorder)
+    {
+      newHeight = root.screenBottomBorder - (root.cursorY + newOffsetY)
+    }
+    // Enforce minimum size
+    newWidth = Math.max(newWidth, root.stepSize * root.goldenRatio * 2)
+    newHeight = Math.max(newHeight, root.stepSize)
+    return {x: newOffsetX, y: newOffsetY, width: newWidth, height: newHeight}
   }
 
   Connections
@@ -106,83 +174,31 @@ Window
     Connections
     {
       target: mouseAreaHelper
+
       function onMoveRequested(deltaX, deltaY)
       {
-        let newOffsetX = root.offsetToCursorX + deltaX
-        let newOffsetY = root.offsetToCursorY + deltaY
-        let newBubbleLeft = root.cursorX + newOffsetX
-        let newBubbleTop = root.cursorY + newOffsetY
-        let newBubbleRight = newBubbleLeft + root.actualWidth
-        let newBubbleBottom = newBubbleTop + root.actualHeight
-
-        // Constrain to screen bounds
-        if(newBubbleLeft < root.screenLeftBorder)
-        {
-          newOffsetX = root.screenLeftBorder - root.cursorX
-        }
-        else if(newBubbleRight > root.screenRightBorder)
-        {
-          newOffsetX = root.screenRightBorder - root.actualWidth - root.cursorX
-        }
-
-        if(newBubbleTop < root.screenTopBorder)
-        {
-          newOffsetY = root.screenTopBorder - root.cursorY
-        }
-        else if(newBubbleBottom > root.screenBottomBorder)
-        {
-          newOffsetY = root.screenBottomBorder - root.actualHeight - root.cursorY
-        }
-
-        /*no binding*/ root.offsetToCursorX = newOffsetX
-        /*no binding*/ root.offsetToCursorY = newOffsetY
+        let constrained = root.constrainOffset(
+          root.offsetToCursorX + deltaX,
+          root.offsetToCursorY + deltaY,
+          root.actualWidth,
+          root.actualHeight
+        )
+        /*no binding*/ root.offsetToCursorX = constrained.x
+        /*no binding*/ root.offsetToCursorY = constrained.y
       }
 
       function onExpandRequested(deltaX, deltaY, deltaWidth, deltaHeight)
       {
-        let newOffsetX = root.offsetToCursorX + deltaX
-        let newOffsetY = root.offsetToCursorY + deltaY
-        let newWidth = root.actualWidth + deltaWidth
-        let newHeight = root.actualHeight + deltaHeight
-        let newBubbleLeft = root.cursorX + newOffsetX
-        let newBubbleTop = root.cursorY + newOffsetY
-        let newBubbleRight = newBubbleLeft + newWidth
-        let newBubbleBottom = newBubbleTop + newHeight
-
-        // Constrain to screen bounds
-        if(newBubbleLeft < root.screenLeftBorder)
-        {
-          newWidth = newWidth - (root.screenLeftBorder - newBubbleLeft)
-          newOffsetX = root.screenLeftBorder - root.cursorX
-        }
-        if(newBubbleTop < root.screenTopBorder)
-        {
-          newHeight = newHeight - (root.screenTopBorder - newBubbleTop)
-          newOffsetY = root.screenTopBorder - root.cursorY
-        }
-        if(newBubbleRight > root.screenRightBorder)
-        {
-          newWidth = root.screenRightBorder - (root.cursorX + newOffsetX)
-        }
-        if(newBubbleBottom > root.screenBottomBorder)
-        {
-          newHeight = root.screenBottomBorder - (root.cursorY + newOffsetY)
-        }
-
-        // Enforce minimum size
-        if(newWidth < root.stepSize * root.goldenRatio * 2)
-        {
-          newWidth = root.stepSize * root.goldenRatio * 2
-        }
-        if(newHeight < root.stepSize)
-        {
-          newHeight = root.stepSize
-        }
-
-        /*no binding*/ root.offsetToCursorX = newOffsetX
-        /*no binding*/ root.offsetToCursorY = newOffsetY
-        /*no binding*/ root.actualWidth = newWidth
-        /*no binding*/ root.actualHeight = newHeight
+        let constrained = root.constrainSize(
+          root.offsetToCursorX + deltaX,
+          root.offsetToCursorY + deltaY,
+          root.actualWidth + deltaWidth,
+          root.actualHeight + deltaHeight
+        )
+        /*no binding*/ root.offsetToCursorX = constrained.x
+        /*no binding*/ root.offsetToCursorY = constrained.y
+        /*no binding*/ root.actualWidth = constrained.width
+        /*no binding*/ root.actualHeight = constrained.height
       }
     }
 
