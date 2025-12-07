@@ -10,21 +10,16 @@ Item
 
   readonly property bool containsMouse:
     center.containsMouse ||
-    topLeft.containsMouse || topLeft.pressed ||
-    topRight.containsMouse || topRight.pressed ||
-    bottomLeft.containsMouse || bottomLeft.pressed ||
-    bottomRight.containsMouse || bottomRight.pressed
-
-  readonly property bool pressed:
-    center.pressed ||
-    topLeft.pressed ||
-    topRight.pressed ||
-    bottomLeft.pressed ||
-    bottomRight.pressed
+    topLeft.containsMouse ||
+    topRight.containsMouse ||
+    bottomLeft.containsMouse ||
+    bottomRight.containsMouse
 
   implicitHeight: 100
   implicitWidth: 200
 
+  signal pressed(mouse: MouseEvent)
+  signal released(mouse: MouseEvent)
   signal expandRequested(deltaX: int, deltaY: int, deltaWidth: int, deltaHeight: int)
   signal moveRequested(deltaX: int, deltaY: int)
 
@@ -43,7 +38,9 @@ Item
     {
       clickX = mouse.x
       clickY = mouse.y
+      root.pressed(mouse)
     }
+    onReleased: (mouse) => { root.released(mouse) }
     onPositionChanged: (mouse) =>
     {
       if(root.movable && pressed)
@@ -65,6 +62,8 @@ Item
     deltaYMultiplier: 1
     deltaWidthMultiplier: -1
     deltaHeightMultiplier: -1
+    onPressed: (mouse) => { root.pressed(mouse) }
+    onReleased: (mouse) => { root.released(mouse) }
     onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {
       if(root.expandable)
@@ -86,6 +85,8 @@ Item
     deltaYMultiplier: 1
     deltaWidthMultiplier: 1
     deltaHeightMultiplier: -1
+    onPressed: (mouse) => { root.pressed(mouse) }
+    onReleased: (mouse) => { root.released(mouse) }
     onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {
       if(root.expandable)
@@ -107,6 +108,8 @@ Item
     deltaYMultiplier: 0
     deltaWidthMultiplier: -1
     deltaHeightMultiplier: 1
+    onPressed: (mouse) => { root.pressed(mouse) }
+    onReleased: (mouse) => { root.released(mouse) }
     onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {
       if(root.expandable)
@@ -128,6 +131,8 @@ Item
     deltaYMultiplier: 0
     deltaWidthMultiplier: 1
     deltaHeightMultiplier: 1
+    onPressed: (mouse) => { root.pressed(mouse) }
+    onReleased: (mouse) => { root.released(mouse) }
     onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {
       if(root.expandable)

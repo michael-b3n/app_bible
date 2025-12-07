@@ -19,15 +19,15 @@ Window
   /*no binding*/ readonly property int margin: 8
 
   // Screen geometry
-  /*no binding*/ property var screenGeometry: ScreenGeometryHelper.screenGeometryAt(root.bridge.cursorPosition)
+  /*no binding*/ property var screenGeometry: ScreenGeometryHelper.screenGeometryAt({ x: 0, y: 0 })
   /*no binding*/ readonly property int screenLeftBorder: screenGeometry.x
   /*no binding*/ readonly property int screenRightBorder: screenGeometry.x + screenGeometry.width
   /*no binding*/ readonly property int screenTopBorder: screenGeometry.y
   /*no binding*/ readonly property int screenBottomBorder: screenGeometry.y + screenGeometry.height
 
   // Cursor position
-  /*no binding*/ readonly property int cursorX: root.bridge.cursorPosition.x
-  /*no binding*/ readonly property int cursorY: root.bridge.cursorPosition.y
+  /*no binding*/ property int cursorX: 0
+  /*no binding*/ property int cursorY: 0
 
   // Bubble offset and size
   /*no binding*/ property int offsetToCursorX: -stepSize * goldenRatio
@@ -54,20 +54,19 @@ Window
   readonly property int windowHeight: Math.min(root.screenGeometry.height, contentBottom - contentTop)
 
   // Object properties
-  visible: bridge.visible || speechBubble.opacity > 0
+  visible: speechBubble.opacity > 0
   color: "transparent"
   flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
-  x: mouseAreaHelper.pressed ? screenLeftBorder : windowX
-  y: mouseAreaHelper.pressed ? screenTopBorder : windowY
-  width: mouseAreaHelper.pressed ? screenGeometry.width : windowWidth
-  height: mouseAreaHelper.pressed ? screenGeometry.height : windowHeight
+  x: windowX
+  y: windowY
+  width: windowWidth
+  height: windowHeight
 
   // Connections
   onVisibleChanged:
   {
     if(visible)
     {
-      mouseAreaHelper.ignoreMouse = false
       root.raise()
       root.requestActivate()
     }
@@ -144,7 +143,27 @@ Window
   Connections
   {
     target: root.bridge
-    function onCursorPositionChanged(cursorPosition) { root.screenGeometry = ScreenGeometryHelper.screenGeometryAt(cursorPosition) }
+
+    function onCursorPositionChanged(cursorPosition)
+    {
+      root.cursorX = cursorPosition.x
+      root.cursorY = cursorPosition.y
+      root.screenGeometry = ScreenGeometryHelper.screenGeometryAt(cursorPosition)
+      let constrained = root.constrainOffset(
+          root.offsetToCursorX,
+          root.offsetToCursorY,
+          root.actualWidth,
+          root.actualHeight
+        )
+      /*no binding*/ root.offsetToCursorX = constrained.x
+      /*no binding*/ root.offsetToCursorY = constrained.y
+    }
+
+    function onVisibleChanged(visible)
+    {
+      speechBubble.opacity = visible || mouseAreaHelper.containsMouse ? 1 : 0
+      loadingIcon.visible = visible
+    }
   }
 
   // Children
@@ -152,8 +171,7 @@ Window
   {
     id: speechBubble
 
-    opacity: root.bridge.visible || (!mouseAreaHelper.ignoreMouse && mouseAreaHelper.containsMouse) ? 1 : 0
-
+    opacity: 0
     anchors.fill: parent
     tailPositionX: root.cursorX - root.x
     tailPositionY: root.cursorY - root.y
@@ -166,7 +184,7 @@ Window
     {
       NumberAnimation
       {
-        duration: 2000
+        duration: 400
         easing.type: Easing.InOutQuad
       }
     }
@@ -174,6 +192,22 @@ Window
     Connections
     {
       target: mouseAreaHelper
+
+      function onPressed(mouse)
+      {
+        root.x = root.screenGeometry.x
+        root.y = root.screenGeometry.y
+        root.width = root.screenGeometry.width
+        root.height = root.screenGeometry.height
+      }
+
+      function onReleased(mouse)
+      {
+        root.x = root.windowX
+        root.y = root.windowY
+        root.width = root.windowWidth
+        root.height = root.windowHeight
+      }
 
       function onMoveRequested(deltaX, deltaY)
       {
@@ -228,6 +262,7 @@ Window
         // Children
         VectorImage
         {
+          id: loadingIcon
           Layout.preferredWidth: parent.height
           Layout.preferredHeight: parent.height
           Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
@@ -237,12 +272,24 @@ Window
 
           RotationAnimator on rotation
           {
-            running: root.visible
+            running: loadingIcon.visible
             loops: Animation.Infinite
             from: 0;
             to: 360;
             duration: 3000
           }
+        }
+
+        VectorImage
+        {
+          id: foundIcon
+          visible: !loadingIcon.visible
+          Layout.preferredWidth: parent.height
+          Layout.preferredHeight: parent.height
+          Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+
+          source: "qrc:/qt/qml/ui/qml/res/check_mark.svg"
+          preferredRendererType: VectorImage.CurveRenderer
         }
 
         ButtonIconSimple
@@ -254,7 +301,7 @@ Window
 
           onClicked:
           {
-            mouseAreaHelper.ignoreMouse = true
+            speechBubble.opacity = 0
             root.bridge.visible = false
           }
         }
