@@ -4,11 +4,9 @@
 #include "bibstd/util/setting_common.hpp"
 
 #include <algorithm>
-#include <concepts>
 #include <functional>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <ranges>
 
 namespace bibstd::util
@@ -157,13 +155,6 @@ private: // Variables
 };
 
 ///
-/// Deduction guide for setting_validator_range_type_erased.
-///
-template<underlying_setting_type U>
-setting_validator_range_type_erased(const typename setting_validator_range<U>::sptr_type&)
-  -> setting_validator_range_type_erased<setting_type_erased_type_from<U>>;
-
-///
 /// Class for list type setting validators.
 ///
 template<underlying_setting_type T>
@@ -235,13 +226,6 @@ private: // Variables
   const std::function<std::vector<T>()> available_;
   const std::function<bool(const T&)> contains_;
 };
-
-///
-/// Deduction guide for setting_validator_list_type_erased.
-///
-template<underlying_setting_type U>
-setting_validator_list_type_erased(const typename setting_validator_list<U>::sptr_type&)
-  -> setting_validator_list_type_erased<setting_type_erased_type_from<U>>;
 
 ///
 /// Setting validator variant type.

@@ -6,11 +6,10 @@
 #include "bibstd/framework/settings_owner.hpp"
 #include "bibstd/signal/adapter.hpp"
 #include "bibstd/signal/common.hpp"
-#include "bibstd/system/hotkey.hpp"
+#include "bibstd/system/hotkey_common.hpp"
 #include "bibstd/util/screen_types.hpp"
 
 #include <memory>
-#include <mutex>
 #include <stop_token>
 
 namespace bibstd::workflow

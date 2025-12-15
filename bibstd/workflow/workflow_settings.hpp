@@ -8,9 +8,6 @@
 #include "bibstd/util/setting_type_erased.hpp"
 
 #include <filesystem>
-#include <functional>
-#include <map>
-#include <memory>
 #include <mutex>
 #include <string>
 #include <string_view>

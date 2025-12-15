@@ -1,6 +1,5 @@
 #pragma once
 
-#include "bibstd/util/non_owning_ptr.hpp"
 #include "bibstd/util/setting.hpp"
 
 #include <functional>
