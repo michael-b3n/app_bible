@@ -1,4 +1,4 @@
-#include "BibQml/BridgeLogger.hpp"
+#include "bibqml/BridgeLogger.hpp"
 
 #include <bibstd/util/log.hpp>
 

@@ -15,7 +15,7 @@ class active_worker final
 {
 public: // Structors
   active_worker();
-  ~active_worker();
+  ~active_worker() noexcept;
 
 public: // Modifiers
   ///
@@ -23,12 +23,6 @@ public: // Modifiers
   /// \param task Task that shall be run in active_worker thread
   ///
   auto queue_task(task_queue::task_type&& task) -> void;
-
-  ///
-  /// Run task in active_worker thread.
-  /// \param task Task that shall be run in active_worker thread
-  ///
-  auto run_task(task_queue::task_type&& task) -> void;
 
 private: // Implementation
   ///

@@ -3,9 +3,6 @@
 #include "bibstd/core/core_bible_ref.hpp"
 #include "bibstd/core/core_bible_ref_ocr.hpp"
 #include "bibstd/core/core_bibleserver_lookup.hpp"
-#include "bibstd/data/pixel.hpp"
-#include "bibstd/data/plane.hpp"
-#include "bibstd/system/screen.hpp"
 #include "bibstd/util/format.hpp"
 #include "bibstd/workflow/workflow_settings.hpp"
 

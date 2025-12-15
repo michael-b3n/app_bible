@@ -1,7 +1,5 @@
 #include "bibstd/system/tray.hpp"
-#include "bibstd/framework/active_worker.hpp"
 #include "bibstd/framework/thread_pool.hpp"
-#include "bibstd/system/windows/win.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/visit_helper.hpp"
 

@@ -3,7 +3,6 @@
 #include "bibstd/framework/task_queue.hpp"
 
 #include <atomic>
-#include <thread>
 
 namespace bibstd::framework
 {

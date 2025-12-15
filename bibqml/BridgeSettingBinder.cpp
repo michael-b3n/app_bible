@@ -1,4 +1,4 @@
-#include "BibQml/BridgeSettingBinder.hpp"
+#include "bibqml/BridgeSettingBinder.hpp"
 
 namespace bibqml
 {

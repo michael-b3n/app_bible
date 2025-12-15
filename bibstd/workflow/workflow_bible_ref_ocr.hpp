@@ -1,7 +1,6 @@
 #pragma once
 
 #include "bibstd/bible/reference_range.hpp"
-#include "bibstd/core/core_bible_ref_ocr_common.hpp"
 #include "bibstd/core/core_tesseract_common.hpp"
 #include "bibstd/framework/settings_base.hpp"
 #include "bibstd/framework/settings_owner.hpp"
@@ -10,7 +9,6 @@
 #include "bibstd/util/screen_types.hpp"
 #include "bibstd/workflow/workflow_base.hpp"
 
-#include <expected>
 #include <memory>
 #include <stop_token>
 #include <vector>

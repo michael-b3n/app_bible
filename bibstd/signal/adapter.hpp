@@ -4,9 +4,6 @@
 #include "bibstd/meta/type_traits.hpp"
 #include "bibstd/signal/common.hpp"
 
-#include <concepts>
-#include <string_view>
-
 namespace bibstd::signal
 {
 
@@ -85,7 +82,7 @@ protected: // Accessors
 
 private: // Implementation
   template<signal_id ID>
-  consteval auto find_index() const -> std::size_t;
+  consteval static auto find_index() -> std::size_t;
 
 private: // Variables
   std::tuple<Args...> signals_;
@@ -125,11 +122,11 @@ auto adapter<Args...>::emit(SignalArgs... args) -> auto
 ///
 template<detail::adapter_arg... Args>
 template<adapter<Args...>::signal_id ID>
-consteval auto adapter<Args...>::find_index() const -> std::size_t
+consteval auto adapter<Args...>::find_index() -> std::size_t
 {
   constexpr auto find_index = [&]<std::size_t I>(std::size_t& retval_index)
   {
-    if constexpr(std::tuple_element_t<I, decltype(signals_)>::id == ID)
+    if constexpr(std::tuple_element_t<I, std::tuple<Args...>>::id == ID)
     {
       retval_index = I;
     }
@@ -139,8 +136,8 @@ consteval auto adapter<Args...>::find_index() const -> std::size_t
     auto retval = std::numeric_limits<std::size_t>::max();
     (find_index.template operator()<I>(retval), ...);
     return retval;
-  }(std::make_index_sequence<std::tuple_size_v<decltype(signals_)>>{});
-  static_assert(index < std::tuple_size_v<decltype(signals_)>, "no index found matching specified ID");
+  }(std::make_index_sequence<std::tuple_size_v<std::tuple<Args...>>>{});
+  static_assert(index < std::tuple_size_v<std::tuple<Args...>>, "no index found matching specified ID");
   return index;
 }
 

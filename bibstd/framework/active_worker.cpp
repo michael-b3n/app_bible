@@ -20,7 +20,7 @@ active_worker::active_worker()
               worker_queue_->do_task_or_wait();
             }
           }
-          catch(const std::exception& e)
+          catch(const util::exception& e)
           {
             LOG_ERROR("worker queue error: {}", e.what());
           }
@@ -38,7 +38,7 @@ active_worker::active_worker()
 
 ///
 ///
-active_worker::~active_worker()
+active_worker::~active_worker() noexcept
 {
   shutdown();
 }
@@ -48,20 +48,6 @@ active_worker::~active_worker()
 auto active_worker::queue_task(task_queue::task_type&& task) -> void
 {
   worker_queue_->queue(std::forward<decltype(task)>(task));
-}
-
-///
-///
-auto active_worker::run_task(task_queue::task_type&& task) -> void
-{
-  if(std::this_thread::get_id() == worker_id_)
-  {
-    task();
-  }
-  else
-  {
-    queue_task(std::forward<decltype(task)>(task));
-  }
 }
 
 ///

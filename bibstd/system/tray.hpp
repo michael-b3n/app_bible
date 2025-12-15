@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bibstd/framework/active_worker.hpp"
 #include "bibstd/util/scoped_guard.hpp"
 
 #include <tray.hpp>
@@ -11,11 +12,6 @@
 #include <variant>
 #include <vector>
 
-namespace bibstd::framework
-{
-// Forward declarations
-class active_worker;
-} // namespace bibstd::framework
 namespace bibstd::system
 {
 

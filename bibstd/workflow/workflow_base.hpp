@@ -2,7 +2,6 @@
 
 #include "bibstd/framework/runtime_uid.hpp"
 #include "bibstd/util/non_owning_ptr.hpp"
-#include "bibstd/util/uid.hpp"
 
 #include <expected>
 #include <stop_token>
@@ -21,7 +20,7 @@ concept has_auto_start = requires(T t) {
 template<typename W, typename StartParamsType = void, typename ExpectedResultType = void>
 class workflow_base
 {
-protected: // Typedefs
+public: // Typedefs
   ///
   /// Empty start parameters as default impl type for start params.
   ///
@@ -79,7 +78,7 @@ protected: // Typedefs
     std::expected<ExpectedResultType, unexpected_result> result{std::unexpected{unexpected_result::failure}};
   };
 
-protected: // Constants
+public: // Constants
   static constexpr std::unexpected return_failure{unexpected_result::failure};
   static constexpr std::unexpected return_stopped{unexpected_result::stopped};
 
