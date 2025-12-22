@@ -1,7 +1,5 @@
 import QtQuick
 import QtQuick.Controls.Universal
-import QtQuick.Layouts
-import QtQuick.VectorImage
 import BibQml
 
 
@@ -13,11 +11,13 @@ QtObject
 
   // Constants
   /*no binding*/ readonly property double goldenRatio: 1.618
-  /*no binding*/ readonly property int stepSize: 32
+  /*no binding*/ readonly property int stepSize: 24
   /*no binding*/ readonly property int margin: 4
   /*no binding*/ readonly property int radius : margin * 2
   /*no binding*/ readonly property int opacityDuration: 200
   /*no binding*/ readonly property int tailLengthMax: stepSize * 2
+  /*no binding*/ readonly property int minimalWidth: stepSize * goldenRatio * 3
+  /*no binding*/ readonly property int minimalHeight: stepSize + 2 * margin
 
   // Screen geometry
   /*no binding*/ property var screenGeometry: ScreenGeometryHelper.screenGeometryAt({ x: 0, y: 0 })
@@ -35,8 +35,8 @@ QtObject
   /*no binding*/ property int userOffsetToCursorY: -40
   /*no binding*/ property int offsetToCursorX: -stepSize * goldenRatio
   /*no binding*/ property int offsetToCursorY: -40
-  /*no binding*/ property int mainWidth: stepSize * goldenRatio * 2
-  /*no binding*/ property int mainHeight: stepSize
+  /*no binding*/ property int mainWidth: minimalWidth
+  /*no binding*/ property int mainHeight: minimalHeight
 
   Universal.theme: Universal.Dark
   Universal.accent: Universal.Violet
@@ -75,9 +75,8 @@ QtObject
         }
         else if(!mouseAreaHelper.containsMouse)
         {
-          root.hide()
+          // root.hide()
         }
-        loadingIcon.visible = running
       })
     }
   }
@@ -197,60 +196,21 @@ QtObject
         /*no binding*/ root.mainHeight = constrained.height
       }
 
-      // Children
-      RowLayout
+      MainTabLayout
       {
-        // Object properties
+        id: mainTabLayout
+
+        stepSize: root.stepSize
+        margin: root.margin
+        runningState: root.bridge.running
         anchors.fill: parent
-        anchors.margins: root.margin
 
-        // Children
-        VectorImage
+        onCloseClicked: () =>
         {
-          id: loadingIcon
-          Layout.preferredWidth: parent.height
-          Layout.preferredHeight: parent.height
-          Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-
-          source: "qrc:/qt/qml/ui/qml/res/loading.svg"
-          preferredRendererType: VectorImage.CurveRenderer
-
-          RotationAnimator on rotation
+          Qt.callLater(function()
           {
-            running: loadingIcon.visible
-            loops: Animation.Infinite
-            from: 0;
-            to: 360;
-            duration: 3000
-          }
-        }
-
-        VectorImage
-        {
-          id: foundIcon
-          visible: !loadingIcon.visible
-          Layout.preferredWidth: parent.height
-          Layout.preferredHeight: parent.height
-          Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-
-          source: "qrc:/qt/qml/ui/qml/res/check_mark.svg"
-          preferredRendererType: VectorImage.CurveRenderer
-        }
-
-        ButtonIconSimple
-        {
-          Layout.preferredWidth: parent.height
-          Layout.preferredHeight: parent.height
-          Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-          svgSource: "qrc:/qt/qml/ui/qml/res/close.svg"
-
-          onClicked:
-          {
-            Qt.callLater(function()
-            {
-              root.hide()
-            })
-          }
+            root.hide()
+          })
         }
       }
     }
@@ -346,8 +306,8 @@ QtObject
       newHeight = root.screenBottomBorder - (root.cursorY + newOffsetY)
     }
     // Enforce minimum size
-    newWidth = Math.max(newWidth, root.stepSize * root.goldenRatio * 2)
-    newHeight = Math.max(newHeight, root.stepSize)
+    newWidth = Math.max(newWidth, root.minimalWidth)
+    newHeight = Math.max(newHeight, root.minimalHeight)
     return {x: newOffsetX, y: newOffsetY, width: newWidth, height: newHeight}
   }
 

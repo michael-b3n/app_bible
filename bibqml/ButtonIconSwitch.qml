@@ -1,9 +1,7 @@
 import QtQuick
-import QtQuick.Controls
-import QtQuick.Controls.Universal
 import QtQuick.VectorImage
 
-Button
+ButtonBase
 {
   id: root
 
@@ -11,20 +9,7 @@ Button
   required property string svgSourceSecond
   property bool toggled: false
 
-  implicitWidth: 100
-  implicitHeight: 100
-  padding: 0
-
-  onClicked:
-  {
-    root.toggled = !root.toggled
-  }
-
-  background: Rectangle
-  {
-    color: root.pressed ? Colors.pressed : (root.hovered ? Colors.hover : "transparent")
-    radius: height * 0.1
-  }
+  onClicked: { root.toggled = !root.toggled }
 
   VectorImage
   {

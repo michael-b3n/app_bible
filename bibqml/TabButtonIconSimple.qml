@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.VectorImage
 
-ButtonBase
+TabButtonBase
 {
   id: root
 
