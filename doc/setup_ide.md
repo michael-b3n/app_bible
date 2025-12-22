@@ -12,7 +12,9 @@
     -   Clang-Format [here](https://marketplace.visualstudio.com/items?itemName=xaver.clang-format)
     -   Code Spell Checker
 
-#### Add Dependencies
+## Add mingw dependencies
+
+### Required
 
 -  **Catch2** run `pacman -S mingw-w64-x86_64-catch` in `msys2_shell.cmd`
 -  **Boost** run `pacman -S mingw-w64-x86_64-boost` in `msys2_shell.cmd`
@@ -20,9 +22,19 @@
 -  **Fmt** run `pacman -S mingw-w64-x86_64-fmt` in `msys2_shell.cmd`
 -  **Tesseract** run `pacman -S mingw-w64-x86_64-tesseract-ocr` in `msys2_shell.cmd`
 -  **Tesseract Data (deu)** run `pacman -S mingw-w64-x86_64-tesseract-data-deu` in `msys2_shell.cmd`
--  **Inno Setup** download and install [link](https://jrsoftware.org/isdl.php)
+-  **Qt6** run `pacman -S mingw-w64-x86_64-qt6-declarative` in `msys2_shell.cmd`
+-  **Qt6 SVG** run `pacman -S mingw-w64-x86_64-qt6-svg` in `msys2_shell.cmd`
 
-### Build
+### Optional
+
+-  **Clang Tools Extra** run `pacman -S mingw-w64-x86_64-clang-tools-extra` in `msys2_shell.cmd`
+
+
+## Add other dependencies
+
+-  **Inno Setup** download and install
+
+## Build
 
 1.  cd to root directory
 2.  run `mkdir build`

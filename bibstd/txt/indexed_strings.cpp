@@ -1,6 +1,6 @@
-#include "txt/indexed_strings.hpp"
-#include "util/log.hpp"
-#include "util/string.hpp"
+#include "bibstd/txt/indexed_strings.hpp"
+#include "bibstd/util/log.hpp"
+#include "bibstd/util/string.hpp"
 
 #include <algorithm>
 #include <ranges>
@@ -49,14 +49,14 @@ auto indexed_strings::indexed_chars() const -> std::vector<std::pair<std::size_t
 ///
 auto indexed_strings::append_string(const std::string_view character) -> void
 {
-  data_.emplace_back(data_.size(), util::to_string(character));
+  data_.emplace_back(data_.size(), std::string{character});
 }
 
 ///
 ///
 auto indexed_strings::overwrite_at(const std::size_t index, const std::string_view character) -> void
 {
-  data_.at(index).second = util::to_string(character);
+  data_.at(index).second = std::string{character};
 }
 
 } // namespace bibstd::txt

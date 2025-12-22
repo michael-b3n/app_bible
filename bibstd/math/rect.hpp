@@ -1,11 +1,11 @@
 #pragma once
 
-#include "math/arithmetic.hpp"
-#include "math/coordinates.hpp"
-#include "math/value_range.hpp"
-#include "meta/type_traits.hpp"
-#include "util/boost_numeric_cast.hpp"
-#include "util/enum.hpp"
+#include "bibstd/math/arithmetic.hpp"
+#include "bibstd/math/coordinates.hpp"
+#include "bibstd/math/value_range.hpp"
+#include "bibstd/meta/type_traits.hpp"
+#include "bibstd/util/boost_numeric_cast.hpp"
+#include "bibstd/util/enum.hpp"
 
 #include <cassert>
 #include <optional>
@@ -177,7 +177,7 @@ constexpr rect<ValueType>::rect(const coordinates_type origin, const value_type 
     arithmetic::multiply(value_range<value_type>::size(horizontal_range_), value_range<value_type>::size(vertical_range_));
   if(!area.has_value() || !math::is_equal(area.value(), math::arithmetic::multiply(width, height)))
   {
-    THROW_EXCEPTION(util::exception(std::format("invalid rect size: {}", util::to_string_view(area.error()))));
+    THROW_EXCEPTION(std::format("invalid rect size: {}", util::to_string_view(area.error())));
   }
 }
 
@@ -192,7 +192,7 @@ constexpr rect<ValueType>::rect(const coordinates_type first, const coordinates_
         const auto max_x = arithmetic::add(std::max(first.x(), second.x()), value_type{1});
         if(!max_x.has_value())
         {
-          THROW_EXCEPTION(util::exception(std::format("invalid max width: {}", util::to_string_view(max_x.error()))));
+          THROW_EXCEPTION(std::format("invalid max width: {}", util::to_string_view(max_x.error())));
         }
         return value_range<value_type>(min_x, max_x.value());
       }()}
@@ -203,7 +203,7 @@ constexpr rect<ValueType>::rect(const coordinates_type first, const coordinates_
         const auto max_y = arithmetic::add(std::max(first.y(), second.y()), value_type{1});
         if(!max_y.has_value())
         {
-          THROW_EXCEPTION(util::exception(std::format("invalid max height: {}", util::to_string_view(max_y.error()))));
+          THROW_EXCEPTION(std::format("invalid max height: {}", util::to_string_view(max_y.error())));
         }
         return value_range<value_type>(min_y, max_y.value());
       }()

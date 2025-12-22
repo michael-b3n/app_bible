@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bible/common.hpp"
+#include "bibstd/bible/common.hpp"
 
 #include <cstdint>
 

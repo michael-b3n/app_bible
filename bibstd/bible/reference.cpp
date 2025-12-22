@@ -1,7 +1,7 @@
-#include "bible/reference.hpp"
-#include "util/enum.hpp"
-#include "util/exception.hpp"
-#include "util/log.hpp"
+#include "bibstd/bible/reference.hpp"
+#include "bibstd/util/enum.hpp"
+#include "bibstd/util/exception.hpp"
+#include "bibstd/util/log.hpp"
 
 namespace bibstd::bible
 {

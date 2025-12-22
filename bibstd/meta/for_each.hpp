@@ -1,6 +1,6 @@
 #pragma once
 
-#include "meta/pack.hpp"
+#include "bibstd/meta/pack.hpp"
 
 namespace bibstd::meta
 {

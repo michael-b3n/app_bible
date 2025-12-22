@@ -1,7 +1,7 @@
 #pragma once
 
-#include "math/sign.hpp"
-#include "util/exception.hpp"
+#include "bibstd/math/sign.hpp"
+#include "bibstd/util/exception.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -259,7 +259,7 @@ constexpr auto arithmetic::clamp(expected_type<T> value) -> std::optional<T>
     case error_code::overflow: return std::numeric_limits<T>::max();
     case error_code::underflow: return std::numeric_limits<T>::lowest();
     case error_code::undefined: return std::nullopt;
-    default: THROW_EXCEPTION(util::exception("unknown error code")); return T{0};
+    default: THROW_EXCEPTION("unknown error code"); return T{0};
     }
   }
 }

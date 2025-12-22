@@ -1,5 +1,5 @@
-#include "data/pix.hpp"
-#include "util/exception.hpp"
+#include "bibstd/data/pix.hpp"
+#include "bibstd/util/exception.hpp"
 #include <leptonica/imageio.h>
 
 #include <algorithm>
@@ -97,7 +97,7 @@ auto pix::update(plane<pixel>&& pixel_plane) -> void
   data_ = std::move(pixel_plane);
   if(data_.data.size() < static_cast<std::size_t>(data_.width) * static_cast<std::size_t>(data_.height))
   {
-    THROW_EXCEPTION(std::runtime_error("invalid data update"));
+    THROW_EXCEPTION("invalid data update");
   }
   pix_ = detail::forward_as_pix(data_);
 }

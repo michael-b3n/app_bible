@@ -1,0 +1,70 @@
+cmake_minimum_required(VERSION 3.30)
+
+project(BibQml)
+
+#
+# Define target sources, headers and qml files.
+#
+file(GLOB_RECURSE ${PROJECT_NAME}_CPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
+file(GLOB_RECURSE ${PROJECT_NAME}_HPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.hpp")
+file(GLOB_RECURSE ${PROJECT_NAME}_QML_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.qml")
+file(GLOB_RECURSE ${PROJECT_NAME}_SVG_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/res/*.svg")
+
+foreach(file ${${PROJECT_NAME}_CPP_FILES})
+  cmake_path(RELATIVE_PATH file BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  list(APPEND ${PROJECT_NAME}_CPP_FILES_RELATIVE ${file})
+endforeach()
+
+foreach(file ${${PROJECT_NAME}_HPP_FILES})
+  cmake_path(RELATIVE_PATH file BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  list(APPEND ${PROJECT_NAME}_HPP_FILES_RELATIVE ${file})
+endforeach()
+
+foreach(file ${${PROJECT_NAME}_QML_FILES})
+  cmake_path(RELATIVE_PATH file BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  list(APPEND ${PROJECT_NAME}_QML_FILES_RELATIVE ${file})
+endforeach()
+
+foreach(file ${${PROJECT_NAME}_SVG_FILES})
+  cmake_path(RELATIVE_PATH file BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  list(APPEND ${PROJECT_NAME}_SVG_FILES_RELATIVE ${file})
+endforeach()
+
+#
+# Setup Qt6 and library
+#
+set(QT_FORCE_CMP0156_TO_VALUE NEW)
+
+find_package(${QT_VERSION_NAME} ${QT_VERSION_NUMBER} REQUIRED COMPONENTS Quick)
+qt_standard_project_setup(REQUIRES ${QT_VERSION_NUMBER})
+
+#
+# Create QML module library with plugin
+#
+qt_add_library(${PROJECT_NAME} STATIC)
+
+qt_add_qml_module(
+  ${PROJECT_NAME}
+  URI "BibQml"
+  OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/BibQml"
+  QML_FILES
+  ${${PROJECT_NAME}_QML_FILES_RELATIVE}
+  SOURCES
+  ${${PROJECT_NAME}_CPP_FILES_RELATIVE}
+  ${${PROJECT_NAME}_HPP_FILES_RELATIVE}
+  RESOURCES
+  ${${PROJECT_NAME}_SVG_FILES_RELATIVE}
+)
+
+#
+# Link dependencies
+#
+target_link_libraries(${PROJECT_NAME}
+  PUBLIC bibstd
+  PRIVATE Qt6::Quick
+)
+
+#
+# Add target include dirs and target sources.
+#
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

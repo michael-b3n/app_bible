@@ -1,5 +1,5 @@
-#include "util/scoped_guard.hpp"
-#include "util/log.hpp"
+#include "bibstd/util/scoped_guard.hpp"
+#include "bibstd/util/log.hpp"
 
 namespace bibstd::util
 {

@@ -42,6 +42,13 @@ public: // Modifiers
   ///
   auto value(const value_type& value) -> void;
 
+  ///
+  /// Exchange property value. Updates property in tree if registered.
+  /// \param new_value New property value that shall be set
+  /// \return old property value
+  ///
+  auto exchange(const value_type& new_value) -> value_type;
+
 private: // Implementation
   friend class property_tree;
 
@@ -139,6 +146,24 @@ auto property<T>::value(const value_type& value) -> void
       property_tree_update_(value_);
     }
   }
+}
+
+///
+///
+template<typename T>
+auto property<T>::exchange(const value_type& new_value) -> value_type
+{
+  const auto lock = std::lock_guard(mtx_);
+  const auto old_value = value_;
+  if(value_ != new_value)
+  {
+    value_ = new_value;
+    if(property_tree_update_)
+    {
+      property_tree_update_(value_);
+    }
+  }
+  return old_value;
 }
 
 } // namespace bibstd::util

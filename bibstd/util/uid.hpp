@@ -18,6 +18,7 @@ class uid final
 
 public: // Typedefs
   using tag_type = Tag;
+  using underlying_type = std::uint64_t;
 
 public: // Static helpers
   ///
@@ -33,10 +34,10 @@ public: // Operators
   constexpr auto operator<=>(const uid&) const = default;
 
 private: // Structors
-  constexpr uid(std::uint64_t value);
+  constexpr uid(underlying_type value);
 
 private: // Variables
-  std::uint64_t value_;
+  underlying_type value_;
 };
 
 ///
@@ -61,7 +62,7 @@ uid<Tag>::uid()
 ///
 ///
 template<typename Tag>
-constexpr uid<Tag>::uid(std::uint64_t value)
+constexpr uid<Tag>::uid(const underlying_type value)
   : value_{value}
 {
 }

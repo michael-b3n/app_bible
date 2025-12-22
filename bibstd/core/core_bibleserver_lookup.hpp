@@ -1,7 +1,7 @@
 #pragma once
 
-#include "bible/reference_range.hpp"
-#include "util/const_bimap.hpp"
+#include "bibstd/bible/reference_range.hpp"
+#include "bibstd/util/const_bimap.hpp"
 
 #include <string_view>
 

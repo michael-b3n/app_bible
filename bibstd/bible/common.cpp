@@ -1,5 +1,5 @@
-#include "bible/common.hpp"
-#include "util/enum.hpp"
+#include "bibstd/bible/common.hpp"
+#include "bibstd/util/enum.hpp"
 
 #include <cassert>
 #include <map>
@@ -99,7 +99,7 @@ auto chapter_count(book_id book) -> std::uint32_t
 {
   if(!util::valid(book))
   {
-    THROW_EXCEPTION(std::invalid_argument("invalid book"));
+    THROW_EXCEPTION("invalid book");
   }
   return books().at(book).size();
 }

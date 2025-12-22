@@ -1,6 +1,6 @@
 #pragma once
 
-#include "util/source_location_helpers.hpp"
+#include "bibstd/util/source_location_helpers.hpp"
 
 #include <filesystem>
 #include <format>
@@ -71,11 +71,11 @@ struct logger final
     if(LEVEL >= ::bibstd::util::global_log_level())                                                                                                                                                                     \
     {                                                                                                                                                                                                                   \
       static constexpr std::source_location __log_source_location = std::source_location::current();                                                                                                                    \
-      static constexpr auto __log_folder_name  = ::bibstd::util::filter_folder_name(__log_source_location);                                                                                                                  \
-      static constexpr auto __log_file_name  = ::bibstd::util::filter_file_name(__log_source_location);                                                                                                                      \
+      static constexpr auto __log_folder_name  = ::bibstd::util::filter_folder_name(__log_source_location);                                                                                                             \
+      static constexpr auto __log_file_name  = ::bibstd::util::filter_file_name(__log_source_location);                                                                                                                 \
       try                                                                                                                                                                                                               \
       {                                                                                                                                                                                                                 \
-        const auto log_string = std::format("[{}::{}] " FMT_STR " | {}", __log_folder_name, __log_file_name, __VA_ARGS__, ::bibstd::util::filter_function_name(__log_source_location));                                 \
+        const auto log_string = std::format("[{}::{}] " FMT_STR, __log_folder_name, __log_file_name __VA_OPT__(,) __VA_ARGS__);                                                                                         \
         if      constexpr(LEVEL == ::bibstd::util::logger_level::debug)   { ::bibstd::util::log_debug(log_string); }                                                                                                    \
         else if constexpr(LEVEL == ::bibstd::util::logger_level::info)    { ::bibstd::util::log_info(log_string);  }                                                                                                    \
         else if constexpr(LEVEL == ::bibstd::util::logger_level::warning) { ::bibstd::util::log_warn(log_string);  }                                                                                                    \
@@ -92,7 +92,7 @@ struct logger final
 ///
 /// Default logging macros
 ///
-#define LOG_DEBUG(FMT_STR, ...) INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::debug, FMT_STR, __VA_ARGS__);
-#define LOG_INFO(FMT_STR, ...)  INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::info, FMT_STR, __VA_ARGS__);
-#define LOG_WARN(FMT_STR, ...)  INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::warning, FMT_STR, __VA_ARGS__);
-#define LOG_ERROR(FMT_STR, ...) INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::error, FMT_STR, __VA_ARGS__);
+#define LOG_DEBUG(FMT_STR, ...) INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::debug, FMT_STR __VA_OPT__(,) __VA_ARGS__);
+#define LOG_INFO(FMT_STR, ...)  INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::info, FMT_STR __VA_OPT__(,) __VA_ARGS__);
+#define LOG_WARN(FMT_STR, ...)  INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::warning, FMT_STR __VA_OPT__(,) __VA_ARGS__);
+#define LOG_ERROR(FMT_STR, ...) INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::error, FMT_STR __VA_OPT__(,) __VA_ARGS__);

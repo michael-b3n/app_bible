@@ -1,9 +1,9 @@
 #pragma once
 
-#include "bible/common.hpp"
-#include "util/const_bimap.hpp"
-#include "util/enum.hpp"
-#include "util/string.hpp"
+#include "bibstd/bible/common.hpp"
+#include "bibstd/util/const_bimap.hpp"
+#include "bibstd/util/enum.hpp"
+#include "bibstd/util/string.hpp"
 
 #include <algorithm>
 #include <array>

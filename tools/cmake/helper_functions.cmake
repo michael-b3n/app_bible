@@ -2,7 +2,7 @@
 # Function to copy a folder as post_build command
 # \param target the target on which post_build command shall be appended
 # \param dst the destination folder
-# \param folder the file that shall be copied
+# \param folder that shall be copied
 #
 function(copy_folder target dst folder)
   add_custom_command(

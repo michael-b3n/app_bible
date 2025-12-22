@@ -1,6 +1,6 @@
-#include <math/arithmetic.hpp>
-#include <math/is_equal.hpp>
-#include <meta/pack.hpp>
+#include <bibstd/math/arithmetic.hpp>
+#include <bibstd/math/is_equal.hpp>
+#include <bibstd/meta/pack.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 #include <limits>
@@ -8,7 +8,7 @@
 namespace bibstd::math
 {
 
-template<meta::pack_type P>
+template<meta::packable P>
 struct for_each_type;
 
 template<template<typename...> typename P, typename... Args>
@@ -103,7 +103,7 @@ TEST_CASE("Floating point arithmetic", "[math]")
   static_assert(fp_t::all_of([]<typename T>() { return is_equal(*arithmetic::subtract(T{1}, T{1}), T{0}); }));
   static_assert(fp_t::all_of([]<typename T>() { return is_equal(*arithmetic::subtract(min<T>, T{1}), min<T>); }));
   static_assert(fp_t::all_of([]<typename T>() { return is_equal(*arithmetic::subtract(min<T>, min<T>), T{0}); }));
-  CHECK(fp_t::all_of([]<typename T>() { return arithmetic::subtract(min<T>, min<T>).error() == arithmetic::error_code::overflow; }));
+  CHECK(fp_t::all_of([]<typename T>() { return arithmetic::subtract(max<T>, min<T>).error() == arithmetic::error_code::overflow; }));
   CHECK(fp_t::all_of([]<typename T>() { return arithmetic::subtract(min<T>, max<T>).error() == arithmetic::error_code::underflow; }));
 
   // Multiplication

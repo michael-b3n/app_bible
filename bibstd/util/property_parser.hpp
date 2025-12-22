@@ -1,9 +1,9 @@
 #pragma once
 
-#include "meta/chrono.hpp"
-#include "meta/contains.hpp"
-#include "meta/pack.hpp"
-#include "util/enum.hpp"
+#include "bibstd/meta/chrono.hpp"
+#include "bibstd/meta/contains.hpp"
+#include "bibstd/meta/pack.hpp"
+#include "bibstd/util/enum.hpp"
 
 #include <boost/property_tree/ptree.hpp>
 
@@ -12,6 +12,7 @@
 #include <format>
 #include <ranges>
 #include <string>
+#include <vector>
 
 namespace bibstd::util
 {
@@ -61,6 +62,14 @@ concept property_parser_pair_type = requires(T) {
 ///
 struct property_parser final
 {
+  // Constants
+  static constexpr auto path_name_size = "size";
+  static constexpr auto path_name_value = "value";
+  static constexpr auto path_name_has_value = "has_value";
+  static constexpr auto path_name_first = "first";
+  static constexpr auto path_name_second = "second";
+
+  // Implementation
   template<basic_property_value_type T>
   static auto read(const property_path_type& path, const property_tree_type& tree) -> std::optional<T>;
   template<basic_property_value_type T>
@@ -77,16 +86,32 @@ struct property_parser final
   static auto write(const property_path_type& path, property_tree_type& tree, const T& value) -> void;
 
   template<typename T>
-    requires meta::is_duration_v<T>
+    requires(meta::is_duration_v<T>)
   static auto read(const property_path_type& path, const property_tree_type& tree) -> std::optional<T>;
   template<typename T>
-    requires meta::is_duration_v<T>
+    requires(meta::is_duration_v<T>)
   static auto write(const property_path_type& path, property_tree_type& tree, const T& value) -> void;
 
-  template<typename Container>
-  static auto read(const property_path_type& path, const property_tree_type& tree) -> std::optional<Container>;
-  template<typename Container>
-  static auto write(const property_path_type& path, property_tree_type& tree, const Container& value) -> void;
+  template<typename T>
+    requires(std::is_same_v<T, std::filesystem::path>)
+  static inline auto read(const property_path_type& path, const property_tree_type& tree) -> std::optional<T>;
+  template<typename T>
+    requires(std::is_same_v<T, std::filesystem::path>)
+  static inline auto write(const property_path_type& path, property_tree_type& tree, const T& value) -> void;
+
+  template<typename Optional>
+    requires(std::is_same_v<Optional, std::optional<typename Optional::value_type>>)
+  static auto read(const property_path_type& path, const property_tree_type& tree) -> std::optional<Optional>;
+  template<typename Optional>
+    requires(std::is_same_v<Optional, std::optional<typename Optional::value_type>>)
+  static auto write(const property_path_type& path, property_tree_type& tree, const Optional& value) -> void;
+
+  template<typename Vector>
+    requires(std::is_same_v<Vector, std::vector<typename Vector::value_type>>)
+  static auto read(const property_path_type& path, const property_tree_type& tree) -> std::optional<Vector>;
+  template<typename Vector>
+    requires(std::is_same_v<Vector, std::vector<typename Vector::value_type>>)
+  static auto write(const property_path_type& path, property_tree_type& tree, const Vector& value) -> void;
 };
 
 ///
@@ -135,8 +160,8 @@ auto property_parser::write(const property_path_type& path, property_tree_type& 
 template<property_parser_pair_type T>
 auto property_parser::read(const property_path_type& path, const property_tree_type& tree) -> std::optional<T>
 {
-  const auto first = read<T::first_type>(path / "first", tree);
-  const auto second = read<T::second_type>(path / "second", tree);
+  const auto first = read<typename T::first_type>(path / path_name_first, tree);
+  const auto second = read<typename T::second_type>(path / path_name_second, tree);
   return first.has_value() && second.has_value() ? T{first.value(), second.value()} : std::optional<T>{};
 }
 
@@ -145,14 +170,14 @@ auto property_parser::read(const property_path_type& path, const property_tree_t
 template<property_parser_pair_type T>
 auto property_parser::write(const property_path_type& path, property_tree_type& tree, const T& value) -> void
 {
-  write(path / "first", tree, value.first);
-  write(path / "second", tree, value.second);
+  write(path / path_name_first, tree, value.first);
+  write(path / path_name_second, tree, value.second);
 }
 
 ///
 ///
 template<typename T>
-  requires meta::is_duration_v<T>
+  requires(meta::is_duration_v<T>)
 auto property_parser::read(const property_path_type& path, const property_tree_type& tree) -> std::optional<T>
 {
   const auto duration = read<std::int64_t>(path, tree);
@@ -162,7 +187,7 @@ auto property_parser::read(const property_path_type& path, const property_tree_t
 ///
 ///
 template<typename T>
-  requires meta::is_duration_v<T>
+  requires(meta::is_duration_v<T>)
 auto property_parser::write(const property_path_type& path, property_tree_type& tree, const T& value) -> void
 {
   write(path, tree, std::chrono::duration_cast<std::chrono::nanoseconds>(value).count());
@@ -170,37 +195,93 @@ auto property_parser::write(const property_path_type& path, property_tree_type& 
 
 ///
 ///
-template<typename Container>
-auto property_parser::read(const property_path_type& path, const property_tree_type& tree) -> std::optional<Container>
+template<typename T>
+  requires(std::is_same_v<T, std::filesystem::path>)
+auto property_parser::read(const property_path_type& path, const property_tree_type& tree) -> std::optional<T>
 {
-  const auto size = read<std::uint64_t>(path / "size", tree);
-  if(!size.has_value())
-  {
-    return std::nullopt;
-  }
-  auto retval = Container(size.value());
-  const auto valid = std::ranges::all_of(
-    std::views::iota(decltype(size.value()){0}, size.value()),
-    [&](const auto i)
-    {
-      const auto element = read<typename Container::value_type>(path / std::format("index_{}", i), tree);
-      const auto success = element.has_value();
-      if(success)
-      {
-        retval.at(i) = element.value();
-      }
-      return success;
-    }
-  );
-  return valid ? retval : std::optional<Container>{};
+  const auto path_string = read<std::string>(path, tree);
+  return path_string ? std::optional<T>{std::filesystem::path{*path_string}} : std::optional<T>{};
 }
 
 ///
 ///
-template<typename Container>
-auto property_parser::write(const property_path_type& path, property_tree_type& tree, const Container& value) -> void
+template<typename T>
+  requires(std::is_same_v<T, std::filesystem::path>)
+auto property_parser::write(const property_path_type& path, property_tree_type& tree, const T& value) -> void
 {
-  write(path / "size", tree, static_cast<std::uint64_t>(value.size()));
+  write(path, tree, value.generic_string());
+}
+
+///
+///
+template<typename Optional>
+  requires(std::is_same_v<Optional, std::optional<typename Optional::value_type>>)
+auto property_parser::read(const property_path_type& path, const property_tree_type& tree) -> std::optional<Optional>
+{
+  const auto has_value = read<bool>(path / path_name_has_value, tree);
+  if(!has_value.has_value())
+  {
+    return std::nullopt;
+  }
+  if(*has_value)
+  {
+    const auto value = read<typename Optional::value_type>(path / path_name_value, tree);
+    return value.has_value() ? Optional{value.value()} : std::nullopt;
+  }
+  else
+  {
+    return Optional{};
+  }
+}
+
+///
+///
+template<typename Optional>
+  requires(std::is_same_v<Optional, std::optional<typename Optional::value_type>>)
+auto property_parser::write(const property_path_type& path, property_tree_type& tree, const Optional& value) -> void
+{
+  write(path / path_name_has_value, tree, static_cast<bool>(value.has_value()));
+  if(value)
+  {
+    write(path / path_name_value, tree, value.value());
+  }
+}
+
+///
+///
+template<typename Vector>
+  requires(std::is_same_v<Vector, std::vector<typename Vector::value_type>>)
+auto property_parser::read(const property_path_type& path, const property_tree_type& tree) -> std::optional<Vector>
+{
+  const auto size = read<std::uint64_t>(path / path_name_size, tree);
+  if(!size.has_value())
+  {
+    return std::nullopt;
+  }
+  auto retval = Vector(size.value());
+  const auto valid = std::ranges::all_of(
+    std::views::iota(decltype(size.value()){0}, size.value()),
+    [&](const auto i)
+    {
+      auto element = read<typename Vector::value_type>(path / std::format("index_{}", i), tree);
+      const auto success = element.has_value();
+      if(success)
+      {
+        retval.at(i) = std::move(element.value());
+      }
+      return success;
+    }
+  );
+  return valid ? retval : std::optional<Vector>{};
+}
+
+///
+///
+template<typename Vector>
+  requires(std::is_same_v<Vector, std::vector<typename Vector::value_type>>)
+auto property_parser::write(const property_path_type& path, property_tree_type& tree, const Vector& value) -> void
+{
+  write(path / path_name_size, tree, static_cast<std::uint64_t>(value.size()));
   std::ranges::for_each(
     std::views::iota(decltype(value.size()){0}, value.size()),
     [&](const auto i) { write(path / std::format("index_{}", i), tree, value.at(i)); }

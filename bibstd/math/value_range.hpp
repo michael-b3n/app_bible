@@ -1,9 +1,10 @@
 #pragma once
 
-#include "math/arithmetic.hpp"
-#include "math/is_equal.hpp"
-#include "util/enum.hpp"
+#include "bibstd/math/arithmetic.hpp"
+#include "bibstd/math/is_equal.hpp"
+#include "bibstd/util/enum.hpp"
 
+#include <algorithm>
 #include <optional>
 
 namespace bibstd::math
@@ -76,6 +77,14 @@ struct value_range final
   /// \return true if adjacent, false otherwise
   ///
   static constexpr auto adjacent(const value_range& first, const value_range& second) -> bool;
+
+  ///
+  /// Clamp value to be contained within range.
+  /// \param range Range that shall clamp the value
+  /// \param value Value that shall be clamped
+  /// \return clamped value
+  ///
+  static constexpr auto clamp(const value_range& range, value_type value) -> value_type;
 
   // Constructor
   ///
@@ -197,13 +206,32 @@ constexpr auto value_range<ValueType>::adjacent(const value_range& first, const 
 ///
 ///
 template<arithmetic_type ValueType>
+constexpr auto value_range<ValueType>::clamp(const value_range& range, const value_type value) -> value_type
+{
+  if constexpr(std::integral<value_type>)
+  {
+    if(empty(range))
+    {
+      THROW_EXCEPTION("cannot clamp to empty value_range");
+    }
+    return std::clamp(value, range.begin, range.end - 1);
+  }
+  else
+  {
+    return std::clamp(value, range.begin, range.end);
+  }
+}
+
+///
+///
+template<arithmetic_type ValueType>
 constexpr value_range<ValueType>::value_range(value_type begin_, value_type to_)
   : begin{std::min(begin_, to_)}
   , end{std::max(begin_, to_)}
 {
   if(!arithmetic::subtract(end, begin).has_value() || !arithmetic::add(begin, static_cast<value_type>(1)).has_value())
   {
-    THROW_EXCEPTION(std::invalid_argument("invalid value_range arguments"));
+    THROW_EXCEPTION("invalid value_range arguments");
   }
 }
 
