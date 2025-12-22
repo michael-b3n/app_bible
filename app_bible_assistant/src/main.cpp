@@ -27,7 +27,6 @@
 Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
 
 #include <filesystem>
-#include <format>
 
 INC_RESOURCE(icon, "res/icon.ico");
 const auto icon_view = bibstd::util::incbin::to_span<std::byte>(res_icon_data, res_icon_size);
@@ -92,7 +91,7 @@ int main(int argc, char** argv)
     },
     Qt::QueuedConnection
   );
-  engine.load(QUrl(QStringLiteral("qrc:/qt/qml/ui/qml/main.qml")));
+  engine.load(QUrl(QStringLiteral("qrc:/qt/qml/ui/qml/Main.qml")));
 
   // Connect tray signals
   const auto do_on_exit = [&]() { QMetaObject::invokeMethod(&app, [&app] { app.quit(); }, Qt::QueuedConnection); };
