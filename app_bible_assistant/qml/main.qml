@@ -4,11 +4,9 @@ import QtQuick.Layouts
 import QtQuick.VectorImage
 import BibQml
 
-Window
-{
-  Universal.theme: Universal.Dark
-  Universal.accent: Universal.Violet
 
+QtObject
+{
   id: root
 
   required property BridgeBibleRefOcr bridge
@@ -16,7 +14,10 @@ Window
   // Constants
   /*no binding*/ readonly property double goldenRatio: 1.618
   /*no binding*/ readonly property int stepSize: 32
-  /*no binding*/ readonly property int margin: 8
+  /*no binding*/ readonly property int margin: 4
+  /*no binding*/ readonly property int radius : margin * 2
+  /*no binding*/ readonly property int opacityDuration: 200
+  /*no binding*/ readonly property int tailLengthMax: stepSize * 2
 
   // Screen geometry
   /*no binding*/ property var screenGeometry: ScreenGeometryHelper.screenGeometryAt({ x: 0, y: 0 })
@@ -30,49 +31,259 @@ Window
   /*no binding*/ property int cursorY: 0
 
   // Bubble offset and size
+  /*no binding*/ property int userOffsetToCursorX: -stepSize * goldenRatio
+  /*no binding*/ property int userOffsetToCursorY: -40
   /*no binding*/ property int offsetToCursorX: -stepSize * goldenRatio
   /*no binding*/ property int offsetToCursorY: -40
-  /*no binding*/ property int actualWidth: actualHeight * goldenRatio * 2
-  /*no binding*/ property int actualHeight: stepSize
+  /*no binding*/ property int mainWidth: stepSize * goldenRatio * 2
+  /*no binding*/ property int mainHeight: stepSize
 
-  // Bubble bounds
-  readonly property int bubbleLeft: root.cursorX + root.offsetToCursorX
-  readonly property int bubbleTop: root.cursorY + root.offsetToCursorY
-  readonly property int bubbleRight: bubbleLeft + root.actualWidth
-  readonly property int bubbleBottom: bubbleTop + root.actualHeight
-
-  // Window content bounds (must contain both bubble and cursor)
-  readonly property int contentLeft: Math.min(bubbleLeft, root.cursorX)
-  readonly property int contentTop: Math.min(bubbleTop, root.cursorY)
-  readonly property int contentRight: Math.max(bubbleRight, root.cursorX + 1)
-  readonly property int contentBottom: Math.max(bubbleBottom, root.cursorY + 1)
-
-  // Window position and size (constrained to screen)
-  readonly property int windowX: Math.max(root.screenLeftBorder, Math.min(contentLeft, root.screenRightBorder - (contentRight - contentLeft)))
-  readonly property int windowY: Math.max(root.screenTopBorder, Math.min(contentTop, root.screenBottomBorder - (contentBottom - contentTop)))
-  readonly property int windowWidth: Math.min(root.screenGeometry.width, contentRight - contentLeft)
-  readonly property int windowHeight: Math.min(root.screenGeometry.height, contentBottom - contentTop)
-
-  // Object properties
-  visible: speechBubble.opacity > 0
-  color: "transparent"
-  flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
-  x: windowX
-  y: windowY
-  width: windowWidth
-  height: windowHeight
+  Universal.theme: Universal.Dark
+  Universal.accent: Universal.Violet
 
   // Connections
-  onVisibleChanged:
+  property Connections bridgeConnections: Connections
   {
-    if(visible)
+    target: root.bridge
+
+    function onCursorPositionChanged(cursorPosition)
     {
-      root.raise()
-      root.requestActivate()
+      root.cursorX = cursorPosition.x
+      root.cursorY = cursorPosition.y
+      root.screenGeometry = ScreenGeometryHelper.screenGeometryAt(cursorPosition)
+      Qt.callLater(function()
+      {
+        let constrained = root.constrainOffset(
+            root.userOffsetToCursorX,
+            root.userOffsetToCursorY,
+            root.mainWidth,
+            root.mainHeight
+          )
+        /*no binding*/ root.offsetToCursorX = constrained.x
+        /*no binding*/ root.offsetToCursorY = constrained.y
+      })
+    }
+
+    function onRunningChanged(running)
+    {
+      Qt.callLater(function()
+      {
+        if(running)
+        {
+          background.raise()
+          root.show()
+        }
+        else if(!mouseAreaHelper.containsMouse)
+        {
+          root.hide()
+        }
+        loadingIcon.visible = running
+      })
+    }
+  }
+
+  // Background window with speech bubble shape
+  property Window background: Window
+  {
+    id: background
+
+    // Object properties
+    visible: speechBubble.opacity > 0
+    color: "transparent"
+    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowTransparentForInput
+    x: root.screenGeometry.x
+    y: root.screenGeometry.y
+    width: root.screenGeometry.width
+    height: root.screenGeometry.height
+
+    onVisibleChanged: (visible) => { if(visible) { Qt.callLater(function() { main.raise() }) } }
+
+    // Children
+    ShapeSpeechBubble
+    {
+      id: speechBubble
+
+      anchors.fill: parent
+      opacity: 0
+      radius: root.radius
+      tailPositionX: root.cursorX - background.x
+      tailPositionY: root.cursorY - background.y
+      offsetToTailX: root.offsetToCursorX
+      offsetToTailY: root.offsetToCursorY
+      bubbleWidth: root.mainWidth
+      bubbleHeight: root.mainHeight
+
+      Behavior on opacity
+      {
+        NumberAnimation
+        {
+          duration: root.opacityDuration
+          easing.type: Easing.InOutQuad
+        }
+      }
+    }
+  }
+
+  // Main window with simple rounded rectangle shape
+  property Window main: Window
+  {
+    id: main
+
+    color: "transparent"
+    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
+    opacity: Math.min(bubble.opacity + speechBubble.opacity, 1)
+    visible: bubble.opacity > 0 || speechBubble.opacity > 0
+    x: root.cursorX + root.offsetToCursorX
+    y: root.cursorY + root.offsetToCursorY
+    width: root.mainWidth
+    height: root.mainHeight
+
+    Rectangle
+    {
+      id: bubble
+
+      anchors.fill: parent
+      border.color: Colors.border
+      color: Colors.backgroundTransparent
+      opacity: 0
+      radius: root.radius
+
+      Behavior on opacity
+      {
+        NumberAnimation
+        {
+          duration: root.opacityDuration
+          easing.type: Easing.InOutQuad
+        }
+      }
+    }
+
+    MouseAreaHelper // Mouse area for interaction
+    {
+      id: mouseAreaHelper
+
+      anchors.fill: parent
+      expandable: true
+      expandAreaWidth: root.margin
+      movable: true
+
+      onReleased: (mouse) => { root.show() }
+      onMoveRequested: (deltaX, deltaY) =>
+      {
+        root.userOffsetToCursorX = root.offsetToCursorX + deltaX
+        root.userOffsetToCursorY = root.offsetToCursorY + deltaY
+        let constrained = root.constrainOffset(
+          root.userOffsetToCursorX,
+          root.userOffsetToCursorY,
+          root.mainWidth,
+          root.mainHeight
+        )
+        /*no binding*/ root.offsetToCursorX = constrained.x
+        /*no binding*/ root.offsetToCursorY = constrained.y
+      }
+      onExpandRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
+      {
+        root.userOffsetToCursorX = root.offsetToCursorX + deltaX
+        root.userOffsetToCursorY = root.offsetToCursorY + deltaY
+        let constrained = root.constrainSize(
+          root.userOffsetToCursorX,
+          root.userOffsetToCursorY,
+          root.mainWidth + deltaWidth,
+          root.mainHeight + deltaHeight
+        )
+        /*no binding*/ root.offsetToCursorX = constrained.x
+        /*no binding*/ root.offsetToCursorY = constrained.y
+        /*no binding*/ root.mainWidth = constrained.width
+        /*no binding*/ root.mainHeight = constrained.height
+      }
+
+      // Children
+      RowLayout
+      {
+        // Object properties
+        anchors.fill: parent
+        anchors.margins: root.margin
+
+        // Children
+        VectorImage
+        {
+          id: loadingIcon
+          Layout.preferredWidth: parent.height
+          Layout.preferredHeight: parent.height
+          Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+
+          source: "qrc:/qt/qml/ui/qml/res/loading.svg"
+          preferredRendererType: VectorImage.CurveRenderer
+
+          RotationAnimator on rotation
+          {
+            running: loadingIcon.visible
+            loops: Animation.Infinite
+            from: 0;
+            to: 360;
+            duration: 3000
+          }
+        }
+
+        VectorImage
+        {
+          id: foundIcon
+          visible: !loadingIcon.visible
+          Layout.preferredWidth: parent.height
+          Layout.preferredHeight: parent.height
+          Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+
+          source: "qrc:/qt/qml/ui/qml/res/check_mark.svg"
+          preferredRendererType: VectorImage.CurveRenderer
+        }
+
+        ButtonIconSimple
+        {
+          Layout.preferredWidth: parent.height
+          Layout.preferredHeight: parent.height
+          Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+          svgSource: "qrc:/qt/qml/ui/qml/res/close.svg"
+
+          onClicked:
+          {
+            Qt.callLater(function()
+            {
+              root.hide()
+            })
+          }
+        }
+      }
     }
   }
 
   // Helper functions
+  //
+  // Shows the background shape adjusted to content bounds.
+  //
+  function show()
+  {
+    if(showTail())
+    {
+      speechBubble.opacity = 1
+      bubble.opacity = 0
+    }
+    else
+    {
+      bubble.opacity = 1
+      speechBubble.opacity = 0
+    }
+    Qt.callLater(function() { main.raise() })
+  }
+
+  //
+  // Hides both foreground and background shapes and windows.
+  //
+  function hide()
+  {
+    bubble.opacity = 0
+    speechBubble.opacity = 0
+  }
+
   //
   // Constrains the bubble offset to keep it within screen bounds
   // Returns adjusted offset coordinates that ensure the bubble stays fully visible
@@ -140,172 +351,19 @@ Window
     return {x: newOffsetX, y: newOffsetY, width: newWidth, height: newHeight}
   }
 
-  Connections
+  //
+  // Check with the offsets and the bubble position if the tail of the speech bubble should be shown.
+  //
+  function showTail()
   {
-    target: root.bridge
+    let leftX = root.cursorX + root.offsetToCursorX
+    let rightX = leftX + root.mainWidth
+    let topY = root.cursorY + root.offsetToCursorY
+    let bottomY = topY + root.mainHeight
+    let tailLengthMax = root.tailLengthMax
 
-    function onCursorPositionChanged(cursorPosition)
-    {
-      root.cursorX = cursorPosition.x
-      root.cursorY = cursorPosition.y
-      root.screenGeometry = ScreenGeometryHelper.screenGeometryAt(cursorPosition)
-      let constrained = root.constrainOffset(
-          root.offsetToCursorX,
-          root.offsetToCursorY,
-          root.actualWidth,
-          root.actualHeight
-        )
-      /*no binding*/ root.offsetToCursorX = constrained.x
-      /*no binding*/ root.offsetToCursorY = constrained.y
-    }
-
-    function onVisibleChanged(visible)
-    {
-      speechBubble.opacity = visible || mouseAreaHelper.containsMouse ? 1 : 0
-      loadingIcon.visible = visible
-    }
-  }
-
-  // Children
-  ShapeSpeechBubble
-  {
-    id: speechBubble
-
-    opacity: 0
-    anchors.fill: parent
-    tailPositionX: root.cursorX - root.x
-    tailPositionY: root.cursorY - root.y
-    offsetToTailX: root.offsetToCursorX
-    offsetToTailY: root.offsetToCursorY
-    bubbleWidth: root.actualWidth
-    bubbleHeight: root.actualHeight
-
-    Behavior on opacity
-    {
-      NumberAnimation
-      {
-        duration: 400
-        easing.type: Easing.InOutQuad
-      }
-    }
-
-    Connections
-    {
-      target: mouseAreaHelper
-
-      function onPressed(mouse)
-      {
-        root.x = root.screenGeometry.x
-        root.y = root.screenGeometry.y
-        root.width = root.screenGeometry.width
-        root.height = root.screenGeometry.height
-      }
-
-      function onReleased(mouse)
-      {
-        root.x = root.windowX
-        root.y = root.windowY
-        root.width = root.windowWidth
-        root.height = root.windowHeight
-      }
-
-      function onMoveRequested(deltaX, deltaY)
-      {
-        let constrained = root.constrainOffset(
-          root.offsetToCursorX + deltaX,
-          root.offsetToCursorY + deltaY,
-          root.actualWidth,
-          root.actualHeight
-        )
-        /*no binding*/ root.offsetToCursorX = constrained.x
-        /*no binding*/ root.offsetToCursorY = constrained.y
-      }
-
-      function onExpandRequested(deltaX, deltaY, deltaWidth, deltaHeight)
-      {
-        let constrained = root.constrainSize(
-          root.offsetToCursorX + deltaX,
-          root.offsetToCursorY + deltaY,
-          root.actualWidth + deltaWidth,
-          root.actualHeight + deltaHeight
-        )
-        /*no binding*/ root.offsetToCursorX = constrained.x
-        /*no binding*/ root.offsetToCursorY = constrained.y
-        /*no binding*/ root.actualWidth = constrained.width
-        /*no binding*/ root.actualHeight = constrained.height
-      }
-    }
-
-    MouseAreaHelper // Mouse area for interaction
-    {
-      id: mouseAreaHelper
-
-      property bool ignoreMouse: false
-
-      expandable: true
-      expandAreaWidth: root.margin
-      movable: true
-      x: speechBubble.bubbleX
-      y: speechBubble.bubbleY
-      width: speechBubble.bubbleWidth
-      height: speechBubble.bubbleHeight
-
-      // Children
-      RowLayout
-      {
-        // Object properties
-        x: speechBubble.radius / 2
-        y: speechBubble.radius / 2
-        width: parent.width - speechBubble.radius
-        height: parent.height - speechBubble.radius
-
-        // Children
-        VectorImage
-        {
-          id: loadingIcon
-          Layout.preferredWidth: parent.height
-          Layout.preferredHeight: parent.height
-          Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-
-          source: "qrc:/qt/qml/ui/qml/res/loading.svg"
-          preferredRendererType: VectorImage.CurveRenderer
-
-          RotationAnimator on rotation
-          {
-            running: loadingIcon.visible
-            loops: Animation.Infinite
-            from: 0;
-            to: 360;
-            duration: 3000
-          }
-        }
-
-        VectorImage
-        {
-          id: foundIcon
-          visible: !loadingIcon.visible
-          Layout.preferredWidth: parent.height
-          Layout.preferredHeight: parent.height
-          Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-
-          source: "qrc:/qt/qml/ui/qml/res/check_mark.svg"
-          preferredRendererType: VectorImage.CurveRenderer
-        }
-
-        ButtonIconSimple
-        {
-          Layout.preferredWidth: parent.height
-          Layout.preferredHeight: parent.height
-          Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-          svgSource: "qrc:/qt/qml/ui/qml/res/close.svg"
-
-          onClicked:
-          {
-            speechBubble.opacity = 0
-            root.bridge.visible = false
-          }
-        }
-      }
-    }
+    let inRangeX = root.cursorX >= leftX - tailLengthMax && root.cursorX <= rightX + tailLengthMax
+    let inRangeY = root.cursorY >= topY - tailLengthMax && root.cursorY <= bottomY + tailLengthMax
+    return inRangeX && inRangeY
   }
 }

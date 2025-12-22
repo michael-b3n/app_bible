@@ -27,10 +27,10 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(bibstd::presenter::presenter_bible_ref_ocr&
           processId_ = process_id;
           cursorPosition_ = QCursor::pos();
           Q_EMIT cursorPositionChanged(cursorPosition_);
-          if(!visible_)
+          if(!running_)
           {
-            visible_ = true;
-            Q_EMIT visibleChanged(visible_);
+            running_ = true;
+            Q_EMIT runningChanged(running_);
           }
         },
         Qt::QueuedConnection
@@ -45,10 +45,10 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(bibstd::presenter::presenter_bible_ref_ocr&
         this,
         [this, process_id]()
         {
-          if(visible_ && processId_ == process_id)
+          if(running_ && processId_ == process_id)
           {
-            visible_ = false;
-            Q_EMIT visibleChanged(visible_);
+            running_ = false;
+            Q_EMIT runningChanged(running_);
           }
         },
         Qt::QueuedConnection

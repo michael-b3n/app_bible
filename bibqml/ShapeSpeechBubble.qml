@@ -5,6 +5,7 @@ Item
 {
   id: root
 
+  required property int radius
   required property int tailPositionX
   required property int tailPositionY
   required property int offsetToTailX
@@ -19,8 +20,7 @@ Item
   readonly property int margin: 2 * strokeWidth
 
   readonly property int maxTailLength: Math.min(bubbleWidth, bubbleHeight)
-  readonly property double tailWidth: Math.min(bubbleHeight, bubbleWidth) * 0.2
-  readonly property double radius: tailWidth
+  readonly property double tailWidth: radius
 
   implicitHeight: 100
   implicitWidth: 200

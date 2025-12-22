@@ -28,7 +28,7 @@ class BridgeBibleRefOcr final : public QObject
   Q_OBJECT
   QML_ELEMENT
 
-  Q_PROPERTY(bool visible MEMBER visible_ NOTIFY visibleChanged)
+  Q_PROPERTY(bool running MEMBER running_ NOTIFY runningChanged)
   Q_PROPERTY(QPoint cursorPosition MEMBER cursorPosition_ NOTIFY cursorPositionChanged)
 
 public: // Structors
@@ -36,11 +36,11 @@ public: // Structors
   ~BridgeBibleRefOcr() noexcept override;
 
 signals:
-  void visibleChanged(bool visible);
+  void runningChanged(bool running);
   void cursorPositionChanged(const QPoint& cursorPosition);
 
 private: // Variables
-  bool visible_{false};
+  bool running_{false};
   QPoint cursorPosition_{0, 0};
   bibstd::framework::runtime_uid_type processId_{};
   std::unique_ptr<bibstd::signal::connection_store> connections_;
