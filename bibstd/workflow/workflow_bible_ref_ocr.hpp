@@ -18,7 +18,7 @@ namespace bibstd::core
 // Forward declarations
 class core_bible_ref_ocr;
 class core_bible_ref;
-class core_bibleserver_lookup;
+class core_lookup_bibleserver;
 } // namespace bibstd::core
 
 namespace bibstd::workflow
@@ -124,7 +124,7 @@ private: // Implementation
 private: // Variables
   const framework::thread_pool::strand_id_type strand_id_{framework::thread_pool::strand_id()};
   const std::unique_ptr<core::core_bible_ref> core_bible_ref_;
-  const std::unique_ptr<core::core_bibleserver_lookup> core_bibleserver_lookup_;
+  const std::unique_ptr<core::core_lookup_bibleserver> core_lookup_bibleserver_;
   std::atomic<std::shared_ptr<core::core_bible_ref_ocr>> core_bible_ref_ocr_;
 };
 

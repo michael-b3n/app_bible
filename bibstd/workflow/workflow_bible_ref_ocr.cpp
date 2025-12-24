@@ -2,7 +2,7 @@
 #include "bibstd/bible/reference_range.hpp"
 #include "bibstd/core/core_bible_ref.hpp"
 #include "bibstd/core/core_bible_ref_ocr.hpp"
-#include "bibstd/core/core_bibleserver_lookup.hpp"
+#include "bibstd/core/core_lookup_bibleserver.hpp"
 #include "bibstd/util/format.hpp"
 #include "bibstd/workflow/workflow_settings.hpp"
 
@@ -25,7 +25,7 @@ workflow_bible_ref_ocr_settings::workflow_bible_ref_ocr_settings()
 ///
 workflow_bible_ref_ocr::workflow_bible_ref_ocr()
   : core_bible_ref_{std::make_unique<core::core_bible_ref>()}
-  , core_bibleserver_lookup_{std::make_unique<core::core_bibleserver_lookup>()}
+  , core_lookup_bibleserver_{std::make_unique<core::core_lookup_bibleserver>()}
 {
   if(!settings->tessdata_path->value() || !std::filesystem::exists(*settings->tessdata_path->value()))
   {
@@ -84,7 +84,7 @@ auto workflow_bible_ref_ocr::start(const start_params& params) -> std::stop_sour
           {
             LOG_INFO("reference search finished: references=[{}]", util::format::join(*references, ", "));
             std::ranges::for_each(
-              *references, [&](const auto& reference_range) { core_bibleserver_lookup_->open(reference_range, translations); }
+              *references, [&](const auto& reference_range) { core_lookup_bibleserver_->open(reference_range, translations); }
             );
           }
           emit<signal_id::ended>(result_type{params.process_id(), references});
