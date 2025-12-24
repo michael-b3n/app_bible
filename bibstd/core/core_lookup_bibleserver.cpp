@@ -3,6 +3,8 @@
 #include "bibstd/system/open_browser.hpp"
 #include "bibstd/util/log.hpp"
 
+#include <algorithm>
+
 namespace bibstd::core
 {
 

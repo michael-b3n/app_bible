@@ -19,6 +19,7 @@
 -  **Catch2** run `pacman -S mingw-w64-x86_64-catch` in `msys2_shell.cmd`
 -  **Boost** run `pacman -S mingw-w64-x86_64-boost` in `msys2_shell.cmd`
 -  **Spdlog** run `pacman -S mingw-w64-x86_64-spdlog` in `msys2_shell.cmd`
+-  **Curl** run `pacman -S mingw-w64-x86_64-curl` in `msys2_shell.cmd`
 -  **Fmt** run `pacman -S mingw-w64-x86_64-fmt` in `msys2_shell.cmd`
 -  **Tesseract** run `pacman -S mingw-w64-x86_64-tesseract-ocr` in `msys2_shell.cmd`
 -  **Tesseract Data (deu)** run `pacman -S mingw-w64-x86_64-tesseract-data-deu` in `msys2_shell.cmd`

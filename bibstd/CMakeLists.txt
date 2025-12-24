@@ -44,8 +44,10 @@ target_include_directories(bibstd PUBLIC ${fmt_INCLUDE_DIRS})
 find_package(PkgConfig REQUIRED)
 pkg_search_module(TESSERACT REQUIRED tesseract)
 pkg_search_module(LEPTONICA REQUIRED lept)
+pkg_search_module(LIBCURL REQUIRED libcurl)
 target_include_directories(bibstd PUBLIC ${TESSERACT_INCLUDE_DIRS})
 target_include_directories(bibstd PUBLIC ${LEPTONICA_INCLUDE_DIRS})
+target_include_directories(bibstd PUBLIC ${LIBCURL_INCLUDE_DIRS})
 
 #
 # Link libraries.
@@ -56,6 +58,7 @@ target_link_libraries(bibstd
   PUBLIC libs_external::all
   ${TESSERACT_LIBRARIES}
   ${LEPTONICA_LIBRARIES}
+  ${LIBCURL_LIBRARIES}
 )
 
 IF(WIN32)
