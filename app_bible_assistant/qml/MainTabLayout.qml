@@ -84,12 +84,10 @@ Item
 
       MainTabContent
       {
-        id: homeTab
       }
 
       SettingsTabContent
       {
-        id: settingsTab
       }
     }
   }

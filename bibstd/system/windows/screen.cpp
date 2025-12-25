@@ -1,13 +1,12 @@
 #include "bibstd/system/screen.hpp"
 #include "bibstd/system/windows/win.hpp"
-#include "bibstd/util/boost_numeric_cast.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
+#include "bibstd/util/numeric_cast.hpp"
 
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
-#include <expected>
 #include <mutex>
 #include <ranges>
 
@@ -19,7 +18,8 @@ namespace bibstd::system
 auto screen::init() -> bool
 {
   // We set the Dpi awareness explicitly for this process.
-  return SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+  SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+  return true;
 }
 
 ///
@@ -114,8 +114,8 @@ auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) -> bool
   // the highest row is the lowest row in the coordinate system of tesseract,
   // where the origin is on the bottom left.
   const auto byte_count = info.bmiHeader.biBitCount / 8;
-  const auto height = boost::numeric_cast<std::uint32_t>(info.bmiHeader.biHeight);
-  const auto width = boost::numeric_cast<std::uint32_t>(info.bmiHeader.biWidth);
+  const auto height = numeric_cast<std::uint32_t>(info.bmiHeader.biHeight);
+  const auto width = numeric_cast<std::uint32_t>(info.bmiHeader.biWidth);
   pix.width = width;
   pix.height = height;
   if(pix.data.size() < height * width)

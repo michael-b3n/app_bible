@@ -3,7 +3,6 @@
 #include "bibstd/core/core_tesseract.hpp"
 #include "bibstd/system/screen.hpp"
 #include "bibstd/txt/chars.hpp"
-#include "bibstd/util/boost_numeric_cast.hpp"
 #include "bibstd/util/format.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/string.hpp"

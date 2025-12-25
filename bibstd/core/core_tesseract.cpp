@@ -1,10 +1,9 @@
 #include "bibstd/core/core_tesseract.hpp"
 #include "bibstd/data/pix.hpp"
-#include "bibstd/system/filesystem.hpp"
-#include "bibstd/util/boost_numeric_cast.hpp"
 #include "bibstd/util/const_bimap.hpp"
 #include "bibstd/util/enum.hpp"
 #include "bibstd/util/log.hpp"
+#include "bibstd/util/numeric_cast.hpp"
 
 #include <leptonica/allheaders.h>
 #include <tesseract/baseapi.h>
@@ -67,14 +66,15 @@ auto core_tesseract::recognize(std::optional<screen_rect_type> bounding_box) con
     pix_rect = overlap.value();
     // Each SetRectangle clears the recognition results so multiple rectangles can be recognized with the same image.
     tesseract_->SetRectangle(
-      boost::numeric_cast<int>(pix_rect.origin().x()),
-      boost::numeric_cast<int>(pix_rect.origin().y()),
-      boost::numeric_cast<int>(pix_rect.horizontal_range()),
-      boost::numeric_cast<int>(pix_rect.vertical_range())
+      numeric_cast<int>(pix_rect.origin().x()),
+      numeric_cast<int>(pix_rect.origin().y()),
+      numeric_cast<int>(pix_rect.horizontal_range()),
+      numeric_cast<int>(pix_rect.vertical_range())
     );
     return tesseract_->Recognize(nullptr) == 0;
   }
-  else {
+  else
+  {
     return tesseract_->Recognize(nullptr) == 0;
   }
 }
@@ -96,7 +96,8 @@ auto core_tesseract::bounding_boxes(const text_resolution resolution) const -> s
       {
         result.emplace_back(screen_rect_type(screen_coordinates_type(left, top), right - left, bottom - top));
       }
-      else {
+      else
+      {
         LOG_WARN("invalid bounding box in analyze_bounding_boxes: resolution={}", util::to_string_view(resolution));
       }
     }
@@ -145,7 +146,8 @@ auto core_tesseract::for_each_while(const text_resolution resolution, const text
           const auto box = screen_rect_type(screen_coordinates_type(left, top), right - left, bottom - top);
           found = do_with_text(std::string_view(txt.get()), box);
         }
-        else {
+        else
+        {
           LOG_WARN("invalid bounding box in for_each_while: txt={}", txt.get());
         }
       }
@@ -213,7 +215,8 @@ auto core_tesseract::for_each_choices_while(const choices_while_callback_type& d
         const auto box = screen_rect_type(screen_coordinates_type(left, top), right - left, bottom - top);
         found = do_with_choices(choices, box);
       }
-      else {
+      else
+      {
         LOG_WARN("invalid bounding box in for_each_choices_while: main_symbol={}", main_symbol);
       }
     }

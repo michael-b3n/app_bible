@@ -1,9 +1,7 @@
 #pragma once
 
-#include "bibstd/bible/reference_range.hpp"
 #include "bibstd/core/core_bible_ref_ocr_common.hpp"
 #include "bibstd/core/core_tesseract_common.hpp"
-#include "bibstd/math/value_range.hpp"
 #include "bibstd/txt/indexed_strings.hpp"
 #include "bibstd/util/screen_types.hpp"
 

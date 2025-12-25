@@ -4,8 +4,8 @@
 #include "bibstd/math/coordinates.hpp"
 #include "bibstd/math/value_range.hpp"
 #include "bibstd/meta/type_traits.hpp"
-#include "bibstd/util/boost_numeric_cast.hpp"
 #include "bibstd/util/enum.hpp"
+#include "bibstd/util/numeric_cast.hpp"
 
 #include <cassert>
 #include <optional>
@@ -249,9 +249,9 @@ template<arithmetic_type ValueType>
 constexpr auto rect<ValueType>::center() const -> coordinates_type
 {
   const auto horizontal_size = value_range<value_type>::size(horizontal_range_);
-  const auto horizontal_offset = boost::numeric_cast<value_type>(horizontal_size / decltype(horizontal_size){2});
+  const auto horizontal_offset = numeric_cast<value_type>(horizontal_size / decltype(horizontal_size){2});
   const auto vertical_size = value_range<value_type>::size(vertical_range_);
-  const auto vertical_offset = boost::numeric_cast<value_type>(vertical_size / decltype(vertical_size){2});
+  const auto vertical_offset = numeric_cast<value_type>(vertical_size / decltype(vertical_size){2});
   return coordinates_type{horizontal_range_.begin + horizontal_offset, vertical_range_.begin + vertical_offset};
 }
 

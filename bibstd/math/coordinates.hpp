@@ -1,10 +1,11 @@
 #pragma once
 
-#include "bibstd/util/boost_numeric_cast.hpp"
+#include "bibstd/util/numeric_cast.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <format>
 #include <type_traits>
 
 namespace bibstd::math
@@ -82,9 +83,7 @@ template<typename ValueType, std::size_t D>
 constexpr auto coordinates<ValueType, D>::distance(const coordinates& first, const coordinates& second) -> double
 {
   const auto create_distances = [&]<std::size_t... I>([[maybe_unused]] std::index_sequence<I...>)
-  {
-    return std::array{boost::numeric_cast<double>(first.axis_value(I)) - boost::numeric_cast<double>(second.axis_value(I))...};
-  };
+  { return std::array{numeric_cast<double>(first.axis_value(I)) - numeric_cast<double>(second.axis_value(I))...}; };
   const auto distances = create_distances(std::make_index_sequence<D>());
   const auto distance_squared =
     std::ranges::fold_left(distances, 0.0, [](const double first, const double second) { return first + std::pow(second, 2); });
@@ -96,7 +95,7 @@ constexpr auto coordinates<ValueType, D>::distance(const coordinates& first, con
 template<typename ValueType, std::size_t D>
 template<typename... T>
 constexpr coordinates<ValueType, D>::coordinates(T... coords)
-  : coordinates_{std::array{boost::numeric_cast<value_type>(coords)...}}
+  : coordinates_{std::array{numeric_cast<value_type>(coords)...}}
 {
 }
 
@@ -172,7 +171,7 @@ struct std::formatter<bibstd::math::coordinates<ValueType, 2>> : std::formatter<
 {
   auto format(const bibstd::math::coordinates<ValueType, 2>& e, std::format_context& ctx) const
   {
-    return formatter<std::string>::format(std::format("({},{})", e.x(), e.y()), ctx);
+    return std::formatter<std::string>::format(std::format("({},{})", e.x(), e.y()), ctx);
   }
 };
 
@@ -183,6 +182,6 @@ struct std::formatter<bibstd::math::coordinates<ValueType, 3>> : std::formatter<
 {
   auto format(const bibstd::math::coordinates<ValueType, 3>& e, std::format_context& ctx) const
   {
-    return formatter<std::string>::format(std::format("({},{},{})", e.x(), e.y(), e.z()), ctx);
+    return std::formatter<std::string>::format(std::format("({},{},{})", e.x(), e.y(), e.z()), ctx);
   }
 };

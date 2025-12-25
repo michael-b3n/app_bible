@@ -4,7 +4,6 @@
 #include "bibstd/txt/chars.hpp"
 #include "bibstd/txt/find_uint.hpp"
 #include "bibstd/util/contains.hpp"
-#include "bibstd/util/format.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/string.hpp"
 #include "bibstd/util/visit_helper.hpp"
@@ -156,8 +155,7 @@ auto core_bible_ref::parse(const std::string_view text, const std::size_t index)
 
 ///
 ///
-auto core_bible_ref::find_book(const std::string_view text, const std::size_t index) const
-  -> std::optional<find_book_result>
+auto core_bible_ref::find_book(const std::string_view text, const std::size_t index) const -> std::optional<find_book_result>
 {
   auto found_book = std::optional<find_book_result>{};
 
@@ -249,8 +247,7 @@ auto core_bible_ref::find_book(const std::string_view text, const std::size_t in
 
 ///
 ///
-auto core_bible_ref::find_numbers_after_book_name(const std::string_view text_after_name) const
-  -> std::optional<std::size_t>
+auto core_bible_ref::find_numbers_after_book_name(const std::string_view text_after_name) const -> std::optional<std::size_t>
 {
   auto digit_found = false;
   auto numbers_end = std::optional<std::size_t>{};
@@ -275,9 +272,8 @@ auto core_bible_ref::find_numbers_after_book_name(const std::string_view text_af
 
 ///
 ///
-auto core_bible_ref::validate_index_range_numbers_end(
-  const std::string_view text_after_name, std::size_t numbers_end
-) const -> std::size_t
+auto core_bible_ref::validate_index_range_numbers_end(const std::string_view text_after_name, std::size_t numbers_end) const
+  -> std::size_t
 {
   if(numbers_end < text_after_name.size() && numbers_end > 0 &&
      txt::chars::is_char(text_after_name, numbers_end, txt::chars::category::letter))
@@ -506,8 +502,7 @@ auto core_bible_ref::match_passage_template(const bible::book_id book, passage_t
 
 ///
 ///
-auto core_bible_ref::passage_template_transition_chars(const passage_template_type& passage_template) const
-  -> std::vector<char>
+auto core_bible_ref::passage_template_transition_chars(const passage_template_type& passage_template) const -> std::vector<char>
 {
   auto result = std::vector<char>{};
   std::ranges::for_each(
@@ -522,8 +517,7 @@ auto core_bible_ref::passage_template_transition_chars(const passage_template_ty
 
 ///
 ///
-auto core_bible_ref::passage_template_numbers(const passage_template_type& passage_template) const
-  -> std::vector<std::uint32_t>
+auto core_bible_ref::passage_template_numbers(const passage_template_type& passage_template) const -> std::vector<std::uint32_t>
 {
   auto result = std::vector<std::uint32_t>{};
   std::ranges::for_each(
