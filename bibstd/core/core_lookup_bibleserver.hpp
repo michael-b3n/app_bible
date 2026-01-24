@@ -46,7 +46,7 @@ private: // Constants
     std::pair{bible::translation::vxb, std::string_view("VXB")},
     std::pair{bible::translation::zb, std::string_view("ZB")}
   );
-  static_assert(translations_map_de.size() == static_cast<std::size_t>(util::to_integral(bible::translation::END)));
+  static_assert(translations_map_de.size() == magic_enum::enum_count<bible::translation>());
 };
 
 } // namespace bibstd::core

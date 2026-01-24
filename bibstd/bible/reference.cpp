@@ -1,7 +1,5 @@
 #include "bibstd/bible/reference.hpp"
 #include "bibstd/util/enum.hpp"
-#include "bibstd/util/exception.hpp"
-#include "bibstd/util/log.hpp"
 
 namespace bibstd::bible
 {
@@ -98,7 +96,7 @@ auto reference::increment() -> void
     verse_ = verse_type{1};
     verse_count_ = verse_count(book_, chapter_.value).value();
   }
-  else if(util::next(book_) < book_id::END)
+  else if(util::has_next(book_))
   {
     book_ = util::next(book_);
     chapter_ = chapter_type{1};
@@ -122,11 +120,11 @@ auto reference::decrement() -> void
     chapter_ = chapter_type{chapter_.value - 1};
     verse_ = verse_type{verse_count_};
   }
-  else if(book_ > util::next(book_id::BEGIN))
+  else if(util::has_prev(book_))
   {
+    book_ = util::prev(book_);
     chapter_count_ = chapter_count(book_);
     verse_count_ = verse_count(book_, chapter_count_).value();
-    book_ = util::prev(book_);
     chapter_ = chapter_type{chapter_count_};
     verse_ = verse_type{verse_count_};
   }

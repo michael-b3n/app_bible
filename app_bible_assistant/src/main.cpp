@@ -42,7 +42,7 @@ int main(int argc, char** argv)
   LOG_INFO("commit_hash: {}", bible_assistant::version::commit_hash);
   LOG_INFO("commit_date: {}", bible_assistant::version::commit_date);
 
-  if(bibstd::system::screen::init())
+  if(!bibstd::system::screen::init())
   {
     LOG_ERROR("failed to initialize screen settings");
     return EXIT_FAILURE;

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <functional>
 #include <string>
 #include <vector>
 
@@ -8,15 +7,11 @@ namespace bibstd::txt
 {
 
 ///
-/// Index string containing a string and indices for each character.
+/// Container with index and string pairs.
+/// This class provides methods to read, modify and append strings.
 ///
 class indexed_strings final
 {
-public: // Typedefs
-  using data_type = std::vector<std::pair<std::size_t, std::string>>;
-  using const_iterator = data_type::const_iterator;
-  using const_reverse_iterator = data_type::const_reverse_iterator;
-
 public: // Constructor
   indexed_strings() = default;
 

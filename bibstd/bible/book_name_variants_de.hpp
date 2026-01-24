@@ -9,7 +9,6 @@
 #include <array>
 #include <ranges>
 #include <tuple>
-#include <type_traits>
 #include <utility>
 
 namespace bibstd::bible
@@ -98,7 +97,7 @@ public: // Constants
     std::pair{     book_id::revelation,         util::to_array("Offenbarung", "Offenb", "Offb")}
   };
   // clang-format on
-  static_assert(std::tuple_size_v<decltype(name_variants)> == util::to_integral(book_id::END));
+  static_assert(std::tuple_size_v<decltype(name_variants)> == magic_enum::enum_count<book_id>());
 
   // clang-format off
   static constexpr auto pretty_names = util::const_bimap(
@@ -170,7 +169,7 @@ public: // Constants
     book_name_type{book_id::revelation,         "Offenbarung"}
   );
   // clang-format on
-  static_assert(pretty_names.size() == util::to_integral(book_id::END));
+  static_assert(pretty_names.size() == magic_enum::enum_count<book_id>());
 
   ///
   /// Concatenated list of all bible book name variants.

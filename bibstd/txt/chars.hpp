@@ -1,13 +1,11 @@
 #pragma once
 
-#include "bibstd/util/exception.hpp"
-#include "bibstd/util/string.hpp"
+#include "bibstd/util/log.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cctype>
 #include <concepts>
-#include <cstdint>
 #include <optional>
 #include <ranges>
 #include <string_view>

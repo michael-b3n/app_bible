@@ -3,7 +3,6 @@
 #include "bibstd/math/arithmetic.hpp"
 #include <magic_enum/magic_enum.hpp>
 
-#include <concepts>
 #include <string>
 #include <type_traits>
 
@@ -83,6 +82,19 @@ constexpr auto next(const E e) -> E
 }
 
 ///
+/// Checks if next enum value exists.
+/// \tparam E enum type
+/// \param e enum value
+/// \return flag indicating if next enum value exists
+///
+template<enum_type E>
+constexpr auto has_next(const E e) -> bool
+{
+  const auto value = math::arithmetic::add(to_integral(e), std::underlying_type_t<E>(1));
+  return value.has_value() && magic_enum::enum_cast<E>(*value).has_value();
+}
+
+///
 /// Get previous enum value.
 /// \tparam E enum type
 /// \param e enum value
@@ -97,6 +109,19 @@ constexpr auto prev(const E e) -> E
     THROW_EXCEPTION("invalid previous enum value");
   }
   return to_enum<E>(*value);
+}
+
+///
+/// Checks if previous enum value exists.
+/// \tparam E enum type
+/// \param e enum value
+/// \return flag indicating if previous enum value exists
+///
+template<enum_type E>
+constexpr auto has_prev(const E e) -> bool
+{
+  const auto value = math::arithmetic::subtract(to_integral(e), std::underlying_type_t<E>(1));
+  return value.has_value() && magic_enum::enum_cast<E>(*value).has_value();
 }
 
 ///

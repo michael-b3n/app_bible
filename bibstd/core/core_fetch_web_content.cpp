@@ -1,8 +1,10 @@
 #include "bibstd/core/core_fetch_web_content.hpp"
 #include "bibstd/util/log.hpp"
 
-#include <cstring>
+#include <boost/url.hpp>
 #include <curl/curl.h>
+
+#include <cstring>
 
 namespace bibstd::core
 {
@@ -24,11 +26,12 @@ auto write_callback(char* ptr, std::size_t size, std::size_t nmemb, void* userda
 
 ///
 ///
-auto core_fetch_web_content::fetch(const std::string_view url) const -> std::expected<std::string, error_code>
+auto core_fetch_web_content::fetch(std::string_view url) const -> std::expected<std::string, error_code>
 {
-  if(url.empty())
+  const auto parsed_url = boost::urls::parse_uri(url);
+  if(!parsed_url.has_value())
   {
-    LOG_ERROR("invalid empty url provided");
+    LOG_ERROR("invalid url provided: {}", url);
     return std::unexpected(error_code::invalid_url);
   }
 

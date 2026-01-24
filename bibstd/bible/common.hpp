@@ -2,6 +2,7 @@
 
 #include "bibstd/util/enum.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <optional>
 
@@ -13,8 +14,7 @@ namespace bibstd::bible
 ///
 enum class book_id
 {
-  BEGIN = 0,
-  genesis = 0,
+  genesis,
   exodus,
   leviticus,
   numbers,
@@ -79,19 +79,19 @@ enum class book_id
   john2,
   john3,
   jude,
-  revelation,
-  END
+  revelation
 };
+
+static_assert(magic_enum::enum_count<book_id>() == 66); // bible has 66 books
+static_assert(std::ranges::none_of(magic_enum::enum_names<book_id>(), [](const auto name) { return name.contains('-'); }));
 
 ///
 /// Bible testaments.
 ///
 enum class testament_id
 {
-  BEGIN = 0,
-  ot = 0,
-  nt,
-  END
+  ot,
+  nt
 };
 
 ///
@@ -99,8 +99,7 @@ enum class testament_id
 ///
 enum class translation
 {
-  BEGIN = 0,
-  dbu = 0,
+  dbu,
   elb,
   esv,
   eu,
@@ -116,8 +115,7 @@ enum class translation
   nlb,
   slt,
   vxb,
-  zb,
-  END
+  zb
 };
 
 ///
