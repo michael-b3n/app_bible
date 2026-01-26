@@ -37,15 +37,18 @@ if(GIT_SHA1 STREQUAL "")
 endif()
 
 #
-# Configure version files
+# Define project
 #
-configure_file(${CMAKE_CURRENT_LIST_DIR}/res/resource.rc.in ${CMAKE_CURRENT_LIST_DIR}/res/resource.rc @ONLY)
-configure_file(${CMAKE_CURRENT_LIST_DIR}/res/version.hpp.in ${CMAKE_CURRENT_LIST_DIR}/src/version.hpp @ONLY)
-
 project(
   app_bible_assistant
   VERSION ${APP_VERSION}
 )
+
+#
+# Configure version files
+#
+configure_file(${CMAKE_CURRENT_LIST_DIR}/res/resource.rc.in ${CMAKE_CURRENT_BINARY_DIR}/res/resource.rc @ONLY)
+configure_file(${CMAKE_CURRENT_LIST_DIR}/res/version.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/res/version.hpp @ONLY)
 
 #
 # Define target files
@@ -101,6 +104,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_EXE_NAME})
 #
 # Include directories.
 #
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(${PROJECT_NAME} PUBLIC ${Qt6_INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}
@@ -120,7 +124,7 @@ set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <S
 #
 target_sources(${PROJECT_NAME}
   PRIVATE ${app_bible_assistant_CPP_FILES}
-  PRIVATE ${CMAKE_CURRENT_LIST_DIR}/res/resource.rc
+  PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/res/resource.rc
 )
 
 #

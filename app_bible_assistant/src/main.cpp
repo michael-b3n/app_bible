@@ -1,7 +1,7 @@
 ///
 /// Main file.
 ///
-#include "version.hpp"
+#include "res/version.hpp"
 
 #include <bibstd/framework/thread_pool.hpp>
 #include <bibstd/system/filesystem.hpp>

@@ -1,0 +1,44 @@
+///
+/// This file auto generates `bibstd/res/scripture.hpp`.
+///
+/// This file provides access to embedded scripture zip files.
+/// Currently only usx scripture formats normed by the DBL are supported.
+/// The scripture *.zip files placed in the folder are compiled into the project.
+///
+#include "bibstd/util/incbin.hpp"
+
+#include <array>
+#include <span>
+// clang-format off
+
+@INCBIN_DECLARATIONS_scripture@
+
+namespace bibstd::res::scripture
+{
+
+///
+/// Get the number of available zip files.
+/// \return number of zip files
+///
+[[nodiscard]] constexpr auto file_count() -> std::size_t
+{
+  return static_cast<std::size_t>(@FILE_COUNT_scripture@);
+}
+
+///
+/// Get the raw data of the zip file at given index.
+/// \param index Index of the zip file
+/// \return span of byte data of the zip file
+///
+[[nodiscard]] inline auto file_raw(std::size_t index) -> std::span<const std::byte>
+{
+  static const std::array<const std::byte*, @FILE_COUNT_scripture@> data_ptrs = {@DATA_ARRAY_scripture@};
+  static const std::array<std::size_t, @FILE_COUNT_scripture@> sizes = {@SIZE_ARRAY_scripture@};
+  if(index < file_count())
+  {
+    return {data_ptrs.at(index), sizes.at(index)};
+  }
+  return {};
+}
+
+} // namespace bibstd::res::scripture
