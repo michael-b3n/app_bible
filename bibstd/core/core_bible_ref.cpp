@@ -1,9 +1,11 @@
 #include "bibstd/core/core_bible_ref.hpp"
 #include "bibstd/bible/book_name_variants_de.hpp"
 #include "bibstd/math/value_range.hpp"
-#include "bibstd/txt/chars.hpp"
 #include "bibstd/txt/find_uint.hpp"
+#include "bibstd/txt/script_common.hpp"
+#include "bibstd/txt/script_letters.hpp"
 #include "bibstd/util/contains.hpp"
+#include "bibstd/util/language.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/string.hpp"
 #include "bibstd/util/visit_helper.hpp"
@@ -137,9 +139,10 @@ auto match_passage_template_section(
 
 ///
 ///
-auto core_bible_ref::parse(const std::string_view text, const std::size_t index) const -> parse_result
+auto core_bible_ref::parse(const std::string_view text, const std::size_t index, const util::language language) const
+  -> parse_result
 {
-  auto book = find_book(text, index);
+  auto book = find_book(text, index, language);
   if(!book)
   {
     return parse_result{};
@@ -147,7 +150,9 @@ auto core_bible_ref::parse(const std::string_view text, const std::size_t index)
   return parse_result{
     .ranges = match_passage_template(
       book->book_id,
-      create_passage_template(text.substr(book->index_range_numbers.begin, index_range_type::size(book->index_range_numbers)))
+      create_passage_template(
+        text.substr(book->index_range_numbers.begin, index_range_type::size(book->index_range_numbers)), language
+      )
     ),
     .index_range_origin = index_range_type{book->index_range_book.begin, book->index_range_numbers.end},
   };
@@ -155,7 +160,8 @@ auto core_bible_ref::parse(const std::string_view text, const std::size_t index)
 
 ///
 ///
-auto core_bible_ref::find_book(const std::string_view text, const std::size_t index) const -> std::optional<find_book_result>
+auto core_bible_ref::find_book(const std::string_view text, const std::size_t index, const util::language language) const
+  -> std::optional<find_book_result>
 {
   auto found_book = std::optional<find_book_result>{};
 
@@ -163,30 +169,37 @@ auto core_bible_ref::find_book(const std::string_view text, const std::size_t in
   normalized_text.reserve(text.size());
   std::vector<index_range_type> raw_index_ranges;
   raw_index_ranges.reserve(text.size());
-  txt::chars::for_each_char(
-    text,
-    [&](const auto character, const auto pos, const txt::chars::category category) -> void
+  txt::script_letters::visit(
+    language,
+    [&](const auto& letters)
     {
-      const auto append = [&](const std::string_view c) -> void
-      {
-        const auto size = c.size();
-        if(size == 0)
+      txt::script_common::for_each_char(
+        letters,
+        text,
+        [&](const auto character, const auto pos, const txt::script_common::category category) -> void
         {
-          return;
+          const auto append = [&](const std::string_view c) -> void
+          {
+            const auto size = c.size();
+            if(size == 0)
+            {
+              return;
+            }
+            normalized_text.append(c.data(), size);
+            const auto index_range = index_range_type{pos, pos + size};
+            raw_index_ranges.insert(raw_index_ranges.end(), size, index_range);
+          };
+          switch(category)
+          {
+          case txt::script_common::category::letter: append(character); break;
+          case txt::script_common::category::whitespace: /*noop*/ break;
+          case txt::script_common::category::line: /*noop*/ break;
+          case txt::script_common::category::fullstop: /*noop*/ break;
+          case txt::script_common::category::digit: append(character); break;
+          default: append("*"); break;
+          }
         }
-        normalized_text.append(c.data(), size);
-        const auto index_range = index_range_type{pos, pos + size};
-        raw_index_ranges.insert(raw_index_ranges.end(), size, index_range);
-      };
-      switch(category)
-      {
-      case txt::chars::category::letter: append(character); break;
-      case txt::chars::category::whitespace: /*noop*/ break;
-      case txt::chars::category::line: /*noop*/ break;
-      case txt::chars::category::fullstop: /*noop*/ break;
-      case txt::chars::category::digit: append(character); break;
-      default: append("*"); break;
-      }
+      );
     }
   );
   assert(raw_index_ranges.size() == normalized_text.size());
@@ -216,9 +229,9 @@ auto core_bible_ref::find_book(const std::string_view text, const std::size_t in
           }
           const auto pos_name_end = pos_rel + name_variant.size();
           const auto text_after_pos = normalized_text_view.substr(pos_name_end);
-          if(const auto numbers_end_opt = find_numbers_after_book_name(text_after_pos))
+          if(const auto numbers_end_opt = find_numbers_after_book_name(text_after_pos, language))
           {
-            const auto number_end = validate_index_range_numbers_end(text_after_pos, numbers_end_opt.value());
+            const auto number_end = try_validate_numbers_range(text_after_pos, numbers_end_opt.value(), language);
             const auto pos_abs = pos_offset + pos_rel;
 
             const auto index_book_begin = raw_index_ranges.at(pos_abs).begin;
@@ -247,24 +260,32 @@ auto core_bible_ref::find_book(const std::string_view text, const std::size_t in
 
 ///
 ///
-auto core_bible_ref::find_numbers_after_book_name(const std::string_view text_after_name) const -> std::optional<std::size_t>
+auto core_bible_ref::find_numbers_after_book_name(const std::string_view text_after_name, const util::language language) const
+  -> std::optional<std::size_t>
 {
   auto digit_found = false;
   auto numbers_end = std::optional<std::size_t>{};
-  txt::chars::for_each_char_while(
-    text_after_name,
-    [&](const auto character, const auto pos, const txt::chars::category category)
+  txt::script_letters::visit(
+    language,
+    [&](const auto& letters)
     {
-      if(category == txt::chars::category::digit)
-      {
-        digit_found = true;
-      }
-      else if(category == txt::chars::category::letter &&
-              !util::contains(number_postfix_chars, [&](const auto v) { return util::starts_with(character, v); }))
-      {
-        numbers_end = pos;
-      }
-      return !numbers_end.has_value();
+      txt::script_common::for_each_char_while(
+        letters,
+        text_after_name,
+        [&](const auto character, const auto pos, const txt::script_common::category category)
+        {
+          if(category == txt::script_common::category::digit)
+          {
+            digit_found = true;
+          }
+          else if(category == txt::script_common::category::letter &&
+                  !util::contains(number_postfix_chars, [&](const auto v) { return util::starts_with(character, v); }))
+          {
+            numbers_end = pos;
+          }
+          return !numbers_end.has_value();
+        }
+      );
     }
   );
   return digit_found ? numbers_end.value_or(text_after_name.size()) : std::optional<std::size_t>{};
@@ -272,34 +293,42 @@ auto core_bible_ref::find_numbers_after_book_name(const std::string_view text_af
 
 ///
 ///
-auto core_bible_ref::validate_index_range_numbers_end(const std::string_view text_after_name, std::size_t numbers_end) const
-  -> std::size_t
+auto core_bible_ref::try_validate_numbers_range(
+  const std::string_view text_after_name, std::size_t numbers_end, const util::language language
+) const -> std::size_t
 {
-  if(numbers_end < text_after_name.size() && numbers_end > 0 &&
-     txt::chars::is_char(text_after_name, numbers_end, txt::chars::category::letter))
-  {
-    const auto text_from_last_number = text_after_name.substr(numbers_end - 1);
-    const auto belongs_to_book_name = std::ranges::any_of(
-      bible::book_name_variants_de::name_variants_list,
-      [&](const auto& element)
-      {
-        const auto& [_, name_variant] = element;
-        return util::starts_with(text_from_last_number, name_variant);
-      }
-    );
-    if(belongs_to_book_name)
+  return txt::script_letters::visit(
+    language,
+    [&](const auto& letters) -> std::size_t
     {
-      --numbers_end;
+      if(numbers_end < text_after_name.size() && numbers_end > 0 &&
+         txt::script_common::is_char(letters, text_after_name, numbers_end, txt::script_common::category::letter))
+      {
+        const auto text_from_last_number = text_after_name.substr(numbers_end - 1);
+        const auto belongs_to_book_name = std::ranges::any_of(
+          bible::book_name_variants_de::name_variants_list,
+          [&](const auto& element)
+          {
+            const auto& [_, name_variant] = element;
+            return util::starts_with(text_from_last_number, name_variant);
+          }
+        );
+        if(belongs_to_book_name)
+        {
+          --numbers_end;
+        }
+      }
+      return numbers_end;
     }
-  }
-  return numbers_end;
+  );
 }
 
 ///
 ///
-auto core_bible_ref::create_passage_template(const std::string_view passage_text) const -> passage_template_type
+auto core_bible_ref::create_passage_template(const std::string_view passage_text, const util::language language) const
+  -> passage_template_type
 {
-  const auto normalized = normalize_passage_text(passage_text);
+  const auto normalized = normalize_passage_text(passage_text, language);
   passage_template_type passage_template;
   auto passage_substring = std::string_view{normalized};
   auto pos = std::size_t{0};
@@ -345,40 +374,47 @@ auto core_bible_ref::create_passage_template(const std::string_view passage_text
 
 ///
 ///
-auto core_bible_ref::normalize_passage_text(const std::string_view text) const -> std::string
+auto core_bible_ref::normalize_passage_text(const std::string_view text, const util::language language) const -> std::string
 {
-  std::string normalized_text;
-  auto counter = std::size_t{0};
-  std::ranges::for_each(
-    std::views::iota(std::size_t{0}, text.size()) | std::views::take_while([&](const auto i) { return counter < text.size(); }),
-    [&]([[maybe_unused]] const auto)
+  return txt::script_letters::visit(
+    language,
+    [&](const auto& letters) -> std::string
     {
-      const auto subview = text.substr(counter);
-      if(const auto iter =
-           std::ranges::find_if(number_postfixes, [&](const auto postfix) { return util::starts_with(subview, postfix); });
-         iter != std::ranges::cend(number_postfixes))
-      {
-        counter += iter->size(); // Ignore possible postfixes
-      }
-      else if(const auto data = txt::chars::char_info(subview, 0); data)
-      {
-        switch(data->char_category)
+      std::string normalized_text;
+      auto counter = std::size_t{0};
+      std::ranges::for_each(
+        std::views::iota(std::size_t{0}, text.size()) |
+          std::views::take_while([&](const auto i) { return counter < text.size(); }),
+        [&]([[maybe_unused]] const auto)
         {
-        case txt::chars::category::letter: break;
-        case txt::chars::category::whitespace: break;
-        case txt::chars::category::line: normalized_text.push_back('-'); break;
-        default: normalized_text.append(subview.data(), data->char_size); break;
+          const auto subview = text.substr(counter);
+          if(const auto iter =
+               std::ranges::find_if(number_postfixes, [&](const auto postfix) { return util::starts_with(subview, postfix); });
+             iter != std::ranges::cend(number_postfixes))
+          {
+            counter += iter->size(); // Ignore possible postfixes
+          }
+          else if(const auto data = txt::script_common::char_info(letters, subview, 0); data)
+          {
+            switch(data->char_category)
+            {
+            case txt::script_common::category::letter: break;
+            case txt::script_common::category::whitespace: break;
+            case txt::script_common::category::line: normalized_text.push_back('-'); break;
+            default: normalized_text.append(subview.data(), data->char_size); break;
+            }
+            counter += data->char_size;
+          }
+          else
+          {
+            LOG_ERROR("invalid char info: char=\'{}\'", subview.at(0));
+            ++counter;
+          }
         }
-        counter += data->char_size;
-      }
-      else
-      {
-        LOG_ERROR("invalid char info: char=\'{}\'", subview.at(0));
-        ++counter;
-      }
+      );
+      return normalized_text;
     }
   );
-  return normalized_text;
 }
 
 ///

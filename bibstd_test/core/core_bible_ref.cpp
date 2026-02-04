@@ -27,22 +27,22 @@ TEST_CASE("reference_parser", "[bible]")
 
   const auto filler_text = std::string{"Lorem ipsum dolor sit"};
 
-  CHECK(core.parse(filler_text, 0).ranges.empty());
+  CHECK(core.parse(filler_text, 0, util::language::german).ranges.empty());
   {
     const auto reference = std::string{"1.Mose 1:1"};
-    const auto result = core.parse(reference, 0).ranges;
+    const auto result = core.parse(reference, 0, util::language::german).ranges;
     CHECK(result.size() == 1);
     CHECK(util::contains(result, genesis_1_1));
   }
   {
     const auto reference = std::string{"1.Mose 1;1-2"};
-    const auto result = core.parse(reference, 0).ranges;
+    const auto result = core.parse(reference, 0, util::language::german).ranges;
     CHECK(result.size() == 1);
     CHECK(util::contains(result, genesis_1_1to2));
   }
   {
     const auto reference = std::string{"2.Mose 2,2-3.7;4,5;5,6-7,8"};
-    const auto result = core.parse(reference, 0).ranges;
+    const auto result = core.parse(reference, 0, util::language::german).ranges;
     CHECK(result.size() == 4);
     CHECK(util::contains(result, exodus_2_2to3));
     CHECK(util::contains(result, exodus_2_7));

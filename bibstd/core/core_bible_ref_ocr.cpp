@@ -2,7 +2,8 @@
 #include "bibstd/bible/book_name_variants_de.hpp"
 #include "bibstd/core/core_tesseract.hpp"
 #include "bibstd/system/screen.hpp"
-#include "bibstd/txt/chars.hpp"
+#include "bibstd/txt/script_common.hpp"
+#include "bibstd/txt/script_letters.hpp"
 #include "bibstd/util/format.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/string.hpp"
@@ -63,8 +64,9 @@ auto right(const util::screen_rect_type& rect) -> std::int32_t
 
 ///
 ///
-core_bible_ref_ocr::core_bible_ref_ocr(const std::filesystem::path& tessdata_path, core_tesseract_common::language language)
+core_bible_ref_ocr::core_bible_ref_ocr(const std::filesystem::path& tessdata_path, util::language language)
   : core_tesseract_{std::make_unique<core::core_tesseract>(tessdata_path, language)}
+  , language_{language}
 {
 }
 
@@ -227,8 +229,14 @@ auto core_bible_ref_ocr::find_reference_position_data_from_choices(const screen_
     choices_list,
     [&](const auto& choices)
     {
-      return txt::chars::is_char(choices.front().symbol, 0, txt::chars::category::letter) ||
-             txt::chars::is_char(choices.front().symbol, 0, txt::chars::category::digit);
+      return txt::script_letters::visit(
+        language_,
+        [&](const auto& letters)
+        {
+          return txt::script_common::is_char(letters, choices.front().symbol, 0, txt::script_common::category::letter) ||
+                 txt::script_common::is_char(letters, choices.front().symbol, 0, txt::script_common::category::digit);
+        }
+      );
     }
   );
   assert(choices_list.size() == choices_char_data.size());

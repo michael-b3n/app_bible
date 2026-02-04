@@ -21,7 +21,7 @@ constexpr auto resolution_map = util::const_bimap{
 
 ///
 ///
-core_tesseract::core_tesseract(const std::filesystem::path& tessdata_path, const core_tesseract_common::language language)
+core_tesseract::core_tesseract(const std::filesystem::path& tessdata_path, const util::language language)
   : tesseract_{new tesseract::TessBaseAPI()}
   , pix_{std::make_unique<data::pix>()}
 {

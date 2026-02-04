@@ -1,14 +1,9 @@
 #pragma once
 
-#include "bibstd/data/pixel.hpp"
-#include "bibstd/data/plane.hpp"
-#include "bibstd/math/rect.hpp"
-#include "bibstd/util/const_bimap.hpp"
-#include "bibstd/util/screen_types.hpp"
-
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace bibstd::core
 {
@@ -19,11 +14,6 @@ namespace bibstd::core
 struct core_tesseract_common final
 {
   // Typedefs
-  enum class language
-  {
-    de,
-  };
-
   struct tesseract_choice final
   {
     std::string symbol{""};

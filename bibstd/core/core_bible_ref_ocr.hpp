@@ -3,6 +3,7 @@
 #include "bibstd/core/core_bible_ref_ocr_common.hpp"
 #include "bibstd/core/core_tesseract_common.hpp"
 #include "bibstd/txt/indexed_strings.hpp"
+#include "bibstd/util/language.hpp"
 #include "bibstd/util/screen_types.hpp"
 
 #include <memory>
@@ -41,7 +42,7 @@ public: // Typedefs
   };
 
 public: // Structors
-  core_bible_ref_ocr(const std::filesystem::path& tessdata_path, core_tesseract_common::language language);
+  core_bible_ref_ocr(const std::filesystem::path& tessdata_path, util::language language);
   ~core_bible_ref_ocr() noexcept;
 
 public: // Operations
@@ -166,6 +167,7 @@ private: // Implementation
 
 private: // Variables
   const std::unique_ptr<core::core_tesseract> core_tesseract_;
+  const util::language language_;
 };
 
 } // namespace bibstd::core

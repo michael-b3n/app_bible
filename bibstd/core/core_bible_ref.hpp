@@ -2,7 +2,7 @@
 
 #include "bibstd/bible/reference_range.hpp"
 #include "bibstd/math/value_range.hpp"
-#include "bibstd/txt/chars.hpp"
+#include "bibstd/util/language.hpp"
 
 #include <optional>
 #include <string_view>
@@ -29,7 +29,7 @@ public: // Constants
   ///
   /// List of all characters which can be used to separate passage numbers.
   ///
-  static constexpr auto transition_chars = std::array{',', ';', '.', '-', ':'};
+  static constexpr auto transition_chars = std::array{',', ';', '.', '-', ':', '&', '+'};
 
   ///
   /// List of all postfixes which can appear in a bible reference after a number.
@@ -59,7 +59,7 @@ public: // Modifiers
   /// \param index Index where the bible reference shall be
   /// \return parse result with bible reference ranges and origin text
   ///
-  auto parse(std::string_view text, std::size_t index) const -> parse_result;
+  auto parse(std::string_view text, std::size_t index, util::language language) const -> parse_result;
 
 private: // Typedefs
   using passage_template_value_type = std::variant<std::uint32_t, char>;
@@ -90,17 +90,20 @@ private: // Implementation
   /// Find the book name in the text at the given index. The book name is identified by the book name variants.
   /// \param text Text to search for the book name
   /// \param index Index where the book name shall be
+  /// \param language Language to use for letter detection
   /// \return Book name and index range of the book name and numbers or std::nullopt if no book name is found
   ///
-  auto find_book(std::string_view text, std::size_t index) const -> std::optional<find_book_result>;
+  auto find_book(std::string_view text, std::size_t index, util::language language) const -> std::optional<find_book_result>;
 
   ///
   /// Find the numbers after the book name that are possibly part of the reference.
   /// Note that the numbers are not guaranteed to be part of the reference, it might be part of another book or a list.
   /// \param text_after_name Text after the book name
+  /// \param language Language to use for letter detection
   /// \return Index of the last number in the text after the book name or std::nullopt if no number is found
   ///
-  auto find_numbers_after_book_name(std::string_view text_after_name) const -> std::optional<std::size_t>;
+  auto find_numbers_after_book_name(std::string_view text_after_name, util::language language) const
+    -> std::optional<std::size_t>;
 
   ///
   /// It is possible that the last number found for the number index range in find_book_result belongs to another book.
@@ -108,23 +111,27 @@ private: // Implementation
   /// belongs to the book name variant and returns the new index range.
   /// \param text_after_name Text to check if the last number belongs to the book name variant
   /// \param numbers_end Index of the last number in the index range
+  /// \param language Language to use for letter detection
   /// \return Validated index range for the numbers
   ///
-  auto validate_index_range_numbers_end(std::string_view text_after_name, std::size_t numbers_end) const -> std::size_t;
+  auto try_validate_numbers_range(std::string_view text_after_name, std::size_t numbers_end, util::language language) const
+    -> std::size_t;
 
   ///
   /// Create a passage template from a string view. The passage template is a vector of numbers and transition characters.
   /// \param passage_text String view from which the passage template is created
+  /// \param language Language to use for text normalization
   /// \return Passage template with numbers and transition characters
   ///
-  auto create_passage_template(std::string_view passage_text) const -> passage_template_type;
+  auto create_passage_template(std::string_view passage_text, util::language language) const -> passage_template_type;
 
   ///
   /// Normalize the passage text by removing all characters that are not part of the passage template.
   /// \param text String view to normalize
+  /// \param language Language to use for character detection
   /// \return Normalized passage text
   ///
-  auto normalize_passage_text(std::string_view text) const -> std::string;
+  auto normalize_passage_text(std::string_view text, util::language language) const -> std::string;
 
   ///
   /// Helper to identify the numbers in the text at the given index.

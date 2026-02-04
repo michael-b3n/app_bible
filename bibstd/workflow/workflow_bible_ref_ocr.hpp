@@ -1,11 +1,11 @@
 #pragma once
 
 #include "bibstd/bible/reference_range.hpp"
-#include "bibstd/core/core_tesseract_common.hpp"
 #include "bibstd/framework/settings_base.hpp"
 #include "bibstd/framework/settings_owner.hpp"
 #include "bibstd/framework/thread_pool.hpp"
 #include "bibstd/signal/adapter.hpp"
+#include "bibstd/util/language.hpp"
 #include "bibstd/util/screen_types.hpp"
 #include "bibstd/workflow/workflow_base.hpp"
 
@@ -72,7 +72,7 @@ public: // Structors
 
 public: // Variables
   const setting_type<std::optional<std::filesystem::path>> tessdata_path;
-  const setting_type<core::core_tesseract_common::language> language;
+  const setting_type<util::language> language;
   const setting_type<std::vector<bible::translation>> translations;
   const setting_type<bool> recognize_largest_bounding_box;
 };
@@ -109,16 +109,24 @@ public: // Modifiers
 private: // Typedefs
   using screen_rect_type = util::screen_rect_type;
 
+  struct settings_local final
+  {
+    util::language language;
+    std::vector<bible::translation> translations;
+    bool recognize_largest_bounding_box;
+  };
+
 private: // Implementation
   auto find_references(
+    std::stop_token stop_token,
     const std::shared_ptr<core::core_bible_ref_ocr>& core_bible_ref_ocr,
     auto&& image_data,
-    bool recognize_largest_bounding_box,
-    std::stop_token stop_token
+    const settings_local& local_settings
   ) -> decltype(result_type::result);
   auto parse_tesseract_recognition(
     const std::shared_ptr<core::core_bible_ref_ocr>& core_bible_ref_ocr,
-    const util::screen_coordinates_type& relative_cursor_pos
+    const util::screen_coordinates_type& relative_cursor_pos,
+    const settings_local& local_settings
   ) -> std::vector<bible::reference_range>;
 
 private: // Variables

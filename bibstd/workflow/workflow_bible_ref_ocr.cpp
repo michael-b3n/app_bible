@@ -14,7 +14,7 @@ namespace bibstd::workflow
 // clang-format off
 workflow_bible_ref_ocr_settings::workflow_bible_ref_ocr_settings()
   : tessdata_path{workflow_settings_->create_setting("ocr.tessdata_path", core::core_tesseract_common::tessdata_folder_finder())}
-  , language{workflow_settings_->create_setting("ocr.language", core::core_tesseract_common::language::de)}
+  , language{workflow_settings_->create_setting("ocr.language", util::language::german)}
   , translations{workflow_settings_->create_setting("ocr.translations", std::vector<bible::translation>{bible::translation::ngu, bible::translation::elb})}
   , recognize_largest_bounding_box{workflow_settings_->create_setting("ocr.recognize_largest_bounding_box", false)}
 // clang-format on
@@ -77,14 +77,18 @@ auto workflow_bible_ref_ocr::start(const start_params& params) -> std::stop_sour
       {
         try
         {
-          const auto translations = settings->translations->value();
-          const auto references =
-            find_references(core_bible_ref_ocr, std::move(data), settings->recognize_largest_bounding_box->value(), token);
+          const auto local_settings = settings_local{
+            .language = settings->language->value(),
+            .translations = settings->translations->value(),
+            .recognize_largest_bounding_box = settings->recognize_largest_bounding_box->value()
+          };
+          const auto references = find_references(token, core_bible_ref_ocr, std::move(data), local_settings);
           if(references.has_value())
           {
             LOG_INFO("reference search finished: references=[{}]", util::format::join(*references, ", "));
             std::ranges::for_each(
-              *references, [&](const auto& reference_range) { core_lookup_bibleserver_->open(reference_range, translations); }
+              *references,
+              [&](const auto& reference_range) { core_lookup_bibleserver_->open(reference_range, local_settings.translations); }
             );
           }
           emit<signal_id::ended>(result_type{params.process_id(), references});
@@ -109,10 +113,10 @@ auto workflow_bible_ref_ocr::start(const start_params& params) -> std::stop_sour
 ///
 ///
 auto workflow_bible_ref_ocr::find_references(
+  const std::stop_token stop_token,
   const std::shared_ptr<core::core_bible_ref_ocr>& core_bible_ref_ocr,
   auto&& image_data,
-  const bool recognize_largest_bounding_box,
-  const std::stop_token stop_token
+  const settings_local& local_settings
 ) -> decltype(result_type::result)
 {
   if(stop_token.stop_requested())
@@ -130,28 +134,31 @@ auto workflow_bible_ref_ocr::find_references(
   {
     return return_stopped;
   }
-  if(!core_bible_ref_ocr->recognize_capture_area(*bounding_boxes, recognize_largest_bounding_box))
+  if(!core_bible_ref_ocr->recognize_capture_area(*bounding_boxes, local_settings.recognize_largest_bounding_box))
   {
     LOG_WARN(
       "recognize capture area failed: bounding_box={}",
-      recognize_largest_bounding_box ? bounding_boxes->largest : bounding_boxes->reduced
+      local_settings.recognize_largest_bounding_box ? bounding_boxes->largest : bounding_boxes->reduced
     );
     return return_failure;
   }
-  return parse_tesseract_recognition(core_bible_ref_ocr, relative_cursor_pos);
+  return parse_tesseract_recognition(core_bible_ref_ocr, relative_cursor_pos, local_settings);
 }
 
 ///
 ///
 auto workflow_bible_ref_ocr::parse_tesseract_recognition(
-  const std::shared_ptr<core::core_bible_ref_ocr>& core_bible_ref_ocr, const util::screen_coordinates_type& relative_cursor_pos
+  const std::shared_ptr<core::core_bible_ref_ocr>& core_bible_ref_ocr,
+  const util::screen_coordinates_type& relative_cursor_pos,
+  const settings_local& local_settings
 ) -> std::vector<bible::reference_range>
 {
   auto references = std::vector<bible::reference_range>{};
   const auto position_data = core_bible_ref_ocr->find_main_reference_position_data(relative_cursor_pos);
   if(position_data)
   {
-    auto parse_result = core_bible_ref_->parse(position_data->text, position_data->cursor_character_index);
+    auto parse_result =
+      core_bible_ref_->parse(position_data->text, position_data->cursor_character_index, local_settings.language);
     // If no references are found, we parse other high confidence OCR choices.
     // If a parse result is found and the area is valid we break out.
     if(parse_result.ranges.empty())
@@ -161,7 +168,9 @@ auto workflow_bible_ref_ocr::parse_tesseract_recognition(
         position_data_choices,
         [&](const auto& position_data_choice)
         {
-          parse_result = core_bible_ref_->parse(position_data_choice.text, position_data_choice.cursor_character_index);
+          parse_result = core_bible_ref_->parse(
+            position_data_choice.text, position_data_choice.cursor_character_index, local_settings.language
+          );
           return !parse_result.ranges.empty();
         }
       );
