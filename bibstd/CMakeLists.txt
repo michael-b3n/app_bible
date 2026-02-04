@@ -76,6 +76,8 @@ ENDIF()
 #
 # Target compile definitions.
 #
+target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:DEBUG>)
+
 IF(WIN32)
   target_compile_definitions(${PROJECT_NAME} PUBLIC NOMINMAX)
 ENDIF()

@@ -9,8 +9,9 @@
 
 #include <array>
 #include <span>
-// clang-format off
+#include <string>
 
+// clang-format off
 @INCBIN_DECLARATIONS_scripture@
 
 namespace bibstd::res::scripture
@@ -30,7 +31,22 @@ namespace bibstd::res::scripture
 /// \param index Index of the zip file
 /// \return span of byte data of the zip file
 ///
-[[nodiscard]] inline auto file_raw(std::size_t index) -> std::span<const std::byte>
+[[nodiscard]] inline auto file_name(const std::size_t index) -> std::string
+{
+  static const std::array<std::string, @FILE_COUNT_scripture@> names = {@FILENAME_ARRAY_scripture@};
+  if(index < file_count())
+  {
+    return names.at(index);
+  }
+  return {};
+}
+
+///
+/// Get the raw data of the zip file at given index.
+/// \param index Index of the zip file
+/// \return span of byte data of the zip file
+///
+[[nodiscard]] inline auto file_raw(const std::size_t index) -> std::span<const std::byte>
 {
   static const std::array<const std::byte*, @FILE_COUNT_scripture@> data_ptrs = {@DATA_ARRAY_scripture@};
   static const std::array<std::size_t, @FILE_COUNT_scripture@> sizes = {@SIZE_ARRAY_scripture@};

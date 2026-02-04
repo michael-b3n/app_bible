@@ -33,6 +33,7 @@ function(generate_incbin)
 
   # Initialize output variables
   set(INCBIN_DECLARATIONS_${ARG_LABEL} "")
+  set(FILENAME_ARRAY_${ARG_LABEL} "")
   set(DATA_ARRAY_${ARG_LABEL} "")
   set(SIZE_ARRAY_${ARG_LABEL} "")
   list(LENGTH ARG_FILES FILE_COUNT_${ARG_LABEL})
@@ -47,6 +48,7 @@ function(generate_incbin)
 
     # Add INCBIN declaration
     string(APPEND INCBIN_DECLARATIONS_${ARG_LABEL} "INC_RESOURCE(${FILE_LABEL}, \"${FILE_PATH}\");\n")
+    string(APPEND FILENAME_ARRAY_${ARG_LABEL} "\"${FILE_PATH}\", ")
 
     string(APPEND DATA_ARRAY_${ARG_LABEL} "res_${FILE_LABEL}_data, ")
     string(APPEND SIZE_ARRAY_${ARG_LABEL} "res_${FILE_LABEL}_size, ")
@@ -54,6 +56,7 @@ function(generate_incbin)
 
   # Export variables to parent scope
   set(INCBIN_DECLARATIONS_${ARG_LABEL} "${INCBIN_DECLARATIONS_${ARG_LABEL}}" PARENT_SCOPE)
+  set(FILENAME_ARRAY_${ARG_LABEL} "${FILENAME_ARRAY_${ARG_LABEL}}" PARENT_SCOPE)
   set(DATA_ARRAY_${ARG_LABEL} "${DATA_ARRAY_${ARG_LABEL}}" PARENT_SCOPE)
   set(SIZE_ARRAY_${ARG_LABEL} "${SIZE_ARRAY_${ARG_LABEL}}" PARENT_SCOPE)
   set(FILE_COUNT_${ARG_LABEL} "${FILE_COUNT_${ARG_LABEL}}" PARENT_SCOPE)
