@@ -86,7 +86,7 @@ zip_file_reader::zip_file_reader(const std::filesystem::path& zip_path, const st
       switch(error_code)
       {
         // clang-format off
-        case ZIP_ER_EXISTS: return "The file specified by path exists and ZIP_EXCL is set.";
+      case ZIP_ER_EXISTS: return "The file specified by path exists and ZIP_EXCL is set.";
       case ZIP_ER_INCONS: return "Inconsistencies were found in the file specified by path. This error is often caused by specifying ZIP_CHECKCONS but can also happen without it.";
       case ZIP_ER_INVAL: return "The path argument is NULL.";
       case ZIP_ER_MEMORY: return "Required memory could not be allocated.";
@@ -222,9 +222,9 @@ auto zip_file_reader::entry(const std::size_t index) const -> std::optional<zip_
 
 ///
 ///
-auto zip_file_reader::entry(const std::string& name, const query_flag flag) const -> std::optional<zip_entry>
+auto zip_file_reader::entry(const std::string& name, const query_flags_type flags) const -> std::optional<zip_entry>
 {
-  const auto index_optional = index_of_entry(name, flag);
+  const auto index_optional = index_of_entry(name, flags);
   if(index_optional)
   {
     return entry_by_index(*index_optional, unchanged_flag);
@@ -234,9 +234,9 @@ auto zip_file_reader::entry(const std::string& name, const query_flag flag) cons
 
 ///
 ///
-auto zip_file_reader::has_entry(const std::string& name, const query_flag flag) const -> bool
+auto zip_file_reader::has_entry(const std::string& name, const query_flags_type flags) const -> bool
 {
-  return index_of_entry(name, flag).has_value();
+  return index_of_entry(name, flags).has_value();
 }
 
 ///
@@ -272,7 +272,7 @@ auto zip_file_reader::read_entry(const zip_entry& entry) const -> std::vector<st
 
 ///
 ///
-auto zip_file_reader::read_entry_as_text(const zip_entry& entry) const -> std::string
+auto zip_file_reader::read_entry_as_string(const zip_entry& entry) const -> std::string
 {
   const auto data = read_entry(entry);
   if(data.empty())
@@ -284,27 +284,23 @@ auto zip_file_reader::read_entry_as_text(const zip_entry& entry) const -> std::s
 
 ///
 ///
-auto zip_file_reader::index_of_entry(const std::string& name, const query_flag flag) const -> std::optional<std::size_t>
+auto zip_file_reader::index_of_entry(const std::string& name, const query_flags_type flags) const -> std::optional<std::size_t>
 {
   if(!is_open())
   {
     return {};
   }
-  std::uint32_t flags = unchanged_flag;
-  if(query_flag::exclude_directories_and_case_insensitive == flag)
+  std::uint32_t zip_flags = unchanged_flag;
+  if(flags.has(query_flag::exclude_directories))
   {
-    flags |= ZIP_FL_NODIR | ZIP_FL_NOCASE;
+    zip_flags |= ZIP_FL_NODIR;
   }
-  else if(query_flag::exclude_directories == flag)
+  if(flags.has(query_flag::case_insensitive))
   {
-    flags |= ZIP_FL_NODIR;
-  }
-  else if(query_flag::case_insensitive == flag)
-  {
-    flags |= ZIP_FL_NOCASE;
+    zip_flags |= ZIP_FL_NOCASE;
   }
   const auto n = std::string{name};
-  const auto index = zip_name_locate(zip_handle_, n.c_str(), flags);
+  const auto index = zip_name_locate(zip_handle_, n.c_str(), zip_flags);
   return index < 0 ? std::nullopt : std::make_optional(static_cast<std::size_t>(index));
 }
 

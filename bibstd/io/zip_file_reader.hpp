@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bibstd/util/bitflags.hpp"
 #include "bibstd/util/non_owning_ptr.hpp"
 
 #include <cstddef>
@@ -58,11 +59,10 @@ public: // Typedefs
   ///
   enum class query_flag
   {
-    none,
     exclude_directories,
-    exclude_directories_and_case_insensitive,
     case_insensitive
   };
+  using query_flags_type = util::bitflags<query_flag>;
 
   ///
   /// Represents an entry (file or directory) in a ZIP archive.
@@ -145,7 +145,7 @@ public: // Accessors
   /// \param flags  Flags for querying the name
   /// \return Entry if found, null entry otherwise
   ///
-  [[nodiscard]] auto entry(const std::string& name, query_flag flags = query_flag::none) const -> std::optional<zip_entry>;
+  [[nodiscard]] auto entry(const std::string& name, query_flags_type flags = {}) const -> std::optional<zip_entry>;
 
   ///
   /// Check if an entry with the specified name exists.
@@ -153,7 +153,7 @@ public: // Accessors
   /// \param flags  Flags for querying the name
   /// \return true if entry exists, false otherwise
   ///
-  [[nodiscard]] auto has_entry(const std::string& name, query_flag flags = query_flag::none) const -> bool;
+  [[nodiscard]] auto has_entry(const std::string& name, query_flags_type flags = {}) const -> bool;
 
   ///
   /// Read an entry's content into memory.
@@ -167,7 +167,7 @@ public: // Accessors
   /// \param entry Entry to read
   /// \return Text content as string, empty if error
   ///
-  [[nodiscard]] auto read_entry_as_text(const zip_entry& entry) const -> std::string;
+  [[nodiscard]] auto read_entry_as_string(const zip_entry& entry) const -> std::string;
 
 private: // Helpers
   ///
@@ -176,7 +176,7 @@ private: // Helpers
   /// \param flag Flags for querying the name
   /// \return true if entry is found, false otherwise
   ///
-  [[nodiscard]] auto index_of_entry(const std::string& name, query_flag flag = query_flag::none) const
+  [[nodiscard]] auto index_of_entry(const std::string& name, query_flags_type flag = {}) const
     -> std::optional<std::size_t>;
 
   ///
