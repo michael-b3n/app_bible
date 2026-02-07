@@ -4,7 +4,6 @@
 #include <functional>
 #include <mutex>
 #include <queue>
-#include <string_view>
 
 namespace bibstd::framework
 {

@@ -1,7 +1,7 @@
 #include "bibstd/presenter/presenter_bible_ref_ocr.hpp"
-#include "bibstd/system/hotkey.hpp"
-#include "bibstd/system/screen.hpp"
+#include "bibstd/workflow/workflow_bible_ref_lookup.hpp"
 #include "bibstd/workflow/workflow_bible_ref_ocr.hpp"
+#include "bibstd/workflow/workflow_scripture.hpp"
 #include "bibstd/workflow/workflow_settings.hpp"
 
 namespace bibstd::presenter
@@ -20,10 +20,22 @@ presenter_bible_ref_ocr_settings::presenter_bible_ref_ocr_settings()
 ///
 ///
 presenter_bible_ref_ocr::presenter_bible_ref_ocr()
-  : workflow_bible_ref_ocr_{std::make_unique<workflow::workflow_bible_ref_ocr>()}
+  : workflow_bible_ref_lookup_{std::make_unique<workflow::workflow_bible_ref_lookup>()}
+  , workflow_bible_ref_ocr_{std::make_unique<workflow::workflow_bible_ref_ocr>()}
+  , workflow_scripture_{std::make_unique<workflow::workflow_scripture>()}
 {
   connections_.add_connection(workflow_bible_ref_ocr_->connect<workflow::workflow_bible_ref_ocr::signal_id::ended>(
-    [this](const auto& result) { emit<signal_id::ended>(result.process_id, result.result.value_or({})); }
+    [this](const auto& result)
+    {
+      if(result.result)
+      {
+        workflow_bible_ref_lookup_->lookup({{*result.result}});
+      }
+      emit<signal_id::found>(result.process_id, result.result.value_or({}));
+    }
+  ));
+  connections_.add_connection(workflow_bible_ref_lookup_->connect<workflow::workflow_bible_ref_lookup::signal_id::ended>(
+    [this](const auto& result) { emit<signal_id::lookup_ended>(result.process_id); }
   ));
 }
 

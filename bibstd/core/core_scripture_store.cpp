@@ -1,4 +1,5 @@
 #include "bibstd/core/core_scripture_store.hpp"
+#include "bibstd/bible/parser_usx.hpp"
 #include "bibstd/io/zip_file_reader.hpp"
 #include "bibstd/res/scripture.hpp"
 #include "bibstd/util/log.hpp"
@@ -39,6 +40,8 @@ auto file_type(const std::filesystem::path& path) -> std::optional<core_scriptur
 
 } // namespace detail
 
+///
+///
 core_scripture_store::core_scripture_store()
 {
   static constexpr auto file_count = res::scripture::file_count();
@@ -61,14 +64,24 @@ core_scripture_store::core_scripture_store()
 
 ///
 ///
-auto core_scripture_store::load_usx(const io::zip_file_reader& zip_reader) const -> bool
+core_scripture_store::~core_scripture_store() noexcept = default;
+
+///
+///
+auto core_scripture_store::load_usx(const io::zip_file_reader& zip_reader) -> bool
 {
   if(!zip_reader.is_open())
   {
-    LOG_ERROR("failed to open zip archive for USX-DBL");
+    LOG_ERROR("failed to open zip archive for usx format");
     return false;
   }
-  return false;
+  auto reader = std::make_unique<bible::parser_usx>(zip_reader);
+  const auto loaded = reader->valid();
+  if(loaded)
+  {
+    scripture_data_.emplace_back(std::move(reader));
+  }
+  return loaded;
 }
 
 } // namespace bibstd::core

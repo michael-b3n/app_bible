@@ -1,5 +1,13 @@
 #pragma once
 
+#include <memory>
+#include <vector>
+
+namespace bibstd::bible
+{
+// Forward declarations
+class parser;
+} // namespace bibstd::bible
 namespace bibstd::io
 {
 // Forward declarations
@@ -32,14 +40,15 @@ public: // Typedefs
 
 public: // Structors
   core_scripture_store();
-  ~core_scripture_store() noexcept = default;
+  ~core_scripture_store() noexcept;
 
 public: // Modifiers
 
 private: // Implementation
-  auto load_usx(const io::zip_file_reader& zip_reader) const -> bool;
+  auto load_usx(const io::zip_file_reader& zip_reader) -> bool;
 
 private: // Variables
+  std::vector<std::unique_ptr<bible::parser>> scripture_data_;
 };
 
 } // namespace bibstd::core

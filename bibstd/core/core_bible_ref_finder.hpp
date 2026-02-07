@@ -15,7 +15,7 @@ namespace bibstd::core
 ///
 /// Core bible verse. This class searches strings and identifies bible verses.
 ///
-class core_bible_ref final
+class core_bible_ref_finder final
 {
 public: // Typedefs
   using index_range_type = math::value_range<std::size_t>;
@@ -50,7 +50,7 @@ public: // Constants
   static constexpr auto number_postfix_chars = std::array{'f', 'a', 'b', 'c', 'd'};
 
 public: // Structors
-  core_bible_ref() = default;
+  core_bible_ref_finder() = default;
 
 public: // Modifiers
   ///

@@ -14,7 +14,9 @@
 
 namespace bibstd::workflow
 {
+class workflow_bible_ref_lookup;
 class workflow_bible_ref_ocr;
+class workflow_scripture;
 } // namespace bibstd::workflow
 namespace bibstd::visual
 {
@@ -31,7 +33,8 @@ namespace detail
 enum class presenter_bible_ref_ocr_signal_id
 {
   started,
-  ended
+  found,
+  lookup_ended
 };
 
 } // namespace detail
@@ -54,9 +57,9 @@ public: // Variables
 ///
 /// Presenter bible reference ocr.
 /// Signals:
-/// - queued: Emitted when the OCR is started. Slots receive (int x, int y).
 /// - started: Emitted when the OCR process starts.
-/// - ended: Emitted when the OCR process ends.
+/// - found: Emitted when the OCR finished searching for references.
+/// - lookup_ended: Emitted when the reference lookup process ends.
 ///
 class presenter_bible_ref_ocr final
   : public framework::settings_owner<presenter_bible_ref_ocr_settings>
@@ -65,8 +68,11 @@ class presenter_bible_ref_ocr final
         detail::presenter_bible_ref_ocr_signal_id::started,
         signal::signal_type<void(framework::runtime_uid_type)>>,
       signal::named_signal<
-        detail::presenter_bible_ref_ocr_signal_id::ended,
-        signal::signal_type<void(framework::runtime_uid_type, std::vector<bible::reference_range>)>>>
+        detail::presenter_bible_ref_ocr_signal_id::found,
+        signal::signal_type<void(framework::runtime_uid_type, std::vector<bible::reference_range>)>>,
+      signal::named_signal<
+        detail::presenter_bible_ref_ocr_signal_id::lookup_ended,
+        signal::signal_type<void(framework::runtime_uid_type)>>>
 {
 public: // Structors
   presenter_bible_ref_ocr();
@@ -81,7 +87,9 @@ public: // Operations
   auto start(const util::screen_coordinates_type& position) -> std::stop_source;
 
 private: // Variables
+  std::unique_ptr<workflow::workflow_bible_ref_lookup> workflow_bible_ref_lookup_;
   std::unique_ptr<workflow::workflow_bible_ref_ocr> workflow_bible_ref_ocr_;
+  std::unique_ptr<workflow::workflow_scripture> workflow_scripture_;
   signal::connection_store connections_;
 };
 

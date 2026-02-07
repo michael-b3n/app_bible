@@ -1,4 +1,4 @@
-#include "bibstd/core/core_bible_ref.hpp"
+#include "bibstd/core/core_bible_ref_finder.hpp"
 #include "bibstd/bible/book_name_variants_de.hpp"
 #include "bibstd/math/value_range.hpp"
 #include "bibstd/txt/find_uint.hpp"
@@ -139,7 +139,7 @@ auto match_passage_template_section(
 
 ///
 ///
-auto core_bible_ref::parse(const std::string_view text, const std::size_t index, const util::language language) const
+auto core_bible_ref_finder::parse(const std::string_view text, const std::size_t index, const util::language language) const
   -> parse_result
 {
   auto book = find_book(text, index, language);
@@ -160,7 +160,7 @@ auto core_bible_ref::parse(const std::string_view text, const std::size_t index,
 
 ///
 ///
-auto core_bible_ref::find_book(const std::string_view text, const std::size_t index, const util::language language) const
+auto core_bible_ref_finder::find_book(const std::string_view text, const std::size_t index, const util::language language) const
   -> std::optional<find_book_result>
 {
   auto found_book = std::optional<find_book_result>{};
@@ -260,7 +260,7 @@ auto core_bible_ref::find_book(const std::string_view text, const std::size_t in
 
 ///
 ///
-auto core_bible_ref::find_numbers_after_book_name(const std::string_view text_after_name, const util::language language) const
+auto core_bible_ref_finder::find_numbers_after_book_name(const std::string_view text_after_name, const util::language language) const
   -> std::optional<std::size_t>
 {
   auto digit_found = false;
@@ -293,7 +293,7 @@ auto core_bible_ref::find_numbers_after_book_name(const std::string_view text_af
 
 ///
 ///
-auto core_bible_ref::try_validate_numbers_range(
+auto core_bible_ref_finder::try_validate_numbers_range(
   const std::string_view text_after_name, std::size_t numbers_end, const util::language language
 ) const -> std::size_t
 {
@@ -325,7 +325,7 @@ auto core_bible_ref::try_validate_numbers_range(
 
 ///
 ///
-auto core_bible_ref::create_passage_template(const std::string_view passage_text, const util::language language) const
+auto core_bible_ref_finder::create_passage_template(const std::string_view passage_text, const util::language language) const
   -> passage_template_type
 {
   const auto normalized = normalize_passage_text(passage_text, language);
@@ -374,7 +374,7 @@ auto core_bible_ref::create_passage_template(const std::string_view passage_text
 
 ///
 ///
-auto core_bible_ref::normalize_passage_text(const std::string_view text, const util::language language) const -> std::string
+auto core_bible_ref_finder::normalize_passage_text(const std::string_view text, const util::language language) const -> std::string
 {
   return txt::script_letters::visit(
     language,
@@ -419,7 +419,7 @@ auto core_bible_ref::normalize_passage_text(const std::string_view text, const u
 
 ///
 ///
-auto core_bible_ref::identify_number(std::string_view text, std::size_t& pos) const -> std::optional<std::uint32_t>
+auto core_bible_ref_finder::identify_number(std::string_view text, std::size_t& pos) const -> std::optional<std::uint32_t>
 {
   const auto number = txt::find_uint(text.substr(pos));
   if(number)
@@ -432,7 +432,7 @@ auto core_bible_ref::identify_number(std::string_view text, std::size_t& pos) co
 
 ///
 ///
-auto core_bible_ref::identify_transition(const std::string_view text, std::size_t& pos) const -> std::optional<char>
+auto core_bible_ref_finder::identify_transition(const std::string_view text, std::size_t& pos) const -> std::optional<char>
 {
   if(pos >= text.size())
   {
@@ -449,7 +449,7 @@ auto core_bible_ref::identify_transition(const std::string_view text, std::size_
 
 ///
 ///
-auto core_bible_ref::match_passage_template(const bible::book_id book, passage_template_type&& passage_template) const
+auto core_bible_ref_finder::match_passage_template(const bible::book_id book, passage_template_type&& passage_template) const
   -> std::vector<bible::reference_range>
 {
   if(!util::valid(book))
@@ -538,7 +538,7 @@ auto core_bible_ref::match_passage_template(const bible::book_id book, passage_t
 
 ///
 ///
-auto core_bible_ref::passage_template_transition_chars(const passage_template_type& passage_template) const -> std::vector<char>
+auto core_bible_ref_finder::passage_template_transition_chars(const passage_template_type& passage_template) const -> std::vector<char>
 {
   auto result = std::vector<char>{};
   std::ranges::for_each(
@@ -553,7 +553,7 @@ auto core_bible_ref::passage_template_transition_chars(const passage_template_ty
 
 ///
 ///
-auto core_bible_ref::passage_template_numbers(const passage_template_type& passage_template) const -> std::vector<std::uint32_t>
+auto core_bible_ref_finder::passage_template_numbers(const passage_template_type& passage_template) const -> std::vector<std::uint32_t>
 {
   auto result = std::vector<std::uint32_t>{};
   std::ranges::for_each(
@@ -566,7 +566,7 @@ auto core_bible_ref::passage_template_numbers(const passage_template_type& passa
 
 ///
 ///
-auto core_bible_ref::create_passage_sections(
+auto core_bible_ref_finder::create_passage_sections(
   const passage_template_type& passage_template, const std::optional<char> down_transition_char
 ) const -> std::vector<passage_section>
 {

@@ -38,7 +38,7 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(bibstd::presenter::presenter_bible_ref_ocr&
     }
   ));
 
-  connections_->add_connection(presenter.connect<bibstd::presenter::detail::presenter_bible_ref_ocr_signal_id::ended>(
+  connections_->add_connection(presenter.connect<bibstd::presenter::detail::presenter_bible_ref_ocr_signal_id::found>(
     [this](const auto process_id, [[maybe_unused]] const auto& references)
     {
       QMetaObject::invokeMethod(

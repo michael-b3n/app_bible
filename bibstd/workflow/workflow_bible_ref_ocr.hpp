@@ -17,8 +17,7 @@ namespace bibstd::core
 {
 // Forward declarations
 class core_bible_ref_ocr;
-class core_bible_ref;
-class core_lookup_bibleserver;
+class core_bible_ref_finder;
 } // namespace bibstd::core
 
 namespace bibstd::workflow
@@ -73,14 +72,12 @@ public: // Structors
 public: // Variables
   const setting_type<std::optional<std::filesystem::path>> tessdata_path;
   const setting_type<util::language> language;
-  const setting_type<std::vector<bible::translation>> translations;
   const setting_type<bool> recognize_largest_bounding_box;
 };
 
 ///
 /// Bible reference ocr: this workflow searches for bible references on a screen area using OCR around the cursor position.
 /// Signal IDs to connect to:
-/// - started: Emitted when the OCR process starts. Slots receive the start parameters `start_params`.
 /// - ended: Emitted when the OCR process ends. Slots receive the result parameters `result_type`.
 ///
 class workflow_bible_ref_ocr final
@@ -102,7 +99,7 @@ public: // Modifiers
   ///
   /// Search bible references on a screen area using OCR around the cursor position.
   /// \param cursor_position Position of the cursor on the screen
-  /// \return start result containing a process ID and a stop source for stopping the search
+  /// \return stop source to cancel the search
   ///
   auto start(const start_params& params) -> std::stop_source;
 
@@ -112,7 +109,6 @@ private: // Typedefs
   struct settings_local final
   {
     util::language language;
-    std::vector<bible::translation> translations;
     bool recognize_largest_bounding_box;
   };
 
@@ -131,8 +127,7 @@ private: // Implementation
 
 private: // Variables
   const framework::thread_pool::strand_id_type strand_id_{framework::thread_pool::strand_id()};
-  const std::unique_ptr<core::core_bible_ref> core_bible_ref_;
-  const std::unique_ptr<core::core_lookup_bibleserver> core_lookup_bibleserver_;
+  const std::unique_ptr<core::core_bible_ref_finder> core_bible_ref_finder_;
   std::atomic<std::shared_ptr<core::core_bible_ref_ocr>> core_bible_ref_ocr_;
 };
 

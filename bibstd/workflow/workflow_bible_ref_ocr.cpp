@@ -1,8 +1,7 @@
 #include "bibstd/workflow/workflow_bible_ref_ocr.hpp"
 #include "bibstd/bible/reference_range.hpp"
-#include "bibstd/core/core_bible_ref.hpp"
+#include "bibstd/core/core_bible_ref_finder.hpp"
 #include "bibstd/core/core_bible_ref_ocr.hpp"
-#include "bibstd/core/core_lookup_bibleserver.hpp"
 #include "bibstd/util/format.hpp"
 #include "bibstd/workflow/workflow_settings.hpp"
 
@@ -15,7 +14,6 @@ namespace bibstd::workflow
 workflow_bible_ref_ocr_settings::workflow_bible_ref_ocr_settings()
   : tessdata_path{workflow_settings_->create_setting("ocr.tessdata_path", core::core_tesseract_common::tessdata_folder_finder())}
   , language{workflow_settings_->create_setting("ocr.language", util::language::german)}
-  , translations{workflow_settings_->create_setting("ocr.translations", std::vector<bible::translation>{bible::translation::ngu, bible::translation::elb})}
   , recognize_largest_bounding_box{workflow_settings_->create_setting("ocr.recognize_largest_bounding_box", false)}
 // clang-format on
 {
@@ -24,8 +22,7 @@ workflow_bible_ref_ocr_settings::workflow_bible_ref_ocr_settings()
 ///
 ///
 workflow_bible_ref_ocr::workflow_bible_ref_ocr()
-  : core_bible_ref_{std::make_unique<core::core_bible_ref>()}
-  , core_lookup_bibleserver_{std::make_unique<core::core_lookup_bibleserver>()}
+  : core_bible_ref_finder_{std::make_unique<core::core_bible_ref_finder>()}
 {
   if(!settings->tessdata_path->value() || !std::filesystem::exists(*settings->tessdata_path->value()))
   {
@@ -79,18 +76,10 @@ auto workflow_bible_ref_ocr::start(const start_params& params) -> std::stop_sour
         {
           const auto local_settings = settings_local{
             .language = settings->language->value(),
-            .translations = settings->translations->value(),
             .recognize_largest_bounding_box = settings->recognize_largest_bounding_box->value()
           };
           const auto references = find_references(token, core_bible_ref_ocr, std::move(data), local_settings);
-          if(references.has_value())
-          {
-            LOG_INFO("reference search finished: references=[{}]", util::format::join(*references, ", "));
-            std::ranges::for_each(
-              *references,
-              [&](const auto& reference_range) { core_lookup_bibleserver_->open(reference_range, local_settings.translations); }
-            );
-          }
+          LOG_INFO("reference search finished: references=[{}]", util::format::join(references.value_or({}), ", "));
           emit<signal_id::ended>(result_type{params.process_id(), references});
         }
         catch(const util::exception& e)
@@ -158,7 +147,7 @@ auto workflow_bible_ref_ocr::parse_tesseract_recognition(
   if(position_data)
   {
     auto parse_result =
-      core_bible_ref_->parse(position_data->text, position_data->cursor_character_index, local_settings.language);
+      core_bible_ref_finder_->parse(position_data->text, position_data->cursor_character_index, local_settings.language);
     // If no references are found, we parse other high confidence OCR choices.
     // If a parse result is found and the area is valid we break out.
     if(parse_result.ranges.empty())
@@ -168,7 +157,7 @@ auto workflow_bible_ref_ocr::parse_tesseract_recognition(
         position_data_choices,
         [&](const auto& position_data_choice)
         {
-          parse_result = core_bible_ref_->parse(
+          parse_result = core_bible_ref_finder_->parse(
             position_data_choice.text, position_data_choice.cursor_character_index, local_settings.language
           );
           return !parse_result.ranges.empty();
