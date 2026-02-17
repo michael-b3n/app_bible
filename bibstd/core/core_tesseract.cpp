@@ -98,7 +98,7 @@ auto core_tesseract::bounding_boxes(const text_resolution resolution) const -> s
       }
       else
       {
-        LOG_WARN("invalid bounding box in analyze_bounding_boxes: resolution={}", util::to_string_view(resolution));
+        LOG_WARN("invalid bounding box in analyze_bounding_boxes: resolution={}", util::enum_name(resolution));
       }
     }
     while(pi->Next(level));

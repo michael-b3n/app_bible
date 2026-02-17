@@ -3,10 +3,10 @@
 #include "bibstd/io/zip_file_reader.hpp"
 #include "bibstd/res/scripture.hpp"
 #include "bibstd/util/log.hpp"
+#include "bibstd/util/ranges.hpp"
 
 #include <algorithm>
 #include <optional>
-#include <ranges>
 #include <string_view>
 
 namespace bibstd::core
@@ -46,18 +46,20 @@ core_scripture_store::core_scripture_store()
 {
   static constexpr auto file_count = res::scripture::file_count();
   std::ranges::for_each(
-    std::views::iota(decltype(file_count){0}, file_count),
+    util::ranges::index_view_to(file_count),
     [&](const auto index)
     {
-      if(const auto file_type = detail::file_type(res::scripture::file_name(index)))
+      const auto file_name = res::scripture::file_name(index);
+      LOG_INFO("loading scripture data: file_name=\"{}\"", file_name.stem().string());
+      if(const auto file_type = detail::file_type(file_name))
       {
         const auto file_data = res::scripture::file_raw(index);
         switch(*file_type)
         {
-        case core_scripture_store::supported_file_type::zip: load_usx(io::zip_file_reader(file_data)); break;
-        default: LOG_WARN("file type not supported: file_name=\"{}\"", res::scripture::file_name(index)); break;
+        case core_scripture_store::supported_file_type::zip: load_usx(io::zip_file_reader(file_data)); return;
         }
       }
+      LOG_WARN("file type not supported: file_name=\"{}\"", file_name.stem().string());
     }
   );
 }

@@ -3,8 +3,6 @@
 #include "bibstd/meta/type_traits.hpp"
 #include "bibstd/util/enum.hpp"
 
-#include "magic_enum/magic_enum.hpp"
-
 #include <algorithm>
 #include <bitset>
 
@@ -128,15 +126,15 @@ public: // Operators
 private: // Constants
   // clang-format off
   static_assert(
-    magic_enum::enum_count<E>() > 0,
+    util::enum_count<E>() > 0,
     "requires at least one enum value");
   static_assert(
-    [] { return std::ranges::all_of(magic_enum::enum_values<E>(), [c = 0](const auto v) mutable { return to_integral(v) == c++; }); }(),
+    [] { return std::ranges::all_of(util::enum_values<E>(), [c = 0](const auto v) mutable { return to_integral(v) == c++; }); }(),
     "requires that the enum values are sequential starting from 0");
   // clang-format on
 
 private: // Typedefs
-  using bitset_type = std::bitset<magic_enum::enum_count<E>()>;
+  using bitset_type = std::bitset<util::enum_count<E>()>;
 
 private: // Constructors
   constexpr explicit bitflags(bitset_type bits);
@@ -266,7 +264,7 @@ constexpr auto bitflags<E>::count() const -> std::size_t
 template<enum_type E>
 constexpr auto bitflags<E>::size() const -> std::size_t
 {
-  return magic_enum::enum_count<E>();
+  return util::enum_count<E>();
 }
 
 ///

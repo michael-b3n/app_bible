@@ -1,13 +1,13 @@
 #pragma once
 
 #include "bibstd/util/log.hpp"
+#include "bibstd/util/ranges.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cctype>
 #include <concepts>
 #include <optional>
-#include <ranges>
 #include <string_view>
 #include <type_traits>
 
@@ -229,8 +229,7 @@ constexpr auto script_common::for_each_char(const L& letters, const std::string_
 {
   auto counter = std::size_t{0};
   std::ranges::for_each(
-    std::views::iota(std::size_t{0}, string_view.size()) |
-      std::views::take_while([&](const auto i) { return counter < string_view.size(); }),
+    util::ranges::index_view(string_view) | std::views::take_while([&](const auto i) { return counter < string_view.size(); }),
     [&]([[maybe_unused]] const auto)
     {
       const auto data = char_info(letters, string_view, counter);
@@ -257,8 +256,7 @@ constexpr auto script_common::for_each_char_while(const L& letters, const std::s
 {
   auto counter = std::size_t{0};
   std::ranges::for_each(
-    std::views::iota(std::size_t{0}, string_view.size()) |
-      std::views::take_while([&](const auto i) { return counter < string_view.size(); }),
+    util::ranges::index_view(string_view) | std::views::take_while([&](const auto i) { return counter < string_view.size(); }),
     [&]([[maybe_unused]] const auto)
     {
       const auto data = char_info(letters, string_view, counter);

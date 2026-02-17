@@ -1,12 +1,12 @@
 #include "bibstd/io/zip_file_reader.hpp"
 #include "bibstd/util/log.hpp"
+#include "bibstd/util/ranges.hpp"
 
 #include <zip.h>
 
 #include <algorithm>
 #include <cassert>
 #include <cstring>
-#include <ranges>
 
 namespace bibstd::io
 {
@@ -192,17 +192,17 @@ auto zip_file_reader::entries() const -> std::vector<zip_entry>
     return {};
   }
 
-  auto result = std::vector<zip_entry>{};
+  auto result = std::vector<zip_entry>(entry_count());
   zip_stat_t stat;
   zip_stat_init(&stat);
 
   std::ranges::for_each(
-    std::views::iota(std::size_t{0}, entry_count()),
+    util::ranges::index_view(result),
     [&](const auto i)
     {
       if(zip_stat_index(zip_handle_, static_cast<zip_uint64_t>(i), unchanged_flag, &stat) == 0)
       {
-        result.emplace_back(create_entry(stat));
+        result.at(i) = create_entry(stat);
       }
       else
       {
@@ -339,13 +339,9 @@ auto zip_file_reader::create_entry(const zip_stat_t& stat) const -> zip_entry
       {
         zip_uint32_t length = 0;
         const auto c = zip_file_get_comment(zip_handle_, stat.index, &length, unchanged_flag);
-        if(c && length > 0)
+        if(c && length >= 0)
         {
           return std::string(c, static_cast<std::size_t>(length));
-        }
-        else if(!c && length == 0)
-        {
-          return {};
         }
         else
         {

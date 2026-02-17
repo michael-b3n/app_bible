@@ -3,6 +3,7 @@
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/numeric_cast.hpp"
+#include "bibstd/util/ranges.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -123,11 +124,11 @@ auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) -> bool
     pix.data.resize(height * width);
   }
   std::ranges::for_each(
-    std::views::iota(std::size_t{0}, height) | std::views::reverse,
+    util::ranges::index_view_to(height) | std::views::reverse,
     [&, counter = 0u](const auto row_idx) mutable
     {
       std::ranges::for_each(
-        std::views::iota(width * row_idx, width * (row_idx + 1)),
+        util::ranges::index_view_between(width * row_idx, width * (row_idx + 1)),
         [&](const auto index)
         {
           const auto i = counter++ * byte_count;

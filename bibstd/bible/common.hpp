@@ -82,8 +82,8 @@ enum class book_id
   revelation
 };
 
-static_assert(magic_enum::enum_count<book_id>() == 66); // bible has 66 books
-static_assert(std::ranges::none_of(magic_enum::enum_names<book_id>(), [](const auto name) { return name.contains('-'); }));
+static_assert(util::enum_count<book_id>() == 66); // bible has 66 books
+static_assert(std::ranges::none_of(util::enum_names<book_id>(), [](const auto name) { return name.contains('-'); }));
 
 ///
 /// Bible testaments.
@@ -147,6 +147,6 @@ struct std::formatter<bibstd::bible::book_id> : std::formatter<std::string>
 {
   auto format(const bibstd::bible::book_id e, std::format_context& ctx) const
   {
-    return formatter<std::string>::format(std::format("{}", bibstd::util::to_string_view(e)), ctx);
+    return formatter<std::string>::format(std::format("{}", bibstd::util::enum_name(e)), ctx);
   }
 };

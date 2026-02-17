@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bibstd/math/arithmetic.hpp"
+
 #include <magic_enum/magic_enum.hpp>
 
 #include <string>
@@ -34,9 +35,42 @@ constexpr auto to_integral(const E e) -> std::underlying_type_t<E>
 /// \return string_view name corresponding to enum value
 ///
 template<enum_type E>
-constexpr auto to_string_view(const E e) -> std::string_view
+constexpr auto enum_name(const E e) -> std::string_view
 {
   return magic_enum::enum_name(e);
+}
+
+///
+/// Get the count of enum values for a given enum type.
+/// \tparam E enum type
+/// \return count of enum values
+///
+template<enum_type E>
+consteval auto enum_count() -> std::size_t
+{
+  return magic_enum::enum_count<E>();
+}
+
+///
+/// Get all the enum names for a given enum type.
+/// \tparam E enum type
+/// \return array of enum value names
+///
+template<enum_type E>
+consteval auto enum_names() -> std::array<std::string_view, enum_count<E>()>
+{
+  return magic_enum::enum_names<E>();
+}
+
+///
+/// Get all the enum values for a given enum type.
+/// \tparam E enum type
+/// \return array of enum values
+///
+template<enum_type E>
+consteval auto enum_values() -> std::array<E, enum_count<E>()>
+{
+  return magic_enum::enum_values<E>();
 }
 
 ///

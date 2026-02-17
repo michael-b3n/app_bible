@@ -6,6 +6,7 @@
 #include "bibstd/txt/script_letters.hpp"
 #include "bibstd/util/format.hpp"
 #include "bibstd/util/log.hpp"
+#include "bibstd/util/ranges.hpp"
 #include "bibstd/util/string.hpp"
 #include "bibstd/util/timer.hpp"
 
@@ -318,14 +319,14 @@ auto core_bible_ref_ocr::match_choices_to_string(
     }();
 
     std::ranges::for_each(
-      std::views::iota(decltype(choices_list.size()){0}, choices_list.size()),
+      util::ranges::index_view(choices_list),
       [&](const auto choices_list_offset) mutable
       {
         auto text_template_found = false;
         auto confidence_value = 0.0;
         auto local_indexed_strings = indexed_strings;
         std::ranges::any_of(
-          std::views::iota(choices_list_offset, choices_list.size()) |
+          util::ranges::index_view_from(choices_list, choices_list_offset) |
             std::views::filter([&](const auto index) { return choices_filter(choices_list.at(index)); }),
           [&, text_template_position = std::size_t{0}](const auto choices_list_index) mutable
           {
@@ -362,7 +363,7 @@ auto core_bible_ref_ocr::find_chars_begin_match(const tesseract_choices& choices
     choices,
     [&](const auto& choice)
     {
-      auto match_found = util::starts_with(chars, choice.symbol);
+      auto match_found = util::string::starts_with(chars, choice.symbol);
       if(match_found)
       {
         result = choice;

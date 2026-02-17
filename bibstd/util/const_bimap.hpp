@@ -3,10 +3,10 @@
 #include "bibstd/meta/pack.hpp"
 #include "bibstd/meta/type_traits.hpp"
 #include "bibstd/util/exception.hpp"
+#include "bibstd/util/ranges.hpp"
 
 #include <algorithm>
 #include <array>
-#include <ranges>
 #include <type_traits>
 #include <utility>
 
@@ -185,11 +185,11 @@ constexpr const_bimap<T>::const_bimap(P&&... p)
   : map_{std::array{std::forward<P>(p)...}}
 {
   std::ranges::for_each(
-    std::views::iota(std::size_t{0}, sizeof...(P)),
+    util::ranges::index_view_to(sizeof...(P)),
     [&](const auto i)
     {
       std::ranges::for_each(
-        std::views::iota(i + 1, sizeof...(P)),
+        util::ranges::index_view_between(i + 1, sizeof...(P)),
         [&](const auto j)
         {
           if(is_equal(map_.at(i).first, map_.at(j).first))
@@ -200,17 +200,19 @@ constexpr const_bimap<T>::const_bimap(P&&... p)
           {
             THROW_EXCEPTION("duplicates in second elements");
           }
-        });
-    });
+        }
+      );
+    }
+  );
 }
 
 ///
 ///
 template<typename T>
   requires detail::is_valid_bimap_type<T>
-           template<typename F>
-           constexpr auto const_bimap<T>::contains(const F& first) const -> bool
-             requires detail::explicit_if_similar<F, first_type, second_type> && std::equality_comparable_with<F, first_type>
+template<typename F>
+constexpr auto const_bimap<T>::contains(const F& first) const -> bool
+  requires detail::explicit_if_similar<F, first_type, second_type> && std::equality_comparable_with<F, first_type>
 {
   return std::ranges::find_if(map_, [&](const auto& e) { return is_equal(first, e.first); }) != std::cend(map_);
 }
@@ -219,9 +221,9 @@ template<typename T>
 ///
 template<typename T>
   requires detail::is_valid_bimap_type<T>
-           template<typename S>
-           constexpr auto const_bimap<T>::contains(const S& second) const -> bool
-             requires detail::explicit_if_similar<S, second_type, first_type> && std::equality_comparable_with<S, second_type>
+template<typename S>
+constexpr auto const_bimap<T>::contains(const S& second) const -> bool
+  requires detail::explicit_if_similar<S, second_type, first_type> && std::equality_comparable_with<S, second_type>
 {
   return std::ranges::find_if(map_, [&](const auto& e) { return is_equal(second, e.second); }) != std::cend(map_);
 }
@@ -230,9 +232,9 @@ template<typename T>
 ///
 template<typename T>
   requires detail::is_valid_bimap_type<T>
-           template<typename F>
-           constexpr auto const_bimap<T>::at(const F& first) const -> const second_type&
-             requires detail::explicit_if_similar<F, first_type, second_type> && std::equality_comparable_with<F, first_type>
+template<typename F>
+constexpr auto const_bimap<T>::at(const F& first) const -> const second_type&
+  requires detail::explicit_if_similar<F, first_type, second_type> && std::equality_comparable_with<F, first_type>
 {
   const auto iter = std::ranges::find_if(map_, [&](const auto& e) { return is_equal(first, e.first); });
   if(iter == std::cend(map_))
@@ -246,9 +248,9 @@ template<typename T>
 ///
 template<typename T>
   requires detail::is_valid_bimap_type<T>
-           template<typename S>
-           constexpr auto const_bimap<T>::at(const S& second) const -> const first_type&
-             requires detail::explicit_if_similar<S, second_type, first_type> && std::equality_comparable_with<S, second_type>
+template<typename S>
+constexpr auto const_bimap<T>::at(const S& second) const -> const first_type&
+  requires detail::explicit_if_similar<S, second_type, first_type> && std::equality_comparable_with<S, second_type>
 {
   const auto iter = std::ranges::find_if(map_, [&](const auto& e) { return is_equal(second, e.second); });
   if(iter == std::cend(map_))

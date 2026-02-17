@@ -51,7 +51,7 @@ template<typename E>
   requires(std::is_enum_v<E>)
 auto to_type_erased_setting(const E& v) -> std::string
 {
-  return std::string{to_string_view(v)};
+  return std::string{enum_name(v)};
 }
 
 ///

@@ -7,6 +7,7 @@
 #include "bibstd/util/contains.hpp"
 #include "bibstd/util/language.hpp"
 #include "bibstd/util/log.hpp"
+#include "bibstd/util/ranges.hpp"
 #include "bibstd/util/string.hpp"
 #include "bibstd/util/visit_helper.hpp"
 
@@ -218,7 +219,7 @@ auto core_bible_ref_finder::find_book(const std::string_view text, const std::si
       auto pos_rel = std::size_t{0};
       auto pos_offset = std::size_t{0};
       std::ranges::for_each(
-        std::views::iota(std::size_t{0}, normalized_text_view.size()) |
+        util::ranges::index_view(normalized_text_view) |
           std::views::take_while([&](const auto i) { return pos_rel != std::string_view::npos && !found_book.has_value(); }),
         [&]([[maybe_unused]] const auto)
         {
@@ -260,8 +261,9 @@ auto core_bible_ref_finder::find_book(const std::string_view text, const std::si
 
 ///
 ///
-auto core_bible_ref_finder::find_numbers_after_book_name(const std::string_view text_after_name, const util::language language) const
-  -> std::optional<std::size_t>
+auto core_bible_ref_finder::find_numbers_after_book_name(
+  const std::string_view text_after_name, const util::language language
+) const -> std::optional<std::size_t>
 {
   auto digit_found = false;
   auto numbers_end = std::optional<std::size_t>{};
@@ -279,7 +281,7 @@ auto core_bible_ref_finder::find_numbers_after_book_name(const std::string_view 
             digit_found = true;
           }
           else if(category == txt::script_common::category::letter &&
-                  !util::contains(number_postfix_chars, [&](const auto v) { return util::starts_with(character, v); }))
+                  !util::contains(number_postfix_chars, [&](const auto v) { return util::string::starts_with(character, v); }))
           {
             numbers_end = pos;
           }
@@ -310,7 +312,7 @@ auto core_bible_ref_finder::try_validate_numbers_range(
           [&](const auto& element)
           {
             const auto& [_, name_variant] = element;
-            return util::starts_with(text_from_last_number, name_variant);
+            return util::string::starts_with(text_from_last_number, name_variant);
           }
         );
         if(belongs_to_book_name)
@@ -335,7 +337,7 @@ auto core_bible_ref_finder::create_passage_template(const std::string_view passa
 
   std::optional<char> transition_char;
   std::ranges::for_each(
-    std::views::iota(std::size_t{0}, normalized.size()) |
+    util::ranges::index_view(normalized) |
       std::views::take_while([&]([[maybe_unused]] auto) { return pos < normalized.size(); }),
     [&]([[maybe_unused]] auto)
     {
@@ -374,7 +376,8 @@ auto core_bible_ref_finder::create_passage_template(const std::string_view passa
 
 ///
 ///
-auto core_bible_ref_finder::normalize_passage_text(const std::string_view text, const util::language language) const -> std::string
+auto core_bible_ref_finder::normalize_passage_text(const std::string_view text, const util::language language) const
+  -> std::string
 {
   return txt::script_letters::visit(
     language,
@@ -383,13 +386,13 @@ auto core_bible_ref_finder::normalize_passage_text(const std::string_view text, 
       std::string normalized_text;
       auto counter = std::size_t{0};
       std::ranges::for_each(
-        std::views::iota(std::size_t{0}, text.size()) |
-          std::views::take_while([&](const auto i) { return counter < text.size(); }),
+        util::ranges::index_view(text) | std::views::take_while([&](const auto i) { return counter < text.size(); }),
         [&]([[maybe_unused]] const auto)
         {
           const auto subview = text.substr(counter);
-          if(const auto iter =
-               std::ranges::find_if(number_postfixes, [&](const auto postfix) { return util::starts_with(subview, postfix); });
+          if(const auto iter = std::ranges::find_if(
+               number_postfixes, [&](const auto postfix) { return util::string::starts_with(subview, postfix); }
+             );
              iter != std::ranges::cend(number_postfixes))
           {
             counter += iter->size(); // Ignore possible postfixes
@@ -538,7 +541,8 @@ auto core_bible_ref_finder::match_passage_template(const bible::book_id book, pa
 
 ///
 ///
-auto core_bible_ref_finder::passage_template_transition_chars(const passage_template_type& passage_template) const -> std::vector<char>
+auto core_bible_ref_finder::passage_template_transition_chars(const passage_template_type& passage_template) const
+  -> std::vector<char>
 {
   auto result = std::vector<char>{};
   std::ranges::for_each(
@@ -553,7 +557,8 @@ auto core_bible_ref_finder::passage_template_transition_chars(const passage_temp
 
 ///
 ///
-auto core_bible_ref_finder::passage_template_numbers(const passage_template_type& passage_template) const -> std::vector<std::uint32_t>
+auto core_bible_ref_finder::passage_template_numbers(const passage_template_type& passage_template) const
+  -> std::vector<std::uint32_t>
 {
   auto result = std::vector<std::uint32_t>{};
   std::ranges::for_each(

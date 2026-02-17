@@ -87,7 +87,7 @@ auto books() -> const std::map<book_id, std::vector<std::uint32_t>>&
     {book_id::revelation, {20, 29, 22, 11, 14, 17, 17, 13, 21, 11, 19, 17, 18, 20, 8, 21, 18, 24, 21, 15, 27, 21}}
   };
   // clang-format on
-  assert(data.size() == static_cast<std::size_t>(util::to_integral(book_id::END)));
+  assert(data.size() == util::enum_count<book_id>());
   return data;
 }
 

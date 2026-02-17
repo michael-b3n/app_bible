@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <format>
-#include <type_traits>
 
 namespace bibstd::util
 {

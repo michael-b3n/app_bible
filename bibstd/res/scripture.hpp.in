@@ -8,8 +8,8 @@
 #include "bibstd/util/incbin.hpp"
 
 #include <array>
+#include <filesystem>
 #include <span>
-#include <string>
 
 // clang-format off
 @INCBIN_DECLARATIONS_scripture@
@@ -31,9 +31,9 @@ namespace bibstd::res::scripture
 /// \param index Index of the zip file
 /// \return span of byte data of the zip file
 ///
-[[nodiscard]] inline auto file_name(const std::size_t index) -> std::string
+[[nodiscard]] inline auto file_name(const std::size_t index) -> std::filesystem::path
 {
-  static const std::array<std::string, @FILE_COUNT_scripture@> names = {@FILENAME_ARRAY_scripture@};
+  static const std::array<std::filesystem::path, @FILE_COUNT_scripture@> names = {@FILENAME_ARRAY_scripture@};
   if(index < file_count())
   {
     return names.at(index);

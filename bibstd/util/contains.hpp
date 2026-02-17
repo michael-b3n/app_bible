@@ -8,31 +8,38 @@ namespace bibstd::util
 
 ///
 /// Check if an element is contained in a container.
-/// \tparam Container type
-/// \tparam Container value type
 /// \param container Container that shall be checked
 /// \param element Element of container that might be contained in the container
 /// \return true if `element` is found in container, false if not
 ///
-template<std::ranges::range Container>
-constexpr auto contains(const Container& container, const std::ranges::range_value_t<Container>& element) -> bool
+constexpr auto contains(const std::ranges::range auto& container, const auto& element) -> bool
+  requires(std::equality_comparable_with<std::ranges::range_value_t<decltype(container)>, decltype(element)>)
 {
   return std::ranges::find(container, element) != std::ranges::cend(container);
 }
 
 ///
 /// Check if an element is inside a container or not.
-/// \tparam View type
-/// \tparam F predicate
 /// \param view View on container
 /// \param predicate function
 /// \return bool true if element is found in container, false otherwise
 ///
-template<typename View, typename F>
-  requires std::predicate<F, std::ranges::range_value_t<View>>
-constexpr auto contains(View&& view, F&& pred) -> bool
+constexpr auto contains(const std::ranges::range auto& container, const auto& pred) -> bool
+  requires std::predicate<decltype(pred), std::ranges::range_value_t<decltype(container)>>
 {
-  return std::ranges::find_if(std::forward<View>(view), std::forward<F>(pred)) != std::ranges::cend(view);
+  return std::ranges::find_if(container, pred) != std::ranges::cend(container);
+}
+
+///
+/// Check if an element is inside a container or not.
+/// \param view View on container
+/// \param predicate function
+/// \return bool true if element is found in container, false otherwise
+///
+constexpr auto contains(std::ranges::view auto view, const auto& pred) -> bool
+  requires std::predicate<decltype(pred), std::ranges::range_value_t<decltype(view)>>
+{
+  return std::ranges::find_if(view, pred) != std::ranges::cend(view);
 }
 
 } // namespace bibstd::util
