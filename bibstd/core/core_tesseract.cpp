@@ -12,12 +12,12 @@ namespace bibstd::core
 {
 
 // Constants
-constexpr auto resolution_map = util::const_bimap{
-  std::pair{core_tesseract::text_resolution::character,   tesseract::RIL_SYMBOL},
-  std::pair{     core_tesseract::text_resolution::word,     tesseract::RIL_WORD},
-  std::pair{     core_tesseract::text_resolution::line, tesseract::RIL_TEXTLINE},
-  std::pair{core_tesseract::text_resolution::paragraph,     tesseract::RIL_PARA},
-};
+constexpr auto resolution_map = util::make_const_bimap<core_tesseract::text_resolution, tesseract::PageIteratorLevel>({
+  {core_tesseract::text_resolution::character,   tesseract::RIL_SYMBOL},
+  {     core_tesseract::text_resolution::word,     tesseract::RIL_WORD},
+  {     core_tesseract::text_resolution::line, tesseract::RIL_TEXTLINE},
+  {core_tesseract::text_resolution::paragraph,     tesseract::RIL_PARA}
+});
 
 ///
 ///

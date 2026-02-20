@@ -196,11 +196,11 @@ auto node_depth_finder_walker::parse_path_sections(const std::string_view criter
     path_sections | std::views::filter([](const auto& section) { return !section.empty(); }),
     [&](auto& element)
     {
-      if(util::string::starts_with(element, '/'))
+      if(util::string::starts_with(element, section_delimiter))
       {
         element = element.substr(1);
       }
-      if(util::string::ends_with(element, '/'))
+      if(util::string::ends_with(element, section_delimiter))
       {
         element.pop_back();
       }
@@ -234,7 +234,7 @@ auto node_depth_finder_walker::matches_criteria(const pugi::xml_node& node, cons
   auto result = checker(front);
   if(criteria.starts_with_wildcard)
   {
-    result = util::string::starts_with(path, std::format("/{}", front));
+    result = util::string::starts_with(path, std::format("{}{}", section_delimiter, front));
   }
   auto rest = criteria.path_sections | std::views::drop(1);
   return result && std::ranges::all_of(rest, [&](const auto& path_section) { return checker(path_section); });

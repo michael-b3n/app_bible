@@ -24,22 +24,11 @@ struct is_pair<std::pair<T1, T2>> : std::true_type
 template<typename T>
 constexpr bool is_pair_v = is_pair<T>::value;
 
-template<typename T>
-struct is_array : std::false_type
-{};
-template<typename T, std::size_t N>
-struct is_array<std::array<T, N>> : std::true_type
-{};
-template<typename T>
-constexpr bool is_array_v = is_array<T>::value;
-
-template<typename T>
-concept is_valid_bimap_type = requires {
-  requires is_array_v<T>;
-  requires is_pair_v<typename T::value_type>;
-  requires !std::is_same_v<typename T::value_type::first_type, typename T::value_type::second_type>;
-  requires std::equality_comparable<typename T::value_type::first_type>;
-  requires std::equality_comparable<typename T::value_type::second_type>;
+template<typename F, typename S>
+concept mappable_types = requires {
+  requires !std::is_same_v<F, S>;
+  requires std::equality_comparable<F>;
+  requires std::equality_comparable<S>;
 };
 
 template<typename T, typename F, typename S>
@@ -50,17 +39,17 @@ concept explicit_if_similar = std::is_same_v<T, std::conditional_t<std::equality
 ///
 /// Const bimap with compile time access to values.
 ///
-template<typename T>
-  requires detail::is_valid_bimap_type<T>
+template<typename T1, typename T2, std::size_t N>
+  requires detail::mappable_types<T1, T2>
 class const_bimap final
 {
 public: // Typedefs
-  using value_type = T::value_type;
-  using size_type = T::size_type;
+  using value_type = std::pair<T1, T2>;
+  using size_type = std::size_t;
   using first_type = value_type::first_type;
   using second_type = value_type::second_type;
-  using const_iterator = typename T::const_iterator;
-  using const_reverse_iterator = typename T::const_reverse_iterator;
+  using const_iterator = typename std::array<value_type, N>::const_iterator;
+  using const_reverse_iterator = typename std::array<value_type, N>::const_reverse_iterator;
 
 public: // Constructor
   ///
@@ -70,7 +59,7 @@ public: // Constructor
   ///
   template<typename... P>
   constexpr const_bimap(P&&... p)
-    requires meta::are_same_v<std::pair<first_type, second_type>, P...>;
+    requires meta::are_same_v<std::pair<first_type, second_type>, std::remove_cvref_t<P>...>;
 
 public: // Accessor
   ///
@@ -148,7 +137,7 @@ private: // Implementation
   constexpr auto is_equal(const auto& lhs, const auto& rhs) const -> bool;
 
 private: // Variables
-  const T map_;
+  const std::array<value_type, N> map_;
 };
 
 ///
@@ -157,8 +146,8 @@ private: // Variables
 template<typename T>
 struct is_const_bimap : std::false_type
 {};
-template<typename T>
-struct is_const_bimap<const_bimap<T>> : std::true_type
+template<typename T1, typename T2, std::size_t N>
+struct is_const_bimap<const_bimap<T1, T2, N>> : std::true_type
 {};
 template<typename T>
 constexpr bool is_const_bimap_v = is_const_bimap<T>::value;
@@ -173,15 +162,18 @@ concept const_bimap_type = is_const_bimap_v<T>;
 ///
 template<typename... P>
   requires meta::are_same_v<P...> && detail::is_pair_v<typename meta::pack<P...>::first_type>
-const_bimap(P&&... p) -> const_bimap<typename std::array<typename meta::pack<P...>::first_type, sizeof...(P)>>;
+const_bimap(P&&... p) -> const_bimap<
+  typename meta::pack<P...>::first_type::first_type,
+  typename meta::pack<P...>::first_type::second_type,
+  sizeof...(P)>;
 
 ///
 ///
-template<typename T>
-  requires detail::is_valid_bimap_type<T>
+template<typename T1, typename T2, std::size_t N>
+  requires detail::mappable_types<T1, T2>
 template<typename... P>
-constexpr const_bimap<T>::const_bimap(P&&... p)
-  requires meta::are_same_v<std::pair<first_type, second_type>, P...>
+constexpr const_bimap<T1, T2, N>::const_bimap(P&&... p)
+  requires meta::are_same_v<std::pair<first_type, second_type>, std::remove_cvref_t<P>...>
   : map_{std::array{std::forward<P>(p)...}}
 {
   std::ranges::for_each(
@@ -208,10 +200,10 @@ constexpr const_bimap<T>::const_bimap(P&&... p)
 
 ///
 ///
-template<typename T>
-  requires detail::is_valid_bimap_type<T>
+template<typename T1, typename T2, std::size_t N>
+  requires detail::mappable_types<T1, T2>
 template<typename F>
-constexpr auto const_bimap<T>::contains(const F& first) const -> bool
+constexpr auto const_bimap<T1, T2, N>::contains(const F& first) const -> bool
   requires detail::explicit_if_similar<F, first_type, second_type> && std::equality_comparable_with<F, first_type>
 {
   return std::ranges::find_if(map_, [&](const auto& e) { return is_equal(first, e.first); }) != std::cend(map_);
@@ -219,10 +211,10 @@ constexpr auto const_bimap<T>::contains(const F& first) const -> bool
 
 ///
 ///
-template<typename T>
-  requires detail::is_valid_bimap_type<T>
+template<typename T1, typename T2, std::size_t N>
+  requires detail::mappable_types<T1, T2>
 template<typename S>
-constexpr auto const_bimap<T>::contains(const S& second) const -> bool
+constexpr auto const_bimap<T1, T2, N>::contains(const S& second) const -> bool
   requires detail::explicit_if_similar<S, second_type, first_type> && std::equality_comparable_with<S, second_type>
 {
   return std::ranges::find_if(map_, [&](const auto& e) { return is_equal(second, e.second); }) != std::cend(map_);
@@ -230,10 +222,10 @@ constexpr auto const_bimap<T>::contains(const S& second) const -> bool
 
 ///
 ///
-template<typename T>
-  requires detail::is_valid_bimap_type<T>
+template<typename T1, typename T2, std::size_t N>
+  requires detail::mappable_types<T1, T2>
 template<typename F>
-constexpr auto const_bimap<T>::at(const F& first) const -> const second_type&
+constexpr auto const_bimap<T1, T2, N>::at(const F& first) const -> const second_type&
   requires detail::explicit_if_similar<F, first_type, second_type> && std::equality_comparable_with<F, first_type>
 {
   const auto iter = std::ranges::find_if(map_, [&](const auto& e) { return is_equal(first, e.first); });
@@ -246,10 +238,10 @@ constexpr auto const_bimap<T>::at(const F& first) const -> const second_type&
 
 ///
 ///
-template<typename T>
-  requires detail::is_valid_bimap_type<T>
+template<typename T1, typename T2, std::size_t N>
+  requires detail::mappable_types<T1, T2>
 template<typename S>
-constexpr auto const_bimap<T>::at(const S& second) const -> const first_type&
+constexpr auto const_bimap<T1, T2, N>::at(const S& second) const -> const first_type&
   requires detail::explicit_if_similar<S, second_type, first_type> && std::equality_comparable_with<S, second_type>
 {
   const auto iter = std::ranges::find_if(map_, [&](const auto& e) { return is_equal(second, e.second); });
@@ -262,20 +254,56 @@ constexpr auto const_bimap<T>::at(const S& second) const -> const first_type&
 
 ///
 ///
-template<typename T>
-  requires detail::is_valid_bimap_type<T>
-constexpr auto const_bimap<T>::size() const -> size_type
+template<typename T1, typename T2, std::size_t N>
+  requires detail::mappable_types<T1, T2>
+constexpr auto const_bimap<T1, T2, N>::size() const -> size_type
 {
   return map_.size();
 }
 
 ///
 ///
-template<typename T>
-  requires detail::is_valid_bimap_type<T>
-constexpr auto const_bimap<T>::is_equal(const auto& lhs, const auto& rhs) const -> bool
+template<typename T1, typename T2, std::size_t N>
+  requires detail::mappable_types<T1, T2>
+constexpr auto const_bimap<T1, T2, N>::is_equal(const auto& lhs, const auto& rhs) const -> bool
 {
   return static_cast<comparable_type<decltype(lhs)>>(lhs) == static_cast<comparable_type<decltype(rhs)>>(rhs);
+}
+
+namespace detail
+{
+
+///
+/// Helper function to create a const_bimap with given key and value type.
+/// Should not be used directly!
+/// \tparam F Key type
+/// \tparam S Value type
+/// \tparam N Map size
+/// \tparam Is Index sequence
+/// \param p Initialization pack of key/value pairs
+/// \return const_bimap instance
+///
+template<typename F, typename S, std::size_t N, std::size_t... Is>
+consteval auto make_const_bimap_impl(std::pair<F, S> (&&p)[N], std::index_sequence<Is...>) -> auto
+{
+  return const_bimap<F, S, N>(std::forward<decltype(p[Is])>(p[Is])...);
+}
+
+} // namespace detail
+
+///
+/// Helper function to create a const_bimap with given key and value type.
+/// Example: static constexpr auto map = make_const_bimap<int, std::string_view>({{0, "e_0"}, {1, "e_1"}});
+/// \tparam F Key type
+/// \tparam S Value type
+/// \tparam N Map size
+/// \param p Initialization pack of key/value pairs
+/// \return const_bimap instance
+///
+template<typename F, typename S, std::size_t N>
+consteval auto make_const_bimap(std::pair<F, S> (&&p)[N]) -> auto
+{
+  return detail::make_const_bimap_impl<F, S, N>(std::forward<decltype(p)>(p), std::make_index_sequence<N>{});
 }
 
 } // namespace bibstd::util

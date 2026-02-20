@@ -27,25 +27,25 @@ public: // Operations
   auto open(const bible::reference_range& range, const std::vector<bible::translation>& translations) -> bool;
 
 private: // Constants
-  static constexpr auto translations_map_de = util::const_bimap(
-    std::pair{bible::translation::dbu, std::string_view("DBU")},
-    std::pair{bible::translation::elb, std::string_view("ELB")},
-    std::pair{bible::translation::esv, std::string_view("ESV")},
-    std::pair{bible::translation::eu, std::string_view("EU")},
-    std::pair{bible::translation::gnb, std::string_view("GNB")},
-    std::pair{bible::translation::hfa, std::string_view("HFA")},
-    std::pair{bible::translation::kjv, std::string_view("KJV")},
-    std::pair{bible::translation::lut, std::string_view("LUT")},
-    std::pair{bible::translation::meng, std::string_view("MENG")},
-    std::pair{bible::translation::neu, std::string_view("NeÜ")},
-    std::pair{bible::translation::ngu, std::string_view("NGÜ")},
-    std::pair{bible::translation::nirv, std::string_view("NIRV")},
-    std::pair{bible::translation::niv, std::string_view("NIV")},
-    std::pair{bible::translation::nlb, std::string_view("NLB")},
-    std::pair{bible::translation::slt, std::string_view("SLT")},
-    std::pair{bible::translation::vxb, std::string_view("VXB")},
-    std::pair{bible::translation::zb, std::string_view("ZB")}
-  );
+  static constexpr auto translations_map_de = util::make_const_bimap<bible::translation, std::string_view>({
+    { bible::translation::dbu,  "DBU"},
+    { bible::translation::elb,  "ELB"},
+    { bible::translation::esv,  "ESV"},
+    {  bible::translation::eu,   "EU"},
+    { bible::translation::gnb,  "GNB"},
+    { bible::translation::hfa,  "HFA"},
+    { bible::translation::kjv,  "KJV"},
+    { bible::translation::lut,  "LUT"},
+    {bible::translation::meng, "MENG"},
+    { bible::translation::neu,  "NeÜ"},
+    { bible::translation::ngu,  "NGÜ"},
+    {bible::translation::nirv, "NIRV"},
+    { bible::translation::niv,  "NIV"},
+    { bible::translation::nlb,  "NLB"},
+    { bible::translation::slt,  "SLT"},
+    { bible::translation::vxb,  "VXB"},
+    {  bible::translation::zb,   "ZB"}
+  });
   static_assert(translations_map_de.size() == util::enum_count<bible::translation>());
 };
 
