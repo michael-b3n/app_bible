@@ -63,7 +63,7 @@ auto property_tree::create_property(const property_path_type& path, T&& default_
   const auto lock = std::lock_guard(mtx_);
   if(path.empty())
   {
-    THROW_EXCEPTION("register property failed: empty path");
+    throw util::exception("register property failed: empty path");
   }
   auto prop = property<T>(property_parser::read<T>(path, tree_).value_or(std::forward<decltype(default_value)>(default_value)));
   prop.property_tree_update_ = [sptr = shared_from_this(), path](const T& value)

@@ -99,7 +99,7 @@ auto chapter_count(book_id book) -> std::uint32_t
 {
   if(!util::valid(book))
   {
-    THROW_EXCEPTION("invalid book");
+    throw util::exception("invalid book");
   }
   return books().at(book).size();
 }

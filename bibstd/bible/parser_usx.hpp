@@ -2,9 +2,9 @@
 
 #include "bibstd/bible/common.hpp"
 #include "bibstd/bible/parser.hpp"
-#include "bibstd/util/const_bimap.hpp"
+#include "bibstd/util/const_map.hpp"
+#include "bibstd/util/enum.hpp"
 
-#include <map>
 #include <memory>
 
 namespace pugi
@@ -98,9 +98,7 @@ public: // Constants
     {           book_id::jude, "JUD"},
     {     book_id::revelation, "REV"}
   });
-
-public: // Typedefs
-  using book_data_type = std::map<book_id, std::unique_ptr<pugi::xml_document>>;
+  static_assert(books.size() == util::enum_count<book_id>());
 
 public: // Constructor
   parser_usx(const io::zip_file_reader& zip_reader);
@@ -126,7 +124,7 @@ private: // Implementation
 
 private: // Variables
   const std::optional<scripture_info> info_data_;
-  const book_data_type book_data_;
+  const std::unique_ptr<pugi::xml_document> book_data_;
 };
 
 } // namespace bibstd::bible

@@ -1,6 +1,6 @@
 #include "bibstd/bible/reference_formatter.hpp"
 #include "bibstd/bible/book_name_variants_de.hpp"
-#include "bibstd/util/const_bimap.hpp"
+#include "bibstd/util/const_map.hpp"
 
 #include <format>
 

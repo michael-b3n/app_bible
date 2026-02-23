@@ -43,7 +43,7 @@ auto screen::cursor_position() -> screen_coordinates_type
   SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
   if(!GetCursorPos(&point))
   {
-    THROW_EXCEPTION("failed to get cursor position");
+    throw util::exception("failed to get cursor position");
   }
   return screen_coordinates_type(point.x, point.y);
 }

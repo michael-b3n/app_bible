@@ -13,7 +13,7 @@ auto filesystem::local_data_folder() -> std::filesystem::path
   auto appdata = std::getenv("LOCALAPPDATA");
   if(!appdata)
   {
-    THROW_EXCEPTION("local appdata not found");
+    throw util::exception("local appdata not found");
   }
   return std::filesystem::path(appdata) / executable_location().stem();
 }

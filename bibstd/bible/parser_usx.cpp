@@ -2,6 +2,7 @@
 #include "bibstd/bible/passage.hpp"
 #include "bibstd/bible/passage_info.hpp"
 #include "bibstd/io/zip_file_reader.hpp"
+#include "bibstd/util/enum.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/string.hpp"
@@ -22,67 +23,69 @@ namespace detail
 {
 
 ///
-/// Simple node content walker that concatenates the content of all nodes found,
-/// with options to limit the depth and ignore certain node names.
+/// Simple node content walker that concatenates the content of all nodes found.
 ///
-class node_content_walker : public pugi::xml_tree_walker
+class node_book_content_walker : public pugi::xml_tree_walker
 {
 public: // Typedefs
-  struct rules final
-  {
-    int max_depth{0};
-    std::vector<std::string> ignored_node_names{};
-  };
+
+public: // Constants
+  static constexpr auto node_transform = util::make_const_map<std::string_view, std::string_view>({
+    {  "verse", "span"},
+    {"chapter",  "div"}
+  });
 
 public: // Structors
-  node_content_walker(const rules& rules);
+  node_book_content_walker(pugi::xml_node& node);
 
-public: // Accessors
-  ///
-  /// Get the content of the nodes found.
-  /// \return A string containing the concatenated content of all nodes found.
-  ///
-  auto content() const -> std::string;
+public: // Variables
+  pugi::xml_node& out;
 
 private: // Overrides
   auto for_each(pugi::xml_node& node) -> bool override;
-
-private: // Variables
-  const int max_depth_;
-  const std::vector<std::string> ignored_node_names_;
-  std::string content_;
 };
 
 ///
 ///
-node_content_walker::node_content_walker(const rules& rules)
-  : max_depth_{rules.max_depth}
-  , ignored_node_names_{rules.ignored_node_names}
+node_book_content_walker::node_book_content_walker(pugi::xml_node& node)
+  : out(node)
 {
 }
 
 ///
 ///
-auto node_content_walker::content() const -> std::string
-{
-  return content_;
-}
-
-///
-///
-auto node_content_walker::for_each(pugi::xml_node& node) -> bool
+auto node_book_content_walker::for_each(pugi::xml_node& node) -> bool
 {
   decltype(auto) type = node.type();
   if(type == pugi::xml_node_type::node_pcdata || type == pugi::xml_node_type::node_cdata)
   {
-    decltype(auto) parent = node.parent();
-    const auto d = depth();
-    const auto valid =
-      d <= max_depth_ || std::ranges::none_of(ignored_node_names_, [&](const auto& name) { return parent.name() == name; });
-    if(valid)
-    {
-      content_.append(node.value());
-    }
+  }
+  return true;
+}
+
+///
+/// Simple node content walker that concatenates the content of all nodes found.
+///
+class node_simple_content_walker : public pugi::xml_tree_walker
+{
+public: // Structors
+  node_simple_content_walker() = default;
+
+public: // Variables
+  std::string content;
+
+private: // Overrides
+  auto for_each(pugi::xml_node& node) -> bool override;
+};
+
+///
+///
+auto node_simple_content_walker::for_each(pugi::xml_node& node) -> bool
+{
+  decltype(auto) type = node.type();
+  if(type == pugi::xml_node_type::node_pcdata || type == pugi::xml_node_type::node_cdata)
+  {
+    content.append(node.value());
   }
   return true;
 }
@@ -91,7 +94,7 @@ auto node_content_walker::for_each(pugi::xml_node& node) -> bool
 /// Tree walker for finding nodes with a certain depth.
 /// The walker is initialized with criteria paths, which are paths in the XML tree that specify which nodes to find.
 ///
-class node_depth_finder_walker : public pugi::xml_tree_walker
+class node_path_finder_walker : public pugi::xml_tree_walker
 {
 public: // Typedefs
   using result_type = std::map<int, std::vector<pugi::xml_node>>;
@@ -104,7 +107,7 @@ public: // Structors
   /// matching path will be used. Each criteria path is a string that represents a path in the XML tree, with sections separated
   /// by '/'. The path can contain wildcards ("...").
   ///
-  node_depth_finder_walker(const auto& criteria_paths);
+  node_path_finder_walker(const auto& criteria_paths);
 
 public: // Accessors
   ///
@@ -150,21 +153,21 @@ private: // Variables
 
 ///
 ///
-node_depth_finder_walker::node_depth_finder_walker(const auto& criteria_paths)
+node_path_finder_walker::node_path_finder_walker(const auto& criteria_paths)
   : data_{parse_criteria(criteria_paths)}
 {
 }
 
 ///
 ///
-auto node_depth_finder_walker::found() const -> const result_type&
+auto node_path_finder_walker::found() const -> const result_type&
 {
   return found_nodes_;
 }
 
 ///
 ///
-auto node_depth_finder_walker::parse_criteria(const auto& criteria_paths) -> std::vector<walker_data>
+auto node_path_finder_walker::parse_criteria(const auto& criteria_paths) -> std::vector<walker_data>
 {
   auto result = std::vector<walker_data>{};
   std::ranges::for_each(
@@ -174,11 +177,11 @@ auto node_depth_finder_walker::parse_criteria(const auto& criteria_paths) -> std
       const auto sections = bibstd::util::string::split(criteria_path, section_delimiter);
       if(sections.empty())
       {
-        THROW_EXCEPTION(std::format("invalid criteria path: reason=\"empty criteria\", path=\"{}\"", criteria_path));
+        throw util::exception(std::format("invalid criteria path: reason=\"empty criteria\", path=\"{}\"", criteria_path));
       }
       if(is_wildcard(sections.back()))
       {
-        THROW_EXCEPTION(std::format("invalid criteria path: reason=\"cannot end with wildcard\", path=\"{}\"", criteria_path));
+        throw util::exception(std::format("invalid criteria path: reason=\"cannot end with wildcard\", path=\"{}\"", criteria_path));
       }
       result.emplace_back(criteria_data{is_wildcard(sections.front()), parse_path_sections(criteria_path)});
     }
@@ -188,7 +191,7 @@ auto node_depth_finder_walker::parse_criteria(const auto& criteria_paths) -> std
 
 ///
 ///
-auto node_depth_finder_walker::parse_path_sections(const std::string_view criteria_path) -> string_list_type
+auto node_path_finder_walker::parse_path_sections(const std::string_view criteria_path) -> string_list_type
 {
   auto path_sections = bibstd::util::string::split(criteria_path, wildcard);
 
@@ -212,7 +215,7 @@ auto node_depth_finder_walker::parse_path_sections(const std::string_view criter
 
 ///
 ///
-auto node_depth_finder_walker::matches_criteria(const pugi::xml_node& node, const criteria_data& criteria) const -> bool
+auto node_path_finder_walker::matches_criteria(const pugi::xml_node& node, const criteria_data& criteria) const -> bool
 {
   if(criteria.path_sections.empty())
   {
@@ -242,7 +245,7 @@ auto node_depth_finder_walker::matches_criteria(const pugi::xml_node& node, cons
 
 ///
 ///
-auto node_depth_finder_walker::for_each(pugi::xml_node& node) -> bool
+auto node_path_finder_walker::for_each(pugi::xml_node& node) -> bool
 {
   std::ranges::for_each(
     data_ | std::views::filter([&](const auto& element) { return matches_criteria(node, element.criteria); }),
@@ -253,7 +256,7 @@ auto node_depth_finder_walker::for_each(pugi::xml_node& node) -> bool
 
 ///
 ///
-auto node_depth_finder_walker::end([[maybe_unused]] pugi::xml_node&) -> bool
+auto node_path_finder_walker::end([[maybe_unused]] pugi::xml_node&) -> bool
 {
   std::ranges::for_each(
     data_ | std::views::take_while([&]([[maybe_unused]] const auto&) { return found_nodes_.empty(); }),
@@ -271,7 +274,7 @@ auto node_depth_finder_walker::end([[maybe_unused]] pugi::xml_node&) -> bool
 auto find_highest_child_node(const pugi::xml_node& parent, const auto& criteria_paths) -> std::optional<pugi::xml_node>
 {
   pugi::xml_node current = parent;
-  auto walker = node_depth_finder_walker{criteria_paths};
+  auto walker = node_path_finder_walker{criteria_paths};
   current.traverse(walker);
 
   auto result = std::optional<pugi::xml_node>{};
@@ -290,11 +293,9 @@ auto find_highest_child_node(const pugi::xml_node& parent, const auto& criteria_
 auto get_all_subnodes_content(const pugi::xml_node& node) -> std::string
 {
   pugi::xml_node current = node;
-  auto walker = node_content_walker{
-    node_content_walker::rules{.max_depth = std::numeric_limits<int>::max(), .ignored_node_names = {}}
-  };
+  auto walker = node_simple_content_walker{};
   current.traverse(walker);
-  return walker.content();
+  return walker.content;
 }
 
 ///
@@ -306,7 +307,7 @@ auto get_all_subnodes_content(const pugi::xml_node& node) -> std::string
 auto load_entry(const io::zip_file_reader& zip_reader, const std::string& entry_name) -> std::optional<std::string>
 {
   using query_flag = io::zip_file_reader::query_flag;
-  const auto data = zip_reader.entry(entry_name, query_flag::exclude_directories);
+  const auto data = zip_reader.entry(entry_name, {query_flag::exclude_directories, query_flag::case_insensitive});
   if(!data)
   {
     LOG_ERROR("failed to load entry: expected \"{}\" file within archive", entry_name);
@@ -363,6 +364,9 @@ auto load_abbreviation(const pugi::xml_document& doc) -> std::optional<std::stri
 }
 
 ///
+/// Load the scripture language from the XML document.
+/// \param doc The XML document to load from
+/// \return The loaded scripture language, or std::nullopt if not found
 ///
 auto load_language(const pugi::xml_document& doc) -> std::optional<std::string>
 {
@@ -406,6 +410,17 @@ auto load_copyright(const pugi::xml_document& doc) -> std::optional<std::string>
 }
 
 ///
+/// Convert USX XML nodes to HTML nodes.
+/// \param usx_node The USX XML node to convert
+/// \param html_node The HTML node to populate with converted content
+/// \return true if conversion was successful, false otherwise
+///
+auto usx_to_html(const pugi::xml_node& usx_node, pugi::xml_node& html_node) -> bool
+{
+  return false;
+}
+
+///
 /// Load scripture information from the zip reader.
 /// \param zip_reader The zip file reader to load from
 /// \return The loaded scripture information
@@ -439,10 +454,40 @@ auto load_info_data(const io::zip_file_reader& zip_reader) -> std::optional<pars
 /// \param zip_reader The zip file reader to load from
 /// \return The loaded book data
 ///
-auto load_book_data(const io::zip_file_reader& zip_reader) -> parser_usx::book_data_type
+auto load_book_data(const io::zip_file_reader& zip_reader) -> std::unique_ptr<pugi::xml_document>
 {
   SCOPED_TIMER_LOG();
-  return {};
+  auto doc = std::make_unique<pugi::xml_document>();
+  pugi::xml_document src;
+
+  const auto success = std::ranges::all_of(
+    parser_usx::books,
+    [&](const auto& book)
+    {
+      const auto& [id, abbreviation] = book;
+      src.reset();
+      const auto content = load_entry(zip_reader, std::format("{}.usx", abbreviation));
+      if(!content.has_value() || content->empty())
+      {
+        LOG_ERROR("failed to load \"{}\" data: expected \"{}.usx\" file within archive", util::enum_name(id), abbreviation);
+        return false;
+      }
+      const auto parse_result = src.load_string(content->c_str());
+      if(!parse_result)
+      {
+        LOG_ERROR("failed to parse \"{}.usx\": {}", abbreviation, parse_result.description());
+        return false;
+      }
+      auto new_node = doc->append_child();
+      new_node.set_name(util::enum_name(id));
+      return usx_to_html(src, new_node);
+    }
+  );
+  if(!success)
+  {
+    doc->reset();
+  }
+  return doc;
 }
 
 } // namespace detail
@@ -473,7 +518,7 @@ parser_usx::~parser_usx() noexcept = default;
 ///
 auto parser_usx::do_valid() const -> bool
 {
-  return /*!book_data_.empty() &&*/ info_data_.has_value();
+  return book_data_ && info_data_.has_value();
 }
 
 ///

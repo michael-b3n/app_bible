@@ -67,6 +67,7 @@ target_link_libraries(${PROJECT_NAME}
   ${LEPTONICA_LIBRARIES}
   ${LIBCURL_LIBRARIES}
   PUBLIC libs_external::all
+  PUBLIC stdc++exp
 )
 
 IF(WIN32)

@@ -2,7 +2,7 @@
 #include "bibstd/framework/task_queue.hpp"
 #include "bibstd/framework/thread_pool.hpp"
 #include "bibstd/system/windows/win.hpp"
-#include "bibstd/util/const_bimap.hpp"
+#include "bibstd/util/const_map.hpp"
 #include "bibstd/util/enum.hpp"
 #include "bibstd/util/log.hpp"
 

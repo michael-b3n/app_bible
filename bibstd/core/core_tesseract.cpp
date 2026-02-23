@@ -1,6 +1,6 @@
 #include "bibstd/core/core_tesseract.hpp"
 #include "bibstd/data/pix.hpp"
-#include "bibstd/util/const_bimap.hpp"
+#include "bibstd/util/const_map.hpp"
 #include "bibstd/util/enum.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/numeric_cast.hpp"
@@ -28,7 +28,7 @@ core_tesseract::core_tesseract(const std::filesystem::path& tessdata_path, const
   if(!std::filesystem::exists(tessdata_path))
   {
     LOG_ERROR("tessdata path does not exist: \"{}\"", tessdata_path.generic_string());
-    THROW_EXCEPTION("non existent tessdata path");
+    throw util::exception("non existent tessdata path");
   }
   auto tessdata_string = tessdata_path.generic_string();
   tesseract_->Init(tessdata_string.data(), language_map.at(language).data(), tesseract::OEM_LSTM_ONLY);

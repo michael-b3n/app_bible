@@ -457,7 +457,7 @@ auto core_bible_ref_finder::match_passage_template(const bible::book_id book, pa
 {
   if(!util::valid(book))
   {
-    THROW_EXCEPTION("invalid book ID");
+    throw util::exception("invalid book ID");
   }
   auto result = std::vector<bible::reference_range>{};
   const auto down_transition_chars = passage_template_transition_chars(passage_template);

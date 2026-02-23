@@ -90,7 +90,7 @@ auto from_type_erased_setting(const std::string& v) -> E
   const auto value = to_enum<E>(v);
   if(!value)
   {
-    THROW_EXCEPTION(std::format("invalid enum setting value: value=\"{}\"", v));
+    throw util::exception(std::format("invalid enum setting value: value=\"{}\"", v));
   }
   return *value;
 }
