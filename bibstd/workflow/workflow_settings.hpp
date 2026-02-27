@@ -1,11 +1,11 @@
 #pragma once
 
+#include "bibstd/framework/property_tree.hpp"
+#include "bibstd/framework/setting_type_erased.hpp"
 #include "bibstd/meta/for_each.hpp"
 #include "bibstd/util/contains.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/non_owning_ptr.hpp"
-#include "bibstd/util/property_tree.hpp"
-#include "bibstd/util/setting_type_erased.hpp"
 
 #include <filesystem>
 #include <mutex>
@@ -23,18 +23,18 @@ namespace bibstd::workflow
 class workflow_settings final
 {
 public: // Typedefs
-  template<util::underlying_setting_type_erased_type T>
-  using setting_type_erased_non_owning_ptr_type = util::non_owning_ptr<util::setting_type_erased<T>>;
-  template<util::underlying_setting_type_erased_type T>
-  using setting_type_erased_uptr_type = std::unique_ptr<util::setting_type_erased<T>>;
+  template<framework::underlying_setting_type_erased_type T>
+  using setting_type_erased_non_owning_ptr_type = util::non_owning_ptr<framework::setting_type_erased<T>>;
+  template<framework::underlying_setting_type_erased_type T>
+  using setting_type_erased_uptr_type = std::unique_ptr<framework::setting_type_erased<T>>;
 
   using setting_type_erased_non_owning_ptr_variant_type =
-    meta::for_each_t<util::setting_type_erased_variant, setting_type_erased_non_owning_ptr_type>;
+    meta::for_each_t<framework::setting_type_erased_variant, setting_type_erased_non_owning_ptr_type>;
   using setting_type_erased_uptr_variant_type =
-    meta::for_each_t<util::setting_type_erased_variant, setting_type_erased_uptr_type>;
+    meta::for_each_t<framework::setting_type_erased_variant, setting_type_erased_uptr_type>;
 
-  template<util::underlying_setting_type T>
-  using setting_non_owning_ptr_type = util::non_owning_ptr<util::setting<T>>;
+  template<framework::underlying_setting_type T>
+  using setting_non_owning_ptr_type = util::non_owning_ptr<framework::setting<T>>;
 
 public: // Constants
   static constexpr std::string_view settings_file_name = "settings.xml";
@@ -71,11 +71,11 @@ public: // Modifiers
   /// \param validator Setting validator
   /// \return the newly created setting
   ///
-  template<util::underlying_setting_type T>
+  template<framework::underlying_setting_type T>
   [[nodiscard]] auto create_setting(
     const std::string& path,
     T&& default_value,
-    util::setting_validator<T>&& validator = std::make_shared<util::setting_validator_unbound>()
+    framework::setting_validator<T>&& validator = std::make_shared<framework::setting_validator_unbound>()
   ) -> setting_non_owning_ptr_type<T>;
 
 private: // Typedefs
@@ -88,22 +88,22 @@ private: // Typedefs
 private: // Variables
   inline static std::mutex settings_mtx_{};
   inline static std::vector<setting_data> settings_{};
-  const util::property_tree::sptr_type tree_{util::property_tree::create(settings_file_path())};
+  const framework::property_tree::sptr_type tree_{framework::property_tree::create(settings_file_path())};
 };
 
 ///
 ///
-template<util::underlying_setting_type T>
-auto workflow_settings::create_setting(const std::string& path, T&& default_value, util::setting_validator<T>&& validator)
+template<framework::underlying_setting_type T>
+auto workflow_settings::create_setting(const std::string& path, T&& default_value, framework::setting_validator<T>&& validator)
   -> setting_non_owning_ptr_type<T>
 {
-  const auto setting = std::make_shared<util::setting<T>>(
+  const auto setting = std::make_shared<framework::setting<T>>(
     path,
-    std::move(tree_->create_property(util::property_tree::path_type{path}, std::move(default_value))),
+    std::move(tree_->create_property(framework::property_tree::path_type{path}, std::move(default_value))),
     std::move(validator)
   );
   const auto setting_ptr = setting.get();
-  using underlying_setting_type_erased_type = util::setting_type_erased<util::setting_type_erased_type_from<T>>;
+  using underlying_setting_type_erased_type = framework::setting_type_erased<framework::setting_type_erased_type_from<T>>;
 
   const auto lock = std::lock_guard(settings_mtx_);
   const auto contains_path = util::contains(settings_, [&path](const auto& data) { return data.path == path; });

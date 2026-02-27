@@ -13,7 +13,7 @@
 #include <variant>
 #include <vector>
 
-namespace bibstd::util
+namespace bibstd::framework
 {
 namespace detail
 {
@@ -51,7 +51,7 @@ template<typename E>
   requires(std::is_enum_v<E>)
 auto to_type_erased_setting(const E& v) -> std::string
 {
-  return std::string{enum_name(v)};
+  return std::string{util::enum_name(v)};
 }
 
 ///
@@ -87,7 +87,7 @@ template<typename E>
   requires(std::is_enum_v<E>)
 auto from_type_erased_setting(const std::string& v) -> E
 {
-  const auto value = to_enum<E>(v);
+  const auto value = util::to_enum<E>(v);
   if(!value)
   {
     throw util::exception(std::format("invalid enum setting value: value=\"{}\"", v));
@@ -197,4 +197,4 @@ constexpr auto create_setting_value_converter() -> auto
   }
 }
 
-} // namespace bibstd::util
+} // namespace bibstd::framework

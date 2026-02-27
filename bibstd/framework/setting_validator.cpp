@@ -1,6 +1,6 @@
-#include "bibstd/util/setting_validator.hpp"
+#include "bibstd/framework/setting_validator.hpp"
 
-namespace bibstd::util::detail
+namespace bibstd::framework::detail
 {
 
 ///
@@ -26,4 +26,4 @@ auto setting_validator_connector::notify_changed() -> void
   }
 }
 
-} // namespace bibstd::util::detail
+} // namespace bibstd::framework::detail

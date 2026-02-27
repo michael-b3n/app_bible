@@ -1,14 +1,14 @@
 #pragma once
 
+#include "bibstd/framework/property.hpp"
+#include "bibstd/framework/setting_common.hpp"
+#include "bibstd/framework/setting_validator.hpp"
 #include "bibstd/signal/adapter.hpp"
-#include "bibstd/util/property.hpp"
-#include "bibstd/util/setting_common.hpp"
-#include "bibstd/util/setting_validator.hpp"
 #include "bibstd/util/visit_helper.hpp"
 
 #include <memory>
 
-namespace bibstd::util
+namespace bibstd::framework
 {
 
 ///
@@ -41,7 +41,7 @@ public: // Typedefs
   using sptr_type = std::shared_ptr<setting<T>>;
 
 public: // Structors
-  setting(const std::string& path, util::property<T>&& value, setting_validator<T>&& validator);
+  setting(const std::string& path, property<T>&& value, setting_validator<T>&& validator);
 
 public: // Accessors
   ///
@@ -62,13 +62,13 @@ public: // Variables
   const setting_validator<T> validator;
 
 private: // Variables
-  util::property<T> value_;
+  property<T> value_;
 };
 
 ///
 ///
 template<underlying_setting_type T>
-setting<T>::setting(const std::string& path_, util::property<T>&& value, setting_validator<T>&& validator_)
+setting<T>::setting(const std::string& path_, property<T>&& value, setting_validator<T>&& validator_)
   : path{path_}
   , validator{std::move(validator_)}
   , value_{std::move(value)}
@@ -138,4 +138,4 @@ auto setting<T>::value(const T& v) -> bool
   );
 }
 
-} // namespace bibstd::util
+} // namespace bibstd::framework

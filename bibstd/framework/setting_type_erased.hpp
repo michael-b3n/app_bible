@@ -1,11 +1,11 @@
 #pragma once
 
-#include "bibstd/util/setting.hpp"
+#include "bibstd/framework/setting.hpp"
 
 #include <functional>
 #include <memory>
 
-namespace bibstd::util
+namespace bibstd::framework
 {
 
 ///
@@ -108,4 +108,4 @@ auto setting_type_erased<T>::value(const T& v) -> bool
   return set_(v);
 }
 
-} // namespace bibstd::util
+} // namespace bibstd::framework

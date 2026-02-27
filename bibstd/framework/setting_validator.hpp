@@ -1,7 +1,7 @@
 #pragma once
 
+#include "bibstd/framework/setting_common.hpp"
 #include "bibstd/math/value_range.hpp"
-#include "bibstd/util/setting_common.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -9,7 +9,7 @@
 #include <mutex>
 #include <ranges>
 
-namespace bibstd::util
+namespace bibstd::framework
 {
 namespace detail
 {
@@ -419,4 +419,4 @@ auto setting_validator_list_type_erased<T>::contains(const T& value) const -> bo
   return contains_(value);
 }
 
-} // namespace bibstd::util
+} // namespace bibstd::framework
