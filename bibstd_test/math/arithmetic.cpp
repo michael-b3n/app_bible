@@ -8,7 +8,7 @@
 namespace bibstd::math
 {
 
-template<meta::packable P>
+template<meta::packaged P>
 struct for_each_type;
 
 template<template<typename...> typename P, typename... Args>

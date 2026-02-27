@@ -27,7 +27,7 @@ template<typename FirstType, typename SecondType, bool BidirectionalFlag>
 concept mappable_types = requires {
   requires !BidirectionalFlag || !std::is_same_v<FirstType, SecondType>;
   requires std::equality_comparable<FirstType>;
-  requires std::equality_comparable<SecondType>;
+  requires !BidirectionalFlag || std::equality_comparable<SecondType>;
 };
 
 template<typename T, typename F, typename S>
@@ -181,9 +181,12 @@ constexpr const_map<FirstType, SecondType, N, BidirectionalFlag>::const_map(P&&.
           {
             throw util::exception("duplicates in first elements");
           }
-          if(BidirectionalFlag && is_equal(map_.at(i).second, map_.at(j).second))
+          if constexpr(BidirectionalFlag)
           {
-            throw util::exception("duplicates in second elements");
+            if(is_equal(map_.at(i).second, map_.at(j).second))
+            {
+              throw util::exception("duplicates in second elements");
+            }
           }
         }
       );

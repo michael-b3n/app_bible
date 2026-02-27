@@ -2,6 +2,9 @@
 #include "bibstd/bible/passage.hpp"
 #include "bibstd/bible/passage_info.hpp"
 #include "bibstd/io/zip_file_reader.hpp"
+#include "bibstd/meta/contains.hpp"
+#include "bibstd/meta/pack.hpp"
+#include "bibstd/util/const_variant_map.hpp"
 #include "bibstd/util/enum.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
@@ -16,27 +19,139 @@
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <tuple>
+#include <type_traits>
 
 namespace bibstd::bible
 {
 namespace detail
 {
+namespace
+{
+
+///
+/// Internal helper function to create a pair of tuples from a pack of types.
+/// Use only with usx_transform_recipe::__r as R. Cannot be defined in class scope of usx_transform_recipe.
+/// \tparam R helper templated struct to deduce the first and second tuple types \see usx_transform_recipe::__r
+/// \tparam Args pack of types to be split into two tuples
+/// \param args the arguments to be split into two tuples
+/// \return a pair of tuples, the first tuple size is determined by the tuple size of R::first_type.
+/// The second tuple contains the remaining types.
+///
+template<template<typename...> typename R, typename... Args>
+consteval auto __e(Args&&... args) -> typename R<Args...>::type
+{
+  static constexpr auto first_size = std::tuple_size_v<typename R<Args...>::type::first_type>;
+
+  auto args_tuple = std::forward_as_tuple(std::forward<Args>(args)...);
+
+  return std::pair{
+    [&]<std::size_t... I>(std::index_sequence<I...>)
+    { return std::tuple{std::get<I>(args_tuple)...}; }(std::make_index_sequence<first_size>{}),
+    [&]<std::size_t... I>(std::index_sequence<I...>)
+    { return std::tuple{std::get<I + first_size>(args_tuple)...}; }(std::make_index_sequence<sizeof...(Args) - first_size>{})
+  };
+}
+
+} // namespace
+
+///
+///
+///
+struct usx_transform_recipe final
+{
+public: // Typedefs
+  struct filter_name final
+  {
+    std::string_view n;
+    constexpr bool operator==(const filter_name&) const = default;
+  };
+  struct filter_attribute final
+  {
+    std::string_view name;
+    std::optional<std::string_view> value;
+    constexpr bool operator==(const filter_attribute&) const = default;
+  };
+  using input_variant = std::variant<filter_name, filter_attribute>;
+
+  struct ignore final
+  {
+    constexpr bool operator==(const ignore&) const = default;
+  };
+  struct rename final
+  {
+    std::string_view n;
+    constexpr bool operator==(const rename&) const = default;
+  };
+  struct unfold final
+  {
+    constexpr bool operator==(const unfold&) const = default;
+  };
+  struct cache_attribute_value final
+  {
+    std::string_view id;
+    std::string_view attr;
+    constexpr bool operator==(const cache_attribute_value&) const = default;
+  };
+  using output_variant = std::variant<ignore, rename, unfold, cache_attribute_value>;
+
+private: // Constants
+  static constexpr auto _any = std::nullopt;
+
+  ///
+  /// Helper variable template to check if a type is contained in the entry input or output variant.¨
+  /// \tparam T type to check
+  ///
+  template<typename T>
+  static constexpr bool is_entry_type_v = meta::contains_v<input_variant, T> || meta::contains_v<output_variant, T>;
+
+private: // Typedefs
+  ///
+  /// Helper struct to deduce the first and second tuple types for the __e helper function.
+  /// Use only with usx_transform_recipe::__e as R.
+  ///
+  template<typename... Args>
+    requires((is_entry_type_v<std::decay_t<Args>> && ...))
+  struct __r final
+  {
+  private:
+    static constexpr auto first_size = []() -> std::size_t
+    {
+      static constexpr auto belongs_to_first = []<std::size_t I>() -> bool
+      { return meta::contains_v<input_variant, std::decay_t<std::tuple_element_t<I, std::tuple<Args...>>>>; };
+      static constexpr auto list = []<std::size_t... I>(std::index_sequence<I...>)
+      { return std::array{belongs_to_first.template operator()<I>()...}; }(std::make_index_sequence<sizeof...(Args)>{});
+      return std::ranges::count(list, true);
+    }();
+    using helper_type = meta::split_pack<std::tuple<Args...>, first_size>;
+
+  public:
+    using type = std::pair<typename helper_type::first_type, typename helper_type::second_type>;
+  };
+
+public: // Constants
+  // clang-format off
+  ///
+  /// Transformation recipe for USX XML nodes.
+  ///
+  [[maybe_unused]] static constexpr auto node_transform = util::const_variant_map(
+    __e<__r>(filter_name{"usx"},                                       /**/ unfold{}),
+    __e<__r>(filter_name{"book"},                                      /**/ ignore{}),
+    __e<__r>(filter_name{"para"}, filter_attribute{"style", "h"},      /**/ rename{"h1"}),
+    __e<__r>(filter_name{"para"}, filter_attribute{"style", "p"},      /**/ rename{"p"}),
+    __e<__r>(filter_name{"para"},                                      /**/ ignore{}),
+    __e<__r>(filter_name{"chapter"}, filter_attribute{"number", _any}, /**/ cache_attribute_value{"chapter", "number"}, unfold{})
+  );
+  // clang-format on
+};
 
 ///
 /// Simple node content walker that concatenates the content of all nodes found.
 ///
-class node_book_content_walker : public pugi::xml_tree_walker
+class node_content_transform_walker : public pugi::xml_tree_walker
 {
-public: // Typedefs
-
-public: // Constants
-  static constexpr auto node_transform = util::make_const_map<std::string_view, std::string_view>({
-    {  "verse", "span"},
-    {"chapter",  "div"}
-  });
-
 public: // Structors
-  node_book_content_walker(pugi::xml_node& node);
+  node_content_transform_walker(pugi::xml_node& node);
 
 public: // Variables
   pugi::xml_node& out;
@@ -47,14 +162,14 @@ private: // Overrides
 
 ///
 ///
-node_book_content_walker::node_book_content_walker(pugi::xml_node& node)
+node_content_transform_walker::node_content_transform_walker(pugi::xml_node& node)
   : out(node)
 {
 }
 
 ///
 ///
-auto node_book_content_walker::for_each(pugi::xml_node& node) -> bool
+auto node_content_transform_walker::for_each(pugi::xml_node& node) -> bool
 {
   decltype(auto) type = node.type();
   if(type == pugi::xml_node_type::node_pcdata || type == pugi::xml_node_type::node_cdata)
@@ -181,7 +296,9 @@ auto node_path_finder_walker::parse_criteria(const auto& criteria_paths) -> std:
       }
       if(is_wildcard(sections.back()))
       {
-        throw util::exception(std::format("invalid criteria path: reason=\"cannot end with wildcard\", path=\"{}\"", criteria_path));
+        throw util::exception(
+          std::format("invalid criteria path: reason=\"cannot end with wildcard\", path=\"{}\"", criteria_path)
+        );
       }
       result.emplace_back(criteria_data{is_wildcard(sections.front()), parse_path_sections(criteria_path)});
     }
