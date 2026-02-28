@@ -2,8 +2,6 @@
 #include "bibstd/bible/passage.hpp"
 #include "bibstd/bible/passage_info.hpp"
 #include "bibstd/io/zip_file_reader.hpp"
-#include "bibstd/meta/contains.hpp"
-#include "bibstd/meta/pack.hpp"
 #include "bibstd/util/const_variant_map.hpp"
 #include "bibstd/util/enum.hpp"
 #include "bibstd/util/exception.hpp"
@@ -21,58 +19,41 @@
 #include <string_view>
 #include <tuple>
 #include <type_traits>
+#include <utility>
+#include <variant>
 
 namespace bibstd::bible
 {
 namespace detail
 {
-namespace
+
+///
+/// Node content transform walker that transforms all nodes found from USX to HTML format.
+///
+class node_content_usx_to_html_walker : public pugi::xml_tree_walker
 {
+public: // Structors
+  node_content_usx_to_html_walker(pugi::xml_node& node);
 
-///
-/// Internal helper function to create a pair of tuples from a pack of types.
-/// Use only with usx_transform_recipe::__r as R. Cannot be defined in class scope of usx_transform_recipe.
-/// \tparam R helper templated struct to deduce the first and second tuple types \see usx_transform_recipe::__r
-/// \tparam Args pack of types to be split into two tuples
-/// \param args the arguments to be split into two tuples
-/// \return a pair of tuples, the first tuple size is determined by the tuple size of R::first_type.
-/// The second tuple contains the remaining types.
-///
-template<template<typename...> typename R, typename... Args>
-consteval auto __e(Args&&... args) -> typename R<Args...>::type
-{
-  static constexpr auto first_size = std::tuple_size_v<typename R<Args...>::type::first_type>;
+public: // Variables
+  pugi::xml_node& out;
 
-  auto args_tuple = std::forward_as_tuple(std::forward<Args>(args)...);
-
-  return std::pair{
-    [&]<std::size_t... I>(std::index_sequence<I...>)
-    { return std::tuple{std::get<I>(args_tuple)...}; }(std::make_index_sequence<first_size>{}),
-    [&]<std::size_t... I>(std::index_sequence<I...>)
-    { return std::tuple{std::get<I + first_size>(args_tuple)...}; }(std::make_index_sequence<sizeof...(Args) - first_size>{})
-  };
-}
-
-} // namespace
-
-///
-///
-///
-struct usx_transform_recipe final
-{
-public: // Typedefs
+private: // Typedefs
   struct filter_name final
   {
     std::string_view n;
     constexpr bool operator==(const filter_name&) const = default;
   };
-  struct filter_attribute final
+  struct filter_attr final
   {
     std::string_view name;
     std::optional<std::string_view> value;
-    constexpr bool operator==(const filter_attribute&) const = default;
+    constexpr bool operator==(const filter_attr&) const = default;
   };
-  using input_variant = std::variant<filter_name, filter_attribute>;
+  struct any final
+  {
+    constexpr bool operator==(const any&) const = default;
+  };
 
   struct ignore final
   {
@@ -87,95 +68,177 @@ public: // Typedefs
   {
     constexpr bool operator==(const unfold&) const = default;
   };
-  struct cache_attribute_value final
+  struct cache_attr_v final
   {
     std::string_view id;
     std::string_view attr;
-    constexpr bool operator==(const cache_attribute_value&) const = default;
+    constexpr bool operator==(const cache_attr_v&) const = default;
   };
-  using output_variant = std::variant<ignore, rename, unfold, cache_attribute_value>;
+  struct fallback final
+  {
+    constexpr bool operator==(const fallback&) const = default;
+  };
 
 private: // Constants
   static constexpr auto _any = std::nullopt;
 
-  ///
-  /// Helper variable template to check if a type is contained in the entry input or output variant.¨
-  /// \tparam T type to check
-  ///
-  template<typename T>
-  static constexpr bool is_entry_type_v = meta::contains_v<input_variant, T> || meta::contains_v<output_variant, T>;
+  static constexpr auto html_bold = "b";
+  static constexpr auto html_italic = "i";
 
-private: // Typedefs
-  ///
-  /// Helper struct to deduce the first and second tuple types for the __e helper function.
-  /// Use only with usx_transform_recipe::__e as R.
-  ///
-  template<typename... Args>
-    requires((is_entry_type_v<std::decay_t<Args>> && ...))
-  struct __r final
-  {
-  private:
-    static constexpr auto first_size = []() -> std::size_t
-    {
-      static constexpr auto belongs_to_first = []<std::size_t I>() -> bool
-      { return meta::contains_v<input_variant, std::decay_t<std::tuple_element_t<I, std::tuple<Args...>>>>; };
-      static constexpr auto list = []<std::size_t... I>(std::index_sequence<I...>)
-      { return std::array{belongs_to_first.template operator()<I>()...}; }(std::make_index_sequence<sizeof...(Args)>{});
-      return std::ranges::count(list, true);
-    }();
-    using helper_type = meta::split_pack<std::tuple<Args...>, first_size>;
+  static constexpr auto chapter_attr_id = "chapter";
+  static constexpr auto verse_attr_id = "verse";
 
-  public:
-    using type = std::pair<typename helper_type::first_type, typename helper_type::second_type>;
-  };
-
-public: // Constants
   // clang-format off
   ///
   /// Transformation recipe for USX XML nodes.
   ///
   [[maybe_unused]] static constexpr auto node_transform = util::const_variant_map(
-    __e<__r>(filter_name{"usx"},                                       /**/ unfold{}),
-    __e<__r>(filter_name{"book"},                                      /**/ ignore{}),
-    __e<__r>(filter_name{"para"}, filter_attribute{"style", "h"},      /**/ rename{"h1"}),
-    __e<__r>(filter_name{"para"}, filter_attribute{"style", "p"},      /**/ rename{"p"}),
-    __e<__r>(filter_name{"para"},                                      /**/ ignore{}),
-    __e<__r>(filter_name{"chapter"}, filter_attribute{"number", _any}, /**/ cache_attribute_value{"chapter", "number"}, unfold{})
+    std::pair{std::tuple{filter_name{"usx"}                                 }, std::tuple{unfold{}                                         }},
+    std::pair{std::tuple{filter_name{"book"}                                }, std::tuple{ignore{}                                         }},
+    std::pair{std::tuple{filter_name{"para"},    filter_attr{"style", "h"}  }, std::tuple{rename{"h1"}                                     }},
+    std::pair{std::tuple{filter_name{"para"},    filter_attr{"style", "p"}  }, std::tuple{rename{"p"}                                      }},
+    std::pair{std::tuple{filter_name{"para"}                                }, std::tuple{ignore{}                                         }},
+    std::pair{std::tuple{filter_name{"chapter"}, filter_attr{"number", _any}}, std::tuple{cache_attr_v{chapter_attr_id, "number"}, unfold{}}},
+    std::pair{std::tuple{filter_name{"verse"},   filter_attr{"number", _any}}, std::tuple{cache_attr_v{verse_attr_id, "number"},   unfold{}}},
+    std::pair{std::tuple{filter_name{"char"},    filter_attr{"style", "bd"} }, std::tuple{rename{html_bold}                                }},
+    std::pair{std::tuple{filter_name{"char"},    filter_attr{"style", "it"} }, std::tuple{rename{html_italic}                              }},
+    std::pair{std::tuple{filter_name{"char"}                                }, std::tuple{unfold{}                                         }},
+    std::pair{std::tuple{any{}                                              }, std::tuple{fallback{},                              unfold{}}}
   );
   // clang-format on
-};
-
-///
-/// Simple node content walker that concatenates the content of all nodes found.
-///
-class node_content_transform_walker : public pugi::xml_tree_walker
-{
-public: // Structors
-  node_content_transform_walker(pugi::xml_node& node);
-
-public: // Variables
-  pugi::xml_node& out;
 
 private: // Overrides
   auto for_each(pugi::xml_node& node) -> bool override;
+
+private: // Helpers
+  static constexpr auto handle_input(const pugi::xml_node& parent, [[maybe_unused]] any) -> bool { return true; }
+  static auto handle_input(const pugi::xml_node& parent, const filter_name& e) -> bool;
+  static auto handle_input(const pugi::xml_node& parent, const filter_attr& e) -> bool;
+
+  static constexpr auto handle_output(const pugi::xml_node& parent, const pugi::xml_node& node, const ignore&) -> void {}
+  auto handle_output(const pugi::xml_node& parent, const pugi::xml_node& node, const unfold&) -> void;
+  auto handle_output(const pugi::xml_node& parent, const pugi::xml_node& node, const rename& e) -> void;
+  auto handle_output(const pugi::xml_node& parent, const pugi::xml_node& node, const cache_attr_v& e) -> void;
+  auto handle_output(const pugi::xml_node& parent, const pugi::xml_node& node, [[maybe_unused]] fallback) -> void;
+
+private: // Implementation
+  auto transform_node(const pugi::xml_node& node) -> void;
+
+private: // Variables
+  std::vector<std::tuple<int, std::string_view, std::string, std::string>> cached_attrs_;
 };
 
 ///
 ///
-node_content_transform_walker::node_content_transform_walker(pugi::xml_node& node)
+node_content_usx_to_html_walker::node_content_usx_to_html_walker(pugi::xml_node& node)
   : out(node)
 {
 }
 
 ///
 ///
-auto node_content_transform_walker::for_each(pugi::xml_node& node) -> bool
+auto node_content_usx_to_html_walker::for_each(pugi::xml_node& node) -> bool
 {
   decltype(auto) type = node.type();
   if(type == pugi::xml_node_type::node_pcdata || type == pugi::xml_node_type::node_cdata)
   {
+    transform_node(node);
   }
   return true;
+}
+
+///
+///
+auto node_content_usx_to_html_walker::handle_input(const pugi::xml_node& node, const filter_name& e) -> bool
+{
+  return e.n == std::string_view(node.name());
+}
+
+///
+///
+auto node_content_usx_to_html_walker::handle_input(const pugi::xml_node& node, const filter_attr& e) -> bool
+{
+  decltype(auto) attr = node.attribute(e.name);
+  if(!attr)
+  {
+    return false;
+  }
+  if(e.value.has_value())
+  {
+    return attr.value() == e.value.value();
+  }
+  return true;
+}
+
+///
+///
+auto node_content_usx_to_html_walker::handle_output(const pugi::xml_node& parent, const pugi::xml_node& node, const unfold&)
+  -> void
+{
+  out.set_value(std::string{out.child_value()} + std::string{node.value()});
+}
+
+///
+///
+auto node_content_usx_to_html_walker::handle_output(const pugi::xml_node& parent, const pugi::xml_node& node, const rename& e)
+  -> void
+{
+  decltype(auto) child = out.append_child(e.n);
+  child.set_value(std::string_view(node.value()));
+}
+
+///
+///
+auto node_content_usx_to_html_walker::handle_output(
+  const pugi::xml_node& parent, const pugi::xml_node& node, const cache_attr_v& e
+) -> void
+{
+  const auto current_depth = depth();
+  std::erase_if(cached_attrs_, [&](const auto& element) { return std::get<0>(element) < current_depth; });
+  decltype(auto) attr = parent.attribute(e.attr);
+  if(attr)
+  {
+    cached_attrs_.emplace_back(depth(), e.id, e.attr, std::string{attr.value()});
+  }
+}
+
+///
+///
+auto node_content_usx_to_html_walker::handle_output(
+  const pugi::xml_node& parent, const pugi::xml_node& node, [[maybe_unused]] fallback
+) -> void
+{
+  LOG_WARN(
+    "no transformation rule found for node: name=\"{}\", attributes=[{}]",
+    parent.name(),
+    util::string::join(
+      parent.attributes() | std::views::transform([](const auto& a) { return std::format("{}=\"{}\"", a.name(), a.value()); }),
+      ", "
+    )
+  );
+}
+
+///
+///
+auto node_content_usx_to_html_walker::transform_node(const pugi::xml_node& node) -> void
+{
+  decltype(auto) parent = node.parent();
+  node_transform.visit_until(
+    [&](const auto& key, const auto& value)
+    {
+      const auto found = std::visit(
+        [&](const auto& in) { return std::apply([&](const auto&... e) { return (... && handle_input(parent, e)); }, in); }, key
+      );
+      if(found)
+      {
+        std::visit(
+          [&](const auto& out) { std::apply([&](const auto&... e) { return (handle_output(parent, node, e), ...); }, out); },
+          value
+        );
+      }
+      return !found;
+    }
+  );
 }
 
 ///
@@ -534,7 +597,18 @@ auto load_copyright(const pugi::xml_document& doc) -> std::optional<std::string>
 ///
 auto usx_to_html(const pugi::xml_node& usx_node, pugi::xml_node& html_node) -> bool
 {
-  return false;
+  try
+  {
+    pugi::xml_node usx_current = usx_node;
+    auto walker = node_content_usx_to_html_walker{html_node};
+    usx_current.traverse(walker);
+    return true;
+  }
+  catch(const util::exception& e)
+  {
+    LOG_ERROR("failed to transform usx to html: {}", e.what());
+    return false;
+  }
 }
 
 ///
@@ -604,6 +678,7 @@ auto load_book_data(const io::zip_file_reader& zip_reader) -> std::unique_ptr<pu
   {
     doc->reset();
   }
+  doc->save_file("debug_output.xml");
   return doc;
 }
 

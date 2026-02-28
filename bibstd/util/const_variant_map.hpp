@@ -74,8 +74,8 @@ private: // Helper Typedefs
   using second_types = meta::for_each_t<std::variant<P...>, pairs_second_type>;
 
 public: // Typedefs
-  using key_variant_type = meta::add_to_pack_t<std::monostate, detail::remove_duplicates_t<first_types>>;
-  using value_variant_type = meta::add_to_pack_t<std::monostate, detail::remove_duplicates_t<second_types>>;
+  using key_variant_type = detail::remove_duplicates_t<first_types>;
+  using value_variant_type = detail::remove_duplicates_t<second_types>;
   using tuple_type = std::tuple<P...>;
 
 public: // Constants
@@ -123,6 +123,15 @@ public: // Operations
   constexpr auto visit(T&& key, F&& f) const -> bool
     requires(meta::contains_v<key_variant_type, std::decay_t<T>>);
 
+  ///
+  /// Apply callable to key-value pairs until callable returns false.
+  /// \tparam F callable type with boolean return type
+  /// \param f callable to be applied to all key-value pairs until breakout
+  ///
+  template<typename F>
+  constexpr auto visit_until(F&& f) const -> void
+    requires(std::is_invocable_r_v<bool, F, key_variant_type, value_variant_type>);
+
 private:
   const tuple_type elements_;
 };
@@ -169,27 +178,26 @@ template<typename T>
 constexpr auto const_variant_map<P...>::at(T&& key) const -> value_variant_type
   requires(meta::contains_v<key_variant_type, std::decay_t<T>>)
 {
-  static constexpr auto invalid_index = std::numeric_limits<std::size_t>::max();
-  auto do_on_key_found = [&]<std::size_t I>()
+  auto do_on_key_found = [&]<std::size_t I>() -> std::optional<value_variant_type>
   {
     if constexpr(std::is_same_v<typename std::tuple_element_t<I, tuple_type>::first_type, std::decay_t<T>>)
     {
       if(key_variant_type(std::get<I>(elements_).first) == key_variant_type(key))
       {
-        return std::pair{I, value_variant_type(std::get<I>(elements_).second)};
+        return value_variant_type(std::get<I>(elements_).second);
       }
     }
-    return std::pair{invalid_index, value_variant_type(std::monostate{})};
+    return std::nullopt;
   };
   return [&]<std::size_t... I>(std::index_sequence<I...>)
   {
     const auto elements = std::array{do_on_key_found.template operator()<I>()...};
-    const auto iter = std::ranges::find_if(elements, [](const auto& e) { return e.first != invalid_index; });
+    const auto iter = std::ranges::find_if(elements, [](const auto& e) { return e.has_value(); });
     if(iter == std::cend(elements))
     {
       throw exception{"invalid key"};
     }
-    return iter->second;
+    return iter->value();
   }(std::make_index_sequence<size>{});
 }
 
@@ -214,6 +222,19 @@ constexpr auto const_variant_map<P...>::visit(T&& key, F&& f) const -> bool
   };
   return [&]<std::size_t... I>(std::index_sequence<I...>)
   { return (... || do_on_key_found.template operator()<I>()); }(std::make_index_sequence<size>{});
+}
+
+///
+///
+template<detail::const_variant_mappable... P>
+template<typename F>
+constexpr auto const_variant_map<P...>::visit_until(F&& f) const -> void
+  requires(std::is_invocable_r_v<bool, F, key_variant_type, value_variant_type>)
+{
+  auto visitor = [&]<std::size_t I>()
+  { return f(key_variant_type(std::get<I>(elements_).first), value_variant_type(std::get<I>(elements_).second)); };
+  [&]<std::size_t... I>(std::index_sequence<I...>)
+  { (... && visitor.template operator()<I>()); }(std::make_index_sequence<size>{});
 }
 
 } // namespace bibstd::util
