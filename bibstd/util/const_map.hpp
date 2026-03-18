@@ -30,11 +30,17 @@ concept mappable_types = requires {
   requires !BidirectionalFlag || std::equality_comparable<SecondType>;
 };
 
-template<typename T, typename F, typename S>
-concept explicit_if_equality_comparable = std::is_same_v<T, std::conditional_t<std::equality_comparable_with<F, S>, F, T>>;
+///
+/// Concept to check if type that shall be accessed is explicit for bidirectional maps.
+/// Explicit types are required if first and second types are equality comparable.
+/// The concept is always true for unidirectional maps.
+///
+template<typename T, typename F, typename S, bool BidirectionalFlag>
+concept explicit_if_equality_comparable =
+  !BidirectionalFlag || std::is_same_v<T, std::conditional_t<std::equality_comparable_with<F, S>, F, T>>;
 
-template<typename T, typename F, typename S>
-concept comparable_with = explicit_if_equality_comparable<T, F, S> && std::equality_comparable_with<T, F>;
+template<typename T, typename F, typename S, bool BidirectionalFlag>
+concept comparable_with = explicit_if_equality_comparable<T, F, S, BidirectionalFlag> && std::equality_comparable_with<T, F>;
 
 } // namespace detail
 
@@ -72,7 +78,7 @@ public: // Accessor
   ///
   template<typename F>
   [[nodiscard]] constexpr auto contains(const F& first) const -> bool
-    requires(detail::comparable_with<F, first_type, second_type>);
+    requires(detail::comparable_with<F, first_type, second_type, BidirectionalFlag>);
 
   ///
   /// Checks if second value is contained in const bimap.
@@ -82,7 +88,7 @@ public: // Accessor
   ///
   template<typename S>
   [[nodiscard]] constexpr auto contains(const S& second) const -> bool
-    requires(detail::comparable_with<S, second_type, first_type> && BidirectionalFlag);
+    requires(detail::comparable_with<S, second_type, first_type, BidirectionalFlag> && BidirectionalFlag);
 
   ///
   /// Access second value corresponding to first value.
@@ -92,7 +98,7 @@ public: // Accessor
   ///
   template<typename F>
   [[nodiscard]] constexpr auto at(const F& first) const -> const second_type&
-    requires(detail::comparable_with<F, first_type, second_type>);
+    requires(detail::comparable_with<F, first_type, second_type, BidirectionalFlag>);
 
   ///
   /// Access first value corresponding to second value.
@@ -102,7 +108,7 @@ public: // Accessor
   ///
   template<typename S>
   [[nodiscard]] constexpr auto at(const S& second) const -> const first_type&
-    requires(detail::comparable_with<S, second_type, first_type> && BidirectionalFlag);
+    requires(detail::comparable_with<S, second_type, first_type, BidirectionalFlag> && BidirectionalFlag);
 
   ///
   /// Tells how many entries are in the bimap.
@@ -200,9 +206,9 @@ template<typename FirstType, typename SecondType, std::size_t N, bool Bidirectio
   requires detail::mappable_types<FirstType, SecondType, BidirectionalFlag>
 template<typename F>
 constexpr auto const_map<FirstType, SecondType, N, BidirectionalFlag>::contains(const F& first) const -> bool
-  requires(detail::comparable_with<F, first_type, second_type>)
+  requires(detail::comparable_with<F, first_type, second_type, BidirectionalFlag>)
 {
-  return std::ranges::find_if(map_, [&](const auto& e) { return is_equal(first, e.first); }) != std::cend(map_);
+  return std::ranges::find_if(map_, [&](const auto& e) { return is_equal(e.first, first); }) != std::cend(map_);
 }
 
 ///
@@ -211,9 +217,9 @@ template<typename FirstType, typename SecondType, std::size_t N, bool Bidirectio
   requires detail::mappable_types<FirstType, SecondType, BidirectionalFlag>
 template<typename S>
 constexpr auto const_map<FirstType, SecondType, N, BidirectionalFlag>::contains(const S& second) const -> bool
-  requires(detail::comparable_with<S, second_type, first_type> && BidirectionalFlag)
+  requires(detail::comparable_with<S, second_type, first_type, BidirectionalFlag> && BidirectionalFlag)
 {
-  return std::ranges::find_if(map_, [&](const auto& e) { return is_equal(second, e.second); }) != std::cend(map_);
+  return std::ranges::find_if(map_, [&](const auto& e) { return is_equal(e.second, second); }) != std::cend(map_);
 }
 
 ///
@@ -222,9 +228,9 @@ template<typename FirstType, typename SecondType, std::size_t N, bool Bidirectio
   requires detail::mappable_types<FirstType, SecondType, BidirectionalFlag>
 template<typename F>
 constexpr auto const_map<FirstType, SecondType, N, BidirectionalFlag>::at(const F& first) const -> const second_type&
-  requires(detail::comparable_with<F, first_type, second_type>)
+  requires(detail::comparable_with<F, first_type, second_type, BidirectionalFlag>)
 {
-  const auto iter = std::ranges::find_if(map_, [&](const auto& e) { return is_equal(first, e.first); });
+  const auto iter = std::ranges::find_if(map_, [&](const auto& e) { return is_equal(e.first, first); });
   if(iter == std::cend(map_))
   {
     throw util::exception("first out of range");
@@ -238,9 +244,9 @@ template<typename FirstType, typename SecondType, std::size_t N, bool Bidirectio
   requires detail::mappable_types<FirstType, SecondType, BidirectionalFlag>
 template<typename S>
 constexpr auto const_map<FirstType, SecondType, N, BidirectionalFlag>::at(const S& second) const -> const first_type&
-  requires(detail::comparable_with<S, second_type, first_type> && BidirectionalFlag)
+  requires(detail::comparable_with<S, second_type, first_type, BidirectionalFlag> && BidirectionalFlag)
 {
-  const auto iter = std::ranges::find_if(map_, [&](const auto& e) { return is_equal(second, e.second); });
+  const auto iter = std::ranges::find_if(map_, [&](const auto& e) { return is_equal(e.second, second); });
   if(iter == std::cend(map_))
   {
     throw util::exception("second out of range");

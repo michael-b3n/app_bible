@@ -100,6 +100,9 @@ public: // Constants
   });
   static_assert(books.size() == util::enum_count<book_id>());
 
+  static constexpr auto attribute_reference_id = "data-reference-id";
+  static constexpr auto template_reference_id = "ref-{}-{}-{}";
+
 public: // Constructor
   parser_usx(const io::zip_file_reader& zip_reader);
   ~parser_usx() noexcept override;
@@ -118,7 +121,7 @@ private: // Overrides
   ///
   /// \see parser::passage_html
   ///
-  auto do_passage_html(const bible::passage_info& info) const -> std::expected<bible::passage_html, error_code> override;
+  auto do_passage_html(const passage_info& info) const -> std::expected<html_passage, error_code> override;
 
 private: // Implementation
 

@@ -27,24 +27,24 @@ public: // Accessors
   /// Access setting value.
   /// \return reference to setting value
   ///
-  auto value() const -> T;
+  auto value() const -> value_type;
 
 public: // Setters
   ///
   /// Set setting value.
   /// \param v setting value that shall be set
   ///
-  auto value(const T& v) -> bool;
+  auto value(const value_type& v) -> bool;
 
 private: // Variables
-  const std::function<T()> get_;
-  const std::function<bool(const T&)> set_;
+  const std::function<value_type()> get_;
+  const std::function<bool(const value_type&)> set_;
   // Private functions listed first since they manage the underlying setting lifetime
 
 public: // Variables
   const setting_signal_adapter& signal_adapter;
   const std::string path;
-  const setting_validator_type_erased<T> validator;
+  const setting_validator_type_erased<value_type> validator;
 };
 
 ///
@@ -84,8 +84,9 @@ auto validator_type_erased(const setting_validator<U>& validator)
 template<underlying_setting_type_erased_type T>
 template<underlying_setting_type U>
 setting_type_erased<T>::setting_type_erased(const std::shared_ptr<setting<U>>& setting)
-  : get_{[setting, converter = create_setting_value_converter<U, T>()]() { return converter(setting->value()); }}
-  , set_{[setting, converter = create_setting_value_converter<T, U>()](const T& v) { return setting->value(converter(v)); }}
+  : get_{[setting, converter = create_setting_value_converter<U, value_type>()]() { return converter(setting->value()); }}
+  , set_{[setting, converter = create_setting_value_converter<value_type, U>()](const value_type& v)
+         { return setting->value(converter(v)); }}
   , signal_adapter{*setting}
   , path{setting->path}
   , validator{detail::validator_type_erased<U>(setting->validator)}
@@ -95,7 +96,7 @@ setting_type_erased<T>::setting_type_erased(const std::shared_ptr<setting<U>>& s
 ///
 ///
 template<underlying_setting_type_erased_type T>
-auto setting_type_erased<T>::value() const -> T
+auto setting_type_erased<T>::value() const -> value_type
 {
   return get_();
 }
@@ -103,7 +104,7 @@ auto setting_type_erased<T>::value() const -> T
 ///
 ///
 template<underlying_setting_type_erased_type T>
-auto setting_type_erased<T>::value(const T& v) -> bool
+auto setting_type_erased<T>::value(const value_type& v) -> bool
 {
   return set_(v);
 }

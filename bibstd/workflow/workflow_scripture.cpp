@@ -1,5 +1,6 @@
 #include "bibstd/workflow/workflow_scripture.hpp"
 #include "bibstd/core/core_scripture_store.hpp"
+#include <memory>
 
 namespace bibstd::workflow
 {
@@ -8,7 +9,7 @@ namespace bibstd::workflow
 ///
 // clang-format off
 workflow_scripture_settings::workflow_scripture_settings()
-  // TODO: Initialize settings
+  : scripture_name{workflow_settings_->create_setting("scripture.name", setting_value_t<decltype(scripture_name)>{}, std::make_shared<framework::setting_validator_list<setting_value_t<decltype(scripture_name)>>>())}
 // clang-format on
 {
 }
@@ -18,6 +19,11 @@ workflow_scripture_settings::workflow_scripture_settings()
 workflow_scripture::workflow_scripture()
   : core_scripture_store_(std::make_unique<core::core_scripture_store>())
 {
+  decltype(auto) scripture_name_validator =
+    std::get<framework::setting_validator_list<std::optional<std::string>>::sptr_type>(settings->scripture_name->validator);
+  std::ignore = scripture_name_validator->available(
+    core_scripture_store_->available_scriptures() | std::views::transform(&core::core_scripture_store::scripture_info::name)
+  );
 }
 
 ///

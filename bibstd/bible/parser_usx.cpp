@@ -1,26 +1,26 @@
 #include "bibstd/bible/parser_usx.hpp"
-#include "bibstd/bible/passage.hpp"
-#include "bibstd/bible/passage_info.hpp"
+#include "bibstd/bible/common.hpp"
 #include "bibstd/io/zip_file_reader.hpp"
-#include "bibstd/util/const_variant_map.hpp"
+#include "bibstd/util/const_map.hpp"
 #include "bibstd/util/enum.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/string.hpp"
 #include "bibstd/util/timer.hpp"
+#include "bibstd/util/visit_helper.hpp"
 
 #include <pugixml.hpp>
 
+#ifdef DEBUG
+  #include <filesystem>
+#endif
 #include <algorithm>
 #include <map>
 #include <optional>
 #include <ranges>
 #include <string>
 #include <string_view>
-#include <tuple>
 #include <type_traits>
-#include <utility>
-#include <variant>
 
 namespace bibstd::bible
 {
@@ -30,215 +30,267 @@ namespace detail
 ///
 /// Node content transform walker that transforms all nodes found from USX to HTML format.
 ///
-class node_content_usx_to_html_walker : public pugi::xml_tree_walker
+class node_usx_to_html_walker : public pugi::xml_tree_walker
 {
-public: // Structors
-  node_content_usx_to_html_walker(pugi::xml_node& node);
+public: // Constants
 
-public: // Variables
-  pugi::xml_node& out;
+public: // Structors
+  ///
+  /// Construct a USX to HTML walker for a specific book.
+  /// \param dest The destination XML node to transform into HTML
+  ///
+  node_usx_to_html_walker(std::string_view reference_id_prefix);
 
 private: // Typedefs
-  struct filter_name final
+  using xml_node = pugi::xml_node;
+  using xml_attribute = pugi::xml_attribute;
+
+  ///
+  /// Data struct to hold state during tree traversal,
+  ///
+  struct data final
   {
-    std::string_view n;
-    constexpr bool operator==(const filter_name&) const = default;
+    // Constants
+    const std::string reference_id_prefix;
+
+    // Variables
+    std::vector<xml_node> to_be_deleted;
+    std::vector<xml_node> to_be_unfolded;
+    std::string current_chapter;
   };
-  struct filter_attr final
+
+  ///
+  /// Struct to represent an attribute.
+  ///
+  struct attribute final
   {
     std::string_view name;
     std::optional<std::string_view> value;
-    constexpr bool operator==(const filter_attr&) const = default;
-  };
-  struct any final
-  {
-    constexpr bool operator==(const any&) const = default;
+    constexpr auto operator==(const attribute&) const -> bool = default;
+
+    ///
+    /// Compare this attribute matcher with an actual XML attribute.
+    /// \param other The XML attribute to compare against
+    /// \return true if the attribute name matches and value matches (if value is specified), false otherwise
+    ///
+    auto operator==(const pugi::xml_attribute& other) const -> bool;
   };
 
-  struct ignore final
+  ///
+  /// Struct to represent a node.
+  ///
+  struct node final
   {
-    constexpr bool operator==(const ignore&) const = default;
+    std::string_view name;
+    std::optional<attribute> attr;
+
+    constexpr auto operator==(const node&) const -> bool = default;
+
+    ///
+    /// Compare this node matcher with an actual XML node.
+    /// \param other The XML node to compare against
+    /// \return true if the node name and attribute (if specified) match, false otherwise
+    ///
+    auto operator==(const pugi::xml_node& other) const -> bool;
   };
-  struct rename final
+
+  ///
+  /// Function pointer type for node transformation actions.
+  ///
+  using a_fptr = void (*)(xml_node&, data&);
+
+  ///
+  /// Struct to represent a node rename action.
+  ///
+  struct a_rename final
   {
-    std::string_view n;
-    constexpr bool operator==(const rename&) const = default;
-  };
-  struct unfold final
-  {
-    constexpr bool operator==(const unfold&) const = default;
-  };
-  struct cache_attr_v final
-  {
-    std::string_view id;
-    std::string_view attr;
-    constexpr bool operator==(const cache_attr_v&) const = default;
-  };
-  struct fallback final
-  {
-    constexpr bool operator==(const fallback&) const = default;
+    std::string_view new_name;
+    auto operator==(const a_rename&) const -> bool = default;
   };
 
 private: // Constants
-  static constexpr auto _any = std::nullopt;
+  static constexpr auto _any_attr = std::optional<attribute>{};
+  static constexpr auto _any_value = std::optional<std::string_view>{};
 
-  static constexpr auto html_bold = "b";
-  static constexpr auto html_italic = "i";
-
-  static constexpr auto chapter_attr_id = "chapter";
-  static constexpr auto verse_attr_id = "verse";
-
-  // clang-format off
   ///
-  /// Transformation recipe for USX XML nodes.
+  /// Function pointer marking a node for deletion.
   ///
-  [[maybe_unused]] static constexpr auto node_transform = util::const_variant_map(
-    std::pair{std::tuple{filter_name{"usx"}                                 }, std::tuple{unfold{}                                         }},
-    std::pair{std::tuple{filter_name{"book"}                                }, std::tuple{ignore{}                                         }},
-    std::pair{std::tuple{filter_name{"para"},    filter_attr{"style", "h"}  }, std::tuple{rename{"h1"}                                     }},
-    std::pair{std::tuple{filter_name{"para"},    filter_attr{"style", "p"}  }, std::tuple{rename{"p"}                                      }},
-    std::pair{std::tuple{filter_name{"para"}                                }, std::tuple{ignore{}                                         }},
-    std::pair{std::tuple{filter_name{"chapter"}, filter_attr{"number", _any}}, std::tuple{cache_attr_v{chapter_attr_id, "number"}, unfold{}}},
-    std::pair{std::tuple{filter_name{"verse"},   filter_attr{"number", _any}}, std::tuple{cache_attr_v{verse_attr_id, "number"},   unfold{}}},
-    std::pair{std::tuple{filter_name{"char"},    filter_attr{"style", "bd"} }, std::tuple{rename{html_bold}                                }},
-    std::pair{std::tuple{filter_name{"char"},    filter_attr{"style", "it"} }, std::tuple{rename{html_italic}                              }},
-    std::pair{std::tuple{filter_name{"char"}                                }, std::tuple{unfold{}                                         }},
-    std::pair{std::tuple{any{}                                              }, std::tuple{fallback{},                              unfold{}}}
-  );
-  // clang-format on
+  static constexpr a_fptr a_delete = [](xml_node& node, data& d) { d.to_be_deleted.push_back(node); };
+
+  ///
+  /// Function pointer unfolding a node for unfolding.
+  ///
+  static constexpr a_fptr a_unfold = [](xml_node& node, data& d) { d.to_be_unfolded.push_back(node); };
+
+  ///
+  /// Function pointer caching chapter and deleting the node.
+  ///
+  static constexpr a_fptr a_cache_chapter_and_delete = [](xml_node& node, data& d)
+  {
+    const auto chapter_number = std::string_view(node.attribute("number").value());
+    d.current_chapter = chapter_number;
+    node.text().set(std::format("{}", chapter_number));
+    node.remove_attributes();
+    node.set_name(parser::format_chapter_number);
+  };
+
+  ///
+  /// Function pointer inserting passage number and renaming the node to passage number format.
+  ///
+  static constexpr a_fptr a_insert_passage_number_and_rename = [](xml_node& node, data& d)
+  {
+    const auto verse_number = std::string_view(node.attribute("number").value());
+    node.text().set(std::format("{}", verse_number));
+    node.remove_attributes();
+    const auto id = std::format(parser_usx::template_reference_id, d.reference_id_prefix, d.current_chapter, verse_number);
+    node.append_attribute(parser_usx::attribute_reference_id).set_value(id);
+    node.set_name(parser::format_verse_number);
+  };
+
+  ///
+  /// Mapping of nodes to their corresponding transformation actions (rename, delete, unfold, etc.).
+  ///
+  static constexpr auto node_transform_map = util::make_const_map<node, std::variant<a_rename, a_fptr>>({
+    {                          node{"usx", _any_attr},                                     a_unfold},
+    {                         node{"book", _any_attr},                                     a_delete},
+    {        node{"para", attribute{"style", "toc1"}},                                     a_delete},
+    {           node{"para", attribute{"style", "p"}},           a_rename{parser::format_paragraph}},
+    {                         node{"para", _any_attr},                                     a_delete},
+    {node{"chapter", attribute{"number", _any_value}},                   a_cache_chapter_and_delete},
+    {                      node{"chapter", _any_attr},                                     a_delete},
+    {  node{"verse", attribute{"number", _any_value}},           a_insert_passage_number_and_rename},
+    {                        node{"verse", _any_attr},                                     a_delete},
+    {          node{"char", attribute{"style", "bd"}},                  a_rename{parser::html_bold}},
+    {          node{"char", attribute{"style", "it"}},                a_rename{parser::html_italic}},
+    {          node{"char", attribute{"style", "em"}},          a_rename{parser::format_emphasized}},
+    {          node{"char", attribute{"style", "nd"}},         a_rename{parser::format_name_of_god}},
+    {         node{"char", attribute{"style", "add"}}, a_rename{parser::format_translator_addition}},
+    {                         node{"char", _any_attr},                                     a_unfold},
+    {                         node{"note", _any_attr},                                     a_delete}
+  });
 
 private: // Overrides
-  auto for_each(pugi::xml_node& node) -> bool override;
+  ///
+  /// Process each node during tree traversal.
+  /// Transforms USX nodes to HTML format by renaming nodes, caching chapter numbers,
+  /// inserting verse numbers, and marking nodes for deletion.
+  /// \param node The current XML node being traversed
+  /// \return true to continue traversal, false to stop
+  ///
+  auto for_each(xml_node& node) -> bool override;
 
-private: // Helpers
-  static constexpr auto handle_input(const pugi::xml_node& parent, [[maybe_unused]] any) -> bool { return true; }
-  static auto handle_input(const pugi::xml_node& parent, const filter_name& e) -> bool;
-  static auto handle_input(const pugi::xml_node& parent, const filter_attr& e) -> bool;
-
-  static constexpr auto handle_output(const pugi::xml_node& parent, const pugi::xml_node& node, const ignore&) -> void {}
-  auto handle_output(const pugi::xml_node& parent, const pugi::xml_node& node, const unfold&) -> void;
-  auto handle_output(const pugi::xml_node& parent, const pugi::xml_node& node, const rename& e) -> void;
-  auto handle_output(const pugi::xml_node& parent, const pugi::xml_node& node, const cache_attr_v& e) -> void;
-  auto handle_output(const pugi::xml_node& parent, const pugi::xml_node& node, [[maybe_unused]] fallback) -> void;
-
-private: // Implementation
-  auto transform_node(const pugi::xml_node& node) -> void;
+  ///
+  /// Called when traversal exits a node and all its children have been processed.
+  /// First unfolds nodes by moving their children to their parent (lifting content up),
+  /// then safely removes all nodes that were marked for deletion during traversal.
+  /// Processes nodes in reverse order with parent validation to avoid double-deletion.
+  /// \param node The node being exited (unused)
+  /// \return true to continue traversal
+  ///
+  auto end(xml_node& node) -> bool override;
 
 private: // Variables
-  std::vector<std::tuple<int, std::string_view, std::string, std::string>> cached_attrs_;
+  data d_;
 };
 
 ///
 ///
-node_content_usx_to_html_walker::node_content_usx_to_html_walker(pugi::xml_node& node)
-  : out(node)
+auto node_usx_to_html_walker::attribute::operator==(const xml_attribute& other) const -> bool
+{
+  if(other && name == std::string_view(other.name()))
+  {
+    return !value.has_value() || *value == std::string_view{other.value()};
+  }
+  return false;
+}
+
+///
+///
+auto node_usx_to_html_walker::node::operator==(const xml_node& other) const -> bool
+{
+  if(name == std::string_view(other.name()))
+  {
+    return !attr.has_value() || *attr == other.attribute(attr->name);
+  }
+  return false;
+}
+
+///
+///
+node_usx_to_html_walker::node_usx_to_html_walker(std::string_view reference_id_prefix)
+  : d_{.reference_id_prefix{reference_id_prefix}, .to_be_deleted{}, .to_be_unfolded{}, .current_chapter{}}
 {
 }
 
 ///
 ///
-auto node_content_usx_to_html_walker::for_each(pugi::xml_node& node) -> bool
+auto node_usx_to_html_walker::for_each(xml_node& node) -> bool
 {
   decltype(auto) type = node.type();
-  if(type == pugi::xml_node_type::node_pcdata || type == pugi::xml_node_type::node_cdata)
+  if(type == pugi::xml_node_type::node_element)
   {
-    transform_node(node);
-  }
-  return true;
-}
-
-///
-///
-auto node_content_usx_to_html_walker::handle_input(const pugi::xml_node& node, const filter_name& e) -> bool
-{
-  return e.n == std::string_view(node.name());
-}
-
-///
-///
-auto node_content_usx_to_html_walker::handle_input(const pugi::xml_node& node, const filter_attr& e) -> bool
-{
-  decltype(auto) attr = node.attribute(e.name);
-  if(!attr)
-  {
-    return false;
-  }
-  if(e.value.has_value())
-  {
-    return attr.value() == e.value.value();
-  }
-  return true;
-}
-
-///
-///
-auto node_content_usx_to_html_walker::handle_output(const pugi::xml_node& parent, const pugi::xml_node& node, const unfold&)
-  -> void
-{
-  out.set_value(std::string{out.child_value()} + std::string{node.value()});
-}
-
-///
-///
-auto node_content_usx_to_html_walker::handle_output(const pugi::xml_node& parent, const pugi::xml_node& node, const rename& e)
-  -> void
-{
-  decltype(auto) child = out.append_child(e.n);
-  child.set_value(std::string_view(node.value()));
-}
-
-///
-///
-auto node_content_usx_to_html_walker::handle_output(
-  const pugi::xml_node& parent, const pugi::xml_node& node, const cache_attr_v& e
-) -> void
-{
-  const auto current_depth = depth();
-  std::erase_if(cached_attrs_, [&](const auto& element) { return std::get<0>(element) < current_depth; });
-  decltype(auto) attr = parent.attribute(e.attr);
-  if(attr)
-  {
-    cached_attrs_.emplace_back(depth(), e.id, e.attr, std::string{attr.value()});
-  }
-}
-
-///
-///
-auto node_content_usx_to_html_walker::handle_output(
-  const pugi::xml_node& parent, const pugi::xml_node& node, [[maybe_unused]] fallback
-) -> void
-{
-  LOG_WARN(
-    "no transformation rule found for node: name=\"{}\", attributes=[{}]",
-    parent.name(),
-    util::string::join(
-      parent.attributes() | std::views::transform([](const auto& a) { return std::format("{}=\"{}\"", a.name(), a.value()); }),
-      ", "
-    )
-  );
-}
-
-///
-///
-auto node_content_usx_to_html_walker::transform_node(const pugi::xml_node& node) -> void
-{
-  decltype(auto) parent = node.parent();
-  node_transform.visit_until(
-    [&](const auto& key, const auto& value)
+    const auto it = std::ranges::find_if(node_transform_map, [&](const auto& element) { return element.first == node; });
+    if(it != std::ranges::cend(node_transform_map))
     {
-      const auto found = std::visit(
-        [&](const auto& in) { return std::apply([&](const auto&... e) { return (... && handle_input(parent, e)); }, in); }, key
+      decltype(auto) to_node = it->second;
+      util::visit_lambdas(
+        to_node,
+        [&](const a_rename& rename)
+        {
+          node.set_name(rename.new_name);
+          node.remove_attributes();
+        },
+        [&](const a_fptr& action) { action(node, d_); }
       );
-      if(found)
+    }
+    else
+    {
+      LOG_WARN(
+        "no transformation specified for node: name=\"{}\", attributes=[{}]",
+        node.name(),
+        util::string::join(
+          node.attributes() |
+            std::views::transform([](const auto& attr) { return std::format("{}=\"{}\"", attr.name(), attr.value()); }),
+          ", "
+        )
+      );
+    }
+  }
+  return true;
+}
+
+///
+///
+auto node_usx_to_html_walker::end([[maybe_unused]] xml_node& node) -> bool
+{
+  // First pass: unfold nodes by moving their content to parent
+  std::ranges::for_each(
+    d_.to_be_unfolded | std::views::reverse,
+    [](auto& node_to_unfold)
+    {
+      if(auto parent = node_to_unfold.parent())
       {
-        std::visit(
-          [&](const auto& out) { std::apply([&](const auto&... e) { return (handle_output(parent, node, e), ...); }, out); },
-          value
-        );
+        while(auto child = node_to_unfold.first_child())
+        {
+          parent.insert_move_before(child, node_to_unfold);
+        }
+        parent.remove_child(node_to_unfold);
       }
-      return !found;
     }
   );
+
+  // Second pass: remove all nodes marked for deletion
+  std::ranges::for_each(
+    d_.to_be_deleted | std::views::reverse,
+    [](auto& node_to_remove)
+    {
+      if(auto parent = node_to_remove.parent())
+      {
+        parent.remove_child(node_to_remove);
+      }
+    }
+  );
+  return true;
 }
 
 ///
@@ -590,19 +642,32 @@ auto load_copyright(const pugi::xml_document& doc) -> std::optional<std::string>
 }
 
 ///
-/// Convert USX XML nodes to HTML nodes.
-/// \param usx_node The USX XML node to convert
-/// \param html_node The HTML node to populate with converted content
+/// Convert USX XML nodes to HTML syntax.
+/// \param id The book ID corresponding to the USX content being converted
+/// \param src The source XML node containing USX content to convert
+/// \param dest The destination XML node to append the converted HTML content to
 /// \return true if conversion was successful, false otherwise
 ///
-auto usx_to_html(const pugi::xml_node& usx_node, pugi::xml_node& html_node) -> bool
+auto usx_to_html(book_id id, const pugi::xml_node& src, pugi::xml_node& dest) -> bool
 {
   try
   {
-    pugi::xml_node usx_current = usx_node;
-    auto walker = node_content_usx_to_html_walker{html_node};
-    usx_current.traverse(walker);
-    return true;
+    const auto valid = static_cast<bool>(src) && static_cast<bool>(dest);
+    if(valid)
+    {
+      auto usx_node = src.child("usx");
+      usx_node.set_name(util::enum_name(id));
+      usx_node.remove_attributes();
+      auto walker = node_usx_to_html_walker{util::enum_name(id)};
+      usx_node.traverse(walker);
+      dest.append_copy(usx_node);
+      return true;
+    }
+    else
+    {
+      LOG_ERROR("invalid nodes provided for usx to html conversion");
+    }
+    return valid;
   }
   catch(const util::exception& e)
   {
@@ -669,16 +734,17 @@ auto load_book_data(const io::zip_file_reader& zip_reader) -> std::unique_ptr<pu
         LOG_ERROR("failed to parse \"{}.usx\": {}", abbreviation, parse_result.description());
         return false;
       }
-      auto new_node = doc->append_child();
-      new_node.set_name(util::enum_name(id));
-      return usx_to_html(src, new_node);
+      return usx_to_html(id, src, *doc);
     }
   );
   if(!success)
   {
     doc->reset();
   }
-  doc->save_file("debug_output.xml");
+#ifdef DEBUG
+  std::filesystem::create_directory("debug");
+  doc->save_file("debug/debug_output.xml");
+#endif
   return doc;
 }
 
@@ -724,9 +790,37 @@ auto parser_usx::do_info() const -> scripture_info
 
 ///
 ///
-auto parser_usx::do_passage_html(const bible::passage_info& info) const -> std::expected<bible::passage_html, error_code>
+auto parser_usx::do_passage_html(const passage_info& info) const -> std::expected<html_passage, error_code>
 {
-  return std::unexpected(error_code::not_found);
+  struct xml_string_writer final : public pugi::xml_writer
+  {
+    // Overrides
+    auto write(const void* data, size_t size) -> void override { out.append(static_cast<const char*>(data), size); }
+
+    // Variables
+    std::string out;
+  };
+
+  const auto reference_id = std::format(
+    parser_usx::template_reference_id, util::enum_name(info.reference.book()), info.reference.chapter(), info.reference.verse()
+  );
+  decltype(auto) node = book_data_->find_child_by_attribute(parser_usx::attribute_reference_id, reference_id.c_str());
+  auto writer = xml_string_writer{};
+  node.parent().print(writer, "", pugi::format_raw);
+
+  const auto reference_pos = writer.out.find(reference_id);
+  const auto offset = reference_id.size() + 2 /*'"' + '>'*/;
+  if(reference_pos != std::string::npos && reference_pos + offset < writer.out.size())
+  {
+    // return reference_pos + offset as well to get the position of the actual verse content
+    // within the generated HTML, which can be used for highlighting the verse
+    return html_passage{reference_pos + offset, std::move(writer.out)};
+  }
+  else
+  {
+    LOG_ERROR("failed to find reference id in generated html: reference_id=\"{}\"", reference_id);
+    return std::unexpected(error_code::not_found);
+  }
 }
 
 } // namespace bibstd::bible

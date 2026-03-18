@@ -1,10 +1,6 @@
 #pragma once
 
-#include "bibstd/bible/passage.hpp"
-#include "bibstd/bible/passage_info.hpp"
-
-#include <expected>
-#include <optional>
+#include "bibstd/bible/parser_common.hpp"
 
 namespace bibstd::bible
 {
@@ -21,26 +17,27 @@ public: // Typedefs
   ///
   enum class error_code
   {
-    not_found,     ///< Passage not found
-    access_denied, ///< Access to passage denied
-    invalid_range, ///< Invalid passage range provided
-    unknown        ///< Unknown error occurred
+    not_found, ///< Passage not found
+    unknown    ///< Unknown error occurred
   };
 
-  ///
-  /// Information about a scripture.
-  ///
-  struct scripture_info final
-  {
-    // Operators
-    auto operator==(const scripture_info&) const -> bool = default;
+  using scripture_info = parser_common::scripture_info;
+  using passage_info = parser_common::passage_info;
+  using html_passage = parser_common::html_passage;
 
-    // Variables
-    std::string name;
-    std::string abbreviation;
-    std::string language;
-    std::optional<std::string> copyright;
-  };
+public: // Constants
+  static constexpr std::string_view html_bold = "b";
+  static constexpr std::string_view html_italic = "i";
+  static constexpr std::string_view html_paragraph = "p";
+  static constexpr std::string_view html_superscript = "sup";
+  static constexpr std::string_view html_h3 = "h3";
+
+  static constexpr std::string_view format_chapter_number = html_h3;
+  static constexpr std::string_view format_verse_number = html_superscript;
+  static constexpr std::string_view format_paragraph = html_paragraph;
+  static constexpr std::string_view format_name_of_god = html_italic;
+  static constexpr std::string_view format_emphasized = html_italic;
+  static constexpr std::string_view format_translator_addition = html_italic;
 
 public: // Constructor
   parser();
@@ -64,12 +61,12 @@ public: // Accessors
   /// \param info The passage info defining the passage to get.
   /// \return Expected passage, or an error code
   ///
-  auto passage_html(const bible::passage_info& info) const -> std::expected<bible::passage_html, error_code>;
+  auto passage_html(const passage_info& info) const -> std::expected<html_passage, error_code>;
 
 private: // Implementation
   virtual auto do_valid() const -> bool = 0;
   virtual auto do_info() const -> scripture_info = 0;
-  virtual auto do_passage_html(const bible::passage_info& info) const -> std::expected<bible::passage_html, error_code> = 0;
+  virtual auto do_passage_html(const passage_info& info) const -> std::expected<html_passage, error_code> = 0;
 };
 
 } // namespace bibstd::bible

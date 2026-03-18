@@ -3,7 +3,9 @@
 #include "bibstd/framework/property.hpp"
 #include "bibstd/framework/setting_common.hpp"
 #include "bibstd/framework/setting_validator.hpp"
+#include "bibstd/meta/type_traits.hpp"
 #include "bibstd/signal/adapter.hpp"
+#include "bibstd/util/log.hpp"
 #include "bibstd/util/visit_helper.hpp"
 
 #include <memory>
@@ -38,37 +40,40 @@ class setting final : public setting_signal_adapter
 {
 public: // Typedefs
   using value_type = T;
-  using sptr_type = std::shared_ptr<setting<T>>;
+  using sptr_type = std::shared_ptr<setting<value_type>>;
 
 public: // Structors
-  setting(const std::string& path, property<T>&& value, setting_validator<T>&& validator);
+  setting(const std::string& path, property<value_type>&& value, setting_validator<value_type>&& validator);
 
 public: // Accessors
   ///
   /// Access setting value.
   /// \return reference to setting value
   ///
-  auto value() const -> T;
+  auto value() const -> value_type;
 
 public: // Setters
   ///
   /// Set setting value.
   /// \param v setting value that shall be set
   ///
-  auto value(const T& v) -> bool;
+  auto value(const value_type& v) -> bool;
+
+private: // Helpers
+  auto validate() -> void;
 
 public: // Variables
   const std::string path;
-  const setting_validator<T> validator;
+  const setting_validator<value_type> validator;
 
 private: // Variables
-  property<T> value_;
+  property<value_type> value_;
 };
 
 ///
 ///
 template<underlying_setting_type T>
-setting<T>::setting(const std::string& path_, property<T>&& value, setting_validator<T>&& validator_)
+setting<T>::setting(const std::string& path_, property<value_type>&& value, setting_validator<value_type>&& validator_)
   : path{path_}
   , validator{std::move(validator_)}
   , value_{std::move(value)}
@@ -79,13 +84,18 @@ setting<T>::setting(const std::string& path_, property<T>&& value, setting_valid
       v->connect_on_changed(
         [this]
         {
-          this->value(value_.value());
+          validate();
           emit<setting_signal_id::validator_changed>();
         }
       );
     },
     validator
   );
+  validate();
+  if(value != value_)
+  {
+    LOG_WARN("failed to initialize setting with provided value: path=\"{}\"", path);
+  }
 }
 
 ///
@@ -112,7 +122,7 @@ auto setting<T>::value(const T& v) -> bool
       }
       return true;
     },
-    [&](const setting_validator_range<T>::sptr_type& validator_range) -> bool
+    [&](const setting_validator_range<value_type>::sptr_type& validator_range) -> bool
     {
       const auto validated_value = validator_range->validate(v);
       decltype(auto) old_value = value_.exchange(validated_value);
@@ -122,7 +132,7 @@ auto setting<T>::value(const T& v) -> bool
       }
       return validated_value == v;
     },
-    [&](const setting_validator_list<T>::sptr_type& validator_list) -> bool
+    [&](const setting_validator_list<value_type>::sptr_type& validator_list) -> bool
     {
       const auto contains = validator_list->contains(v);
       if(contains)
@@ -134,6 +144,51 @@ auto setting<T>::value(const T& v) -> bool
         }
       }
       return contains;
+    }
+  );
+}
+
+///
+///
+template<underlying_setting_type T>
+auto setting<T>::validate() -> void
+{
+  util::visit_lambdas(
+    validator,
+    [&]([[maybe_unused]] const setting_validator_unbound::sptr_type&) { /*noop*/ },
+    [&](const setting_validator_range<value_type>::sptr_type& validator_range)
+    {
+      const auto validated_value = validator_range->validate(value_.value());
+      decltype(auto) old_value = value_.exchange(validated_value);
+      if(old_value != validated_value)
+      {
+        emit<setting_signal_id::value_changed>();
+      }
+    },
+    [&](const setting_validator_list<value_type>::sptr_type& validator_list)
+    {
+      const auto contains = validator_list->contains(value_.value());
+      if(!contains)
+      {
+        const auto changed = [&]
+        {
+          if constexpr(meta::is_optional_v<T>)
+          {
+            decltype(auto) old_value = value_.exchange(std::nullopt);
+            return old_value != std::nullopt;
+          }
+          else
+          {
+            const auto new_value = validator_list->available().front();
+            decltype(auto) old_value = value_.exchange(new_value);
+            return old_value != new_value;
+          }
+        }();
+        if(changed)
+        {
+          emit<setting_signal_id::value_changed>();
+        }
+      }
     }
   );
 }

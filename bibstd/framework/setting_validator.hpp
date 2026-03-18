@@ -2,6 +2,7 @@
 
 #include "bibstd/framework/setting_common.hpp"
 #include "bibstd/math/value_range.hpp"
+#include "bibstd/meta/type_traits.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -56,8 +57,10 @@ protected: // Functions
   ///
   auto notify_changed() -> void;
 
-private: // Variables
+protected: // Variables
   mutable std::mutex mtx_{};
+
+private: // Variables
   std::function<void()> on_changed_{nullptr};
 };
 
@@ -83,12 +86,13 @@ public: // Typedefs
   using underlying_type = T;
 
 public: // Constants
+  static constexpr auto is_optional_setting_type = meta::is_optional_v<T>;
   static constexpr auto to_type_erased_value = create_setting_value_converter<T, setting_type_erased_type_from<T>>();
   static constexpr auto from_type_erased_value = create_setting_value_converter<setting_type_erased_type_from<T>, T>();
 
 public: // Structors
-  setting_validator_range(T min, T max)
-    requires(detail::setting_validator_range_type<T>);
+  setting_validator_range(meta::remove_optional_t<T> min, meta::remove_optional_t<T> max)
+    requires(detail::setting_validator_range_type<meta::remove_optional_t<T>>);
 
 public: // Operators
   ///
@@ -96,7 +100,7 @@ public: // Operators
   /// \param value Value that shall be validated
   /// \return corrected value if well defined validated value is available, std::nullopt otherwise
   ///
-  auto validate(const T& value) const -> T
+  [[nodiscard]] auto validate(const T& value) const -> T
     requires(detail::setting_validator_range_type<T>);
 
 public: // Operators
@@ -105,11 +109,11 @@ public: // Operators
   /// \param value Value that shall be checked
   /// \return true if value is contained, false otherwise
   ///
-  auto contains(const T& value) const -> bool
+  [[nodiscard]] auto contains(const T& value) const -> bool
     requires(detail::setting_validator_range_type<T>);
 
 public: // Dummy implementation for unsupported types
-  setting_validator_range(T min, T max)
+  setting_validator_range(meta::remove_optional_t<T> min, meta::remove_optional_t<T> max)
     requires(!detail::setting_validator_range_type<T>);
   auto validate(const T& value) const -> T
     requires(!detail::setting_validator_range_type<T>);
@@ -117,7 +121,9 @@ public: // Dummy implementation for unsupported types
     requires(!detail::setting_validator_range_type<T>);
 
 private: // Variables
-  const math::value_range<std::conditional_t<detail::setting_validator_range_type<T>, T, int>> range_;
+  const math::value_range<
+    std::conditional_t<detail::setting_validator_range_type<meta::remove_optional_t<T>>, meta::remove_optional_t<T>, int>>
+    range_;
 };
 
 ///
@@ -138,13 +144,13 @@ public: // Operators
   ///
   /// \see setting_validator_range::validate
   ///
-  auto validate(const T& value) const -> T;
+  [[nodiscard]] auto validate(const T& value) const -> T;
 
 public: // Operators
   ///
   /// \see setting_validator_range::contains
   ///
-  auto contains(const T& value) const -> bool;
+  [[nodiscard]] auto contains(const T& value) const -> bool;
 
 public: // Variables
   const std::shared_ptr<detail::setting_validator_connector> connector;
@@ -165,21 +171,33 @@ public: // Typedefs
   using underlying_type = T;
 
 public: // Constants
+  static constexpr auto is_optional_setting_type = meta::is_optional_v<T>;
   static constexpr auto to_type_erased_value = create_setting_value_converter<T, setting_type_erased_type_from<T>>();
   static constexpr auto from_type_erased_value = create_setting_value_converter<setting_type_erased_type_from<T>, T>();
 
 public: // Structors
-  setting_validator_list(std::vector<T> list);
+  setting_validator_list() = default;
+  setting_validator_list(std::vector<meta::remove_optional_t<T>> list);
   template<std::ranges::range R>
-    requires(std::is_same_v<std::ranges::range_value_t<R>, T>)
-  setting_validator_list(const R& range);
+  setting_validator_list(const R& range)
+    requires(std::is_same_v<std::ranges::range_value_t<R>, meta::remove_optional_t<T>>);
 
 public: // Accessors
   ///
   /// Get all available values.
   /// \return list of all available values
   ///
-  auto available() const -> std::vector<T>;
+  [[nodiscard]] auto available() const -> std::vector<meta::remove_optional_t<T>>;
+
+public: // Modifiers
+  ///
+  /// Set the available values. This will replace all previously available values.
+  /// \param list List of available values
+  /// \return true if list is valid and has been set, false otherwise
+  ///
+  template<std::ranges::range R>
+  [[nodiscard]] auto available(const R& range) -> bool
+    requires(std::is_same_v<std::ranges::range_value_t<R>, meta::remove_optional_t<T>>);
 
 public: // Operators
   ///
@@ -187,10 +205,10 @@ public: // Operators
   /// \param value Value that shall be checked
   /// \return true if value is contained, false otherwise
   ///
-  auto contains(const T& value) const -> bool;
+  [[nodiscard]] auto contains(const T& value) const -> bool;
 
 private: // Variables
-  const std::vector<T> list_;
+  std::vector<meta::remove_optional_t<T>> list_{};
 };
 
 ///
@@ -211,24 +229,25 @@ public: // Accessors
   ///
   /// \see setting_validator_list::available
   ///
-  auto available() const -> std::vector<T>;
+  [[nodiscard]] auto available() const -> std::vector<meta::remove_optional_t<T>>;
 
 public: // Operators
   ///
   /// \see setting_validator_list::contains
   ///
-  auto contains(const T& value) const -> bool;
+  [[nodiscard]] auto contains(const T& value) const -> bool;
 
 public: // Variables
   const std::shared_ptr<detail::setting_validator_connector> connector;
 
 private: // Variables
-  const std::function<std::vector<T>()> available_;
+  const std::function<std::vector<meta::remove_optional_t<T>>()> available_;
   const std::function<bool(const T&)> contains_;
 };
 
 ///
 /// Setting validator variant type.
+/// Optional underlying setting types are stripped away for validators.
 ///
 template<underlying_setting_type T>
 using setting_validator = std::variant<
@@ -238,6 +257,7 @@ using setting_validator = std::variant<
 
 ///
 /// Setting validator type erased variant type.
+/// Optional underlying setting types are stripped away for validators.
 ///
 template<underlying_setting_type T>
 using setting_validator_type_erased = std::variant<
@@ -248,13 +268,16 @@ using setting_validator_type_erased = std::variant<
 ///
 ///
 template<underlying_setting_type T>
-setting_validator_range<T>::setting_validator_range(const T min, const T max)
-  requires(detail::setting_validator_range_type<T>)
+setting_validator_range<T>::setting_validator_range(const meta::remove_optional_t<T> min, const meta::remove_optional_t<T> max)
+  requires(detail::setting_validator_range_type<meta::remove_optional_t<T>>)
   : range_{min, max}
 {
-  if(math::value_range<T>::empty(range_))
+  if constexpr(!is_optional_setting_type)
   {
-    throw util::exception("invalid empty range as setting_validator_range argument");
+    if(math::value_range<meta::remove_optional_t<T>>::empty(range_))
+    {
+      throw util::exception{"invalid empty range argument"};
+    }
   }
 }
 
@@ -264,7 +287,16 @@ template<underlying_setting_type T>
 auto setting_validator_range<T>::validate(const T& value) const -> T
   requires(detail::setting_validator_range_type<T>)
 {
-  return math::value_range<T>::clamp(range_, value);
+  if constexpr(is_optional_setting_type)
+  {
+    if(math::value_range<meta::remove_optional_t<T>>::empty(range_))
+    {
+      return std::nullopt;
+    }
+  }
+  // range must not be empty for non-optional setting types
+  // \see setting_validator_range::setting_validator_range
+  return math::value_range<meta::remove_optional_t<T>>::clamp(range_, value);
 }
 
 ///
@@ -273,13 +305,22 @@ template<underlying_setting_type T>
 auto setting_validator_range<T>::contains(const T& value) const -> bool
   requires(detail::setting_validator_range_type<T>)
 {
+  if constexpr(is_optional_setting_type)
+  {
+    if(math::value_range<meta::remove_optional_t<T>>::empty(range_))
+    {
+      return true;
+    }
+  }
   return math::value_range<T>::contains(range_, value);
 }
 
 ///
 ///
 template<underlying_setting_type T>
-setting_validator_range<T>::setting_validator_range([[maybe_unused]] T, [[maybe_unused]] T)
+setting_validator_range<T>::setting_validator_range(
+  [[maybe_unused]] meta::remove_optional_t<T>, [[maybe_unused]] meta::remove_optional_t<T>
+)
   requires(!detail::setting_validator_range_type<T>)
 {
   throw util::exception("unsupported range value type");
@@ -291,7 +332,7 @@ template<underlying_setting_type T>
 auto setting_validator_range<T>::validate(const T& value) const -> T
   requires(!detail::setting_validator_range_type<T>)
 {
-  throw util::exception("unsupported value type for validate");
+  throw util::exception("unsupported range value type");
   return value;
 }
 
@@ -301,7 +342,7 @@ template<underlying_setting_type T>
 auto setting_validator_range<T>::contains([[maybe_unused]] const T&) const -> bool
   requires(!detail::setting_validator_range_type<T>)
 {
-  throw util::exception("unsupported value type for contains");
+  throw util::exception("unsupported range value type");
   return false;
 }
 
@@ -341,7 +382,7 @@ auto setting_validator_range_type_erased<T>::contains(const T& value) const -> b
 ///
 ///
 template<underlying_setting_type T>
-setting_validator_list<T>::setting_validator_list(std::vector<T> list)
+setting_validator_list<T>::setting_validator_list(std::vector<meta::remove_optional_t<T>> list)
   : list_{[&]
           {
             std::sort(list.begin(), list.end());
@@ -349,9 +390,12 @@ setting_validator_list<T>::setting_validator_list(std::vector<T> list)
             return list;
           }()}
 {
-  if(list_.empty())
+  if constexpr(!is_optional_setting_type)
   {
-    throw util::exception("invalid empty list as setting_validator_list argument");
+    if(list_.empty())
+    {
+      throw util::exception{"invalid empty list argument"};
+    }
   }
 }
 
@@ -359,8 +403,8 @@ setting_validator_list<T>::setting_validator_list(std::vector<T> list)
 ///
 template<underlying_setting_type T>
 template<std::ranges::range R>
-  requires(std::is_same_v<std::ranges::range_value_t<R>, T>)
 setting_validator_list<T>::setting_validator_list(const R& range)
+  requires(std::is_same_v<std::ranges::range_value_t<R>, meta::remove_optional_t<T>>)
   : setting_validator_list<T>({std::ranges::begin(range), std::ranges::end(range)})
 {
 }
@@ -368,9 +412,42 @@ setting_validator_list<T>::setting_validator_list(const R& range)
 ///
 ///
 template<underlying_setting_type T>
-auto setting_validator_list<T>::available() const -> std::vector<T>
+auto setting_validator_list<T>::available() const -> std::vector<meta::remove_optional_t<T>>
 {
+  const auto lock = std::scoped_lock{mtx_};
   return list_;
+}
+
+///
+///
+template<underlying_setting_type T>
+template<std::ranges::range R>
+auto setting_validator_list<T>::available(const R& range) -> bool
+  requires(std::is_same_v<std::ranges::range_value_t<R>, meta::remove_optional_t<T>>)
+{
+  auto new_list = [&range]
+  {
+    auto list = std::vector<meta::remove_optional_t<T>>{std::ranges::begin(range), std::ranges::end(range)};
+    std::sort(list.begin(), list.end());
+    list.erase(std::unique(list.begin(), list.end()), list.end());
+    return list;
+  }();
+  const auto new_list_valid = is_optional_setting_type || !new_list.empty();
+  if constexpr(is_optional_setting_type)
+  {
+    const auto lock = std::scoped_lock{mtx_};
+    list_ = std::move(new_list);
+  }
+  else
+  {
+    if(new_list_valid)
+    {
+      const auto lock = std::scoped_lock{mtx_};
+      list_ = std::move(new_list);
+    }
+  }
+  notify_changed();
+  return new_list_valid;
 }
 
 ///
@@ -378,6 +455,7 @@ auto setting_validator_list<T>::available() const -> std::vector<T>
 template<underlying_setting_type T>
 auto setting_validator_list<T>::contains(const T& value) const -> bool
 {
+  const auto lock = std::scoped_lock{mtx_};
   return std::ranges::binary_search(list_, value);
 }
 
@@ -390,11 +468,20 @@ setting_validator_list_type_erased<T>::setting_validator_list_type_erased(const 
   , available_{[validator]()
                {
                  const auto available_list = validator->available();
-                 auto converted_list = std::vector<T>{};
+                 auto converted_list = std::vector<meta::remove_optional_t<T>>{};
                  converted_list.reserve(available_list.size());
                  for(const auto& item : available_list)
                  {
-                   converted_list.emplace_back(detail::validator_t<decltype(validator)>::to_type_erased_value(item));
+                   auto converted_item = detail::validator_t<decltype(validator)>::to_type_erased_value(item);
+                   if constexpr(detail::validator_t<decltype(validator)>::is_optional_setting_type)
+                   {
+                     // guaranteed to be valid since the original list does not contain std::nullopt values
+                     converted_list.emplace_back(std::move(converted_item.value()));
+                   }
+                   else
+                   {
+                     converted_list.emplace_back(std::move(converted_item));
+                   }
                  }
                  return converted_list;
                }}
@@ -406,7 +493,7 @@ setting_validator_list_type_erased<T>::setting_validator_list_type_erased(const 
 ///
 ///
 template<underlying_setting_type_erased_type T>
-auto setting_validator_list_type_erased<T>::available() const -> std::vector<T>
+auto setting_validator_list_type_erased<T>::available() const -> std::vector<meta::remove_optional_t<T>>
 {
   return available_();
 }

@@ -70,6 +70,45 @@ core_scripture_store::~core_scripture_store() noexcept = default;
 
 ///
 ///
+auto core_scripture_store::available_scriptures() const -> std::vector<scripture_info>
+{
+  return scripture_data_ | std::views::transform([](const auto& s) { return s->info(); }) | std::ranges::to<std::vector>();
+}
+
+///
+///
+auto core_scripture_store::passage_html(const scripture_info& scripture, const passage_info& passage) const
+  -> std::optional<html_passage>
+{
+  auto result = std::optional<html_passage>{};
+  const auto it = std::ranges::find_if(scripture_data_, [&](const auto& s) { return s->info() == scripture; });
+  if(it != std::ranges::cend(scripture_data_))
+  {
+    const auto html_passage = (*it)->passage_html(passage);
+    if(html_passage.has_value())
+    {
+      result = *html_passage;
+    }
+    else
+    {
+      LOG_WARN(
+        "failed to get passage html: scripture=\"{}\", reference=\"{}\", translation=\"{}\", error_code=\"{}\"",
+        scripture.name,
+        passage.reference,
+        util::enum_name(passage.translation),
+        util::enum_name(html_passage.error())
+      );
+    }
+  }
+  else
+  {
+    LOG_WARN("scripture not found in store: name=\"{}\"", scripture.name);
+  }
+  return result;
+}
+
+///
+///
 auto core_scripture_store::load_usx(const io::zip_file_reader& zip_reader) -> bool
 {
   if(!zip_reader.is_open())

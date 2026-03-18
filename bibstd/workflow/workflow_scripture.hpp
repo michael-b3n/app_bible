@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bibstd/bible/parser_common.hpp"
 #include "bibstd/framework/settings_base.hpp"
 #include "bibstd/framework/settings_owner.hpp"
 #include "bibstd/framework/thread_pool.hpp"
@@ -42,7 +43,7 @@ struct workflow_scripture_start_params final
 ///
 /// Expected result type for workflow scripture.
 ///
-using workflow_scripture_expected_result_type = void; // TODO: Define result type
+using workflow_scripture_expected_result_type = bible::parser_common::html_passage;
 
 ///
 /// Base type definition.
@@ -64,7 +65,7 @@ public: // Structors
   ~workflow_scripture_settings() noexcept = default;
 
 public: // Variables
-        // TODO: Add settings
+  const setting_type<std::optional<std::string>> scripture_name;
 };
 
 ///
