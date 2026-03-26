@@ -72,10 +72,10 @@ class workflow_template final
   , public framework::settings_owner<workflow_template_settings>
   , public signal::adapter<signal::named_signal<
       detail::workflow_template_signal_id::ended,
-      signal::signal_type<void(const detail::workflow_template_base_type::result_type&)>>>
+      signal::signal_type<void(const detail::workflow_template_base_type::result_params&)>>>
 {
 public: // Typedefs
-  using start_params = detail::workflow_template_base_type::start_params;
+  using params_type = detail::workflow_template_base_type::params_type;
   using result_type = detail::workflow_template_base_type::result_type;
 
 public: // Structors

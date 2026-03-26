@@ -790,7 +790,7 @@ auto parser_usx::do_info() const -> scripture_info
 
 ///
 ///
-auto parser_usx::do_passage_html(const passage_info& info) const -> std::expected<html_passage, error_code>
+auto parser_usx::do_passage_html(const reference& ref) const -> std::expected<html_passage, error_code>
 {
   struct xml_string_writer final : public pugi::xml_writer
   {
@@ -801,9 +801,8 @@ auto parser_usx::do_passage_html(const passage_info& info) const -> std::expecte
     std::string out;
   };
 
-  const auto reference_id = std::format(
-    parser_usx::template_reference_id, util::enum_name(info.reference.book()), info.reference.chapter(), info.reference.verse()
-  );
+  const auto reference_id =
+    std::format(parser_usx::template_reference_id, util::enum_name(ref.book()), ref.chapter(), ref.verse());
   decltype(auto) node = book_data_->find_child_by_attribute(parser_usx::attribute_reference_id, reference_id.c_str());
   auto writer = xml_string_writer{};
   node.parent().print(writer, "", pugi::format_raw);

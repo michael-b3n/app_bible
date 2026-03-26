@@ -78,17 +78,17 @@ public: // Variables
 ///
 /// Bible reference ocr: this workflow searches for bible references on a screen area using OCR around the cursor position.
 /// Signal IDs to connect to:
-/// - ended: Emitted when the OCR process ends. Slots receive the result parameters `result_type`.
+/// - ended: Emitted when the OCR process ends. Slots receive the result parameters `result_params`.
 ///
 class workflow_bible_ref_ocr final
   : public detail::workflow_bible_ref_ocr_base_type
   , public framework::settings_owner<workflow_bible_ref_ocr_settings>
   , public signal::adapter<signal::named_signal<
       detail::workflow_bible_ref_ocr_signal_id::ended,
-      signal::signal_type<void(const detail::workflow_bible_ref_ocr_base_type::result_type&)>>>
+      signal::signal_type<void(const detail::workflow_bible_ref_ocr_base_type::result_params&)>>>
 {
 public: // Typedefs
-  using start_params = detail::workflow_bible_ref_ocr_base_type::start_params;
+  using params_type = detail::workflow_bible_ref_ocr_base_type::params_type;
   using result_type = detail::workflow_bible_ref_ocr_base_type::result_type;
 
 public: // Structors
@@ -118,7 +118,7 @@ private: // Implementation
     const std::shared_ptr<core::core_bible_ref_ocr>& core_bible_ref_ocr,
     auto&& image_data,
     const settings_local& local_settings
-  ) -> decltype(result_type::result);
+  ) -> result_type;
   auto parse_tesseract_recognition(
     const std::shared_ptr<core::core_bible_ref_ocr>& core_bible_ref_ocr,
     const util::screen_coordinates_type& relative_cursor_pos,

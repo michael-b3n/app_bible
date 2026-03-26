@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bibstd/bible/reference_range.hpp"
+#include "bibstd/bible/parser.hpp"
 #include "bibstd/framework/runtime_uid.hpp"
 #include "bibstd/framework/settings_base.hpp"
 #include "bibstd/framework/settings_owner.hpp"
@@ -69,7 +69,7 @@ class presenter_bible_ref_ocr final
         signal::signal_type<void(framework::runtime_uid_type)>>,
       signal::named_signal<
         detail::presenter_bible_ref_ocr_signal_id::found,
-        signal::signal_type<void(framework::runtime_uid_type, std::vector<bible::reference_range>)>>,
+        signal::signal_type<void(framework::runtime_uid_type, std::optional<bible::parser::html_passage>)>>,
       signal::named_signal<
         detail::presenter_bible_ref_ocr_signal_id::lookup_ended,
         signal::signal_type<void(framework::runtime_uid_type)>>>

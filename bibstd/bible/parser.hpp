@@ -1,6 +1,9 @@
 #pragma once
 
-#include "bibstd/bible/parser_common.hpp"
+#include "bibstd/bible/reference.hpp"
+
+#include <optional>
+#include <string>
 
 namespace bibstd::bible
 {
@@ -13,6 +16,35 @@ class parser
 {
 public: // Typedefs
   ///
+  /// Information about a scripture.
+  ///
+  struct scripture_info final
+  {
+    // Operators
+    auto operator==(const scripture_info&) const -> bool = default;
+
+    // Variables
+    std::string name;
+    std::string abbreviation;
+    std::string language;
+    std::optional<std::string> copyright;
+  };
+
+  ///
+  /// Struct containing the HTML content of a bible passage,
+  /// along with the begin index of the first verse in the passage.
+  ///
+  struct html_passage final
+  {
+    // Operators
+    auto operator==(const html_passage&) const -> bool = default;
+
+    // Variables
+    std::size_t begin_index;
+    std::string content;
+  };
+
+  ///
   /// Error codes for passage access operations.
   ///
   enum class error_code
@@ -20,10 +52,6 @@ public: // Typedefs
     not_found, ///< Passage not found
     unknown    ///< Unknown error occurred
   };
-
-  using scripture_info = parser_common::scripture_info;
-  using passage_info = parser_common::passage_info;
-  using html_passage = parser_common::html_passage;
 
 public: // Constants
   static constexpr std::string_view html_bold = "b";
@@ -58,15 +86,15 @@ public: // Accessors
 
   ///
   /// Get a bible passage.
-  /// \param info The passage info defining the passage to get.
+  /// \param reference The reference defining the passage to get.
   /// \return Expected passage, or an error code
   ///
-  auto passage_html(const passage_info& info) const -> std::expected<html_passage, error_code>;
+  auto passage_html(const reference& ref) const -> std::expected<html_passage, error_code>;
 
 private: // Implementation
   virtual auto do_valid() const -> bool = 0;
   virtual auto do_info() const -> scripture_info = 0;
-  virtual auto do_passage_html(const passage_info& info) const -> std::expected<html_passage, error_code> = 0;
+  virtual auto do_passage_html(const reference& ref) const -> std::expected<html_passage, error_code> = 0;
 };
 
 } // namespace bibstd::bible

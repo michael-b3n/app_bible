@@ -17,10 +17,24 @@ concept has_auto_start = requires(T t) {
 ///
 /// Common definitions and functions used by all workflows.
 ///
-template<typename W, typename StartParamsType = void, typename ExpectedResultType = void>
+template<typename W, typename ParamsType = void, typename ExpectedResultType = void>
 class workflow_base
 {
+public: // Enums
+  ///
+  /// Unexpected result type for workflows.
+  ///
+  enum class unexpected_result
+  {
+    failure,
+    stopped
+  };
+
 public: // Typedefs
+  using process_id_type = framework::runtime_uid_type;
+  using params_type = ParamsType;
+  using result_type = std::expected<ExpectedResultType, unexpected_result>;
+
   ///
   /// Empty start parameters as default impl type for start params.
   ///
@@ -33,12 +47,12 @@ public: // Typedefs
   class start_params final
   {
   public: // Constructor
-    start_params(const StartParamsType& params)
-      requires(!std::is_void_v<StartParamsType>);
-    start_params(StartParamsType&& params)
-      requires(!std::is_void_v<StartParamsType>);
+    start_params(const ParamsType& params)
+      requires(!std::is_void_v<ParamsType>);
+    start_params(ParamsType&& params)
+      requires(!std::is_void_v<ParamsType>);
     start_params()
-      requires(std::is_void_v<StartParamsType>)
+      requires(std::is_void_v<ParamsType>)
     = default;
 
   public: // Accessors
@@ -52,30 +66,21 @@ public: // Typedefs
     /// Access start parameters.
     /// \return start parameters
     ///
-    [[nodiscard]] auto operator->() const -> util::non_owning_ptr<const StartParamsType>
-      requires(!std::is_void_v<StartParamsType>);
+    [[nodiscard]] auto operator->() const -> util::non_owning_ptr<const ParamsType>
+      requires(!std::is_void_v<ParamsType>);
 
   private: // Variables
     framework::runtime_uid_type process_id_{};
-    StartParamsType params_;
-  };
-
-  ///
-  /// Unexpected result type for workflows.
-  ///
-  enum class unexpected_result
-  {
-    failure,
-    stopped
+    ParamsType params_;
   };
 
   ///
   /// Default result parameters for workflows containing process ID and result of result type.
   ///
-  struct result_type final
+  struct result_params final
   {
-    framework::runtime_uid_type process_id{};
-    std::expected<ExpectedResultType, unexpected_result> result{std::unexpected{unexpected_result::failure}};
+    process_id_type process_id{};
+    result_type result{std::unexpected{unexpected_result::failure}};
   };
 
 public: // Constants
@@ -88,36 +93,36 @@ protected: // Destructor
 
 ///
 ///
-template<typename W, typename StartParamsType, typename ExpectedResultType>
-workflow_base<W, StartParamsType, ExpectedResultType>::start_params::start_params(const StartParamsType& params)
-  requires(!std::is_void_v<StartParamsType>)
+template<typename W, typename ParamsType, typename ExpectedResultType>
+workflow_base<W, ParamsType, ExpectedResultType>::start_params::start_params(const ParamsType& params)
+  requires(!std::is_void_v<ParamsType>)
   : params_(params)
 {
 }
 
 ///
 ///
-template<typename W, typename StartParamsType, typename ExpectedResultType>
-workflow_base<W, StartParamsType, ExpectedResultType>::start_params::start_params(StartParamsType&& params)
-  requires(!std::is_void_v<StartParamsType>)
+template<typename W, typename ParamsType, typename ExpectedResultType>
+workflow_base<W, ParamsType, ExpectedResultType>::start_params::start_params(ParamsType&& params)
+  requires(!std::is_void_v<ParamsType>)
   : params_(std::forward<decltype(params)>(params))
 {
 }
 
 ///
 ///
-template<typename W, typename StartParamsType, typename ExpectedResultType>
-auto workflow_base<W, StartParamsType, ExpectedResultType>::start_params::process_id() const -> framework::runtime_uid_type
+template<typename W, typename ParamsType, typename ExpectedResultType>
+auto workflow_base<W, ParamsType, ExpectedResultType>::start_params::process_id() const -> framework::runtime_uid_type
 {
   return process_id_;
 }
 
 ///
 ///
-template<typename W, typename StartParamsType, typename ExpectedResultType>
-auto workflow_base<W, StartParamsType, ExpectedResultType>::start_params::operator->() const
-  -> util::non_owning_ptr<const StartParamsType>
-  requires(!std::is_void_v<StartParamsType>)
+template<typename W, typename ParamsType, typename ExpectedResultType>
+auto workflow_base<W, ParamsType, ExpectedResultType>::start_params::operator->() const
+  -> util::non_owning_ptr<const ParamsType>
+  requires(!std::is_void_v<ParamsType>)
 {
   return &params_;
 }

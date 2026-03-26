@@ -4,6 +4,9 @@
 #include "bibstd/workflow/workflow_scripture.hpp"
 #include "bibstd/workflow/workflow_settings.hpp"
 
+#include <algorithm>
+#include <optional>
+
 namespace bibstd::presenter
 {
 
@@ -25,17 +28,26 @@ presenter_bible_ref_ocr::presenter_bible_ref_ocr()
   , workflow_scripture_{std::make_unique<workflow::workflow_scripture>()}
 {
   connections_.add_connection(workflow_bible_ref_ocr_->connect<workflow::workflow_bible_ref_ocr::signal_id::ended>(
-    [this](const auto& result)
+    [this](const auto& params)
     {
-      if(result.result)
+      auto passage = std::optional<bible::parser::html_passage>{};
+      if(params.result.has_value() && !params.result->empty())
       {
-        workflow_bible_ref_lookup_->lookup({{*result.result}});
+        const auto reference =
+          std::ranges::min_element(*params.result, [](const auto& a, const auto& b) { return a.begin() < b.begin(); })->begin();
+        auto p = workflow::workflow_scripture::params_type{reference, std::nullopt};
+        auto passage_result = workflow_scripture_->get(p);
+        passage = passage_result ? passage_result.value() : decltype(passage){};
       }
-      emit<signal_id::found>(result.process_id, result.result.value_or({}));
+      if(params.result)
+      {
+        workflow_bible_ref_lookup_->lookup({{*params.result}});
+      }
+      emit<signal_id::found>(params.process_id, passage);
     }
   ));
   connections_.add_connection(workflow_bible_ref_lookup_->connect<workflow::workflow_bible_ref_lookup::signal_id::ended>(
-    [this](const auto& result) { emit<signal_id::lookup_ended>(result.process_id); }
+    [this](const auto& params) { emit<signal_id::lookup_ended>(params.process_id); }
   ));
 }
 

@@ -54,7 +54,7 @@ auto workflow_bible_ref_ocr::start(const start_params& params) -> std::stop_sour
     if(!core_bible_ref_ocr)
     {
       LOG_WARN("failed to start bible reference ocr search: not fully initialized");
-      emit<signal_id::ended>(result_type{params.process_id(), return_failure});
+      emit<signal_id::ended>(result_params{params.process_id(), return_failure});
       return {};
     }
     // Capture screen directly on call of this function to ensure the cursor position is up-to-date.
@@ -64,7 +64,7 @@ auto workflow_bible_ref_ocr::start(const start_params& params) -> std::stop_sour
     if(!image_data)
     {
       LOG_WARN("capture screen failed: cursor_position={}", params->cursor_position);
-      emit<signal_id::ended>(result_type{params.process_id(), return_failure});
+      emit<signal_id::ended>(result_params{params.process_id(), return_failure});
       return {};
     }
     LOG_INFO("find references: cursor_position={}", params->cursor_position);
@@ -80,12 +80,12 @@ auto workflow_bible_ref_ocr::start(const start_params& params) -> std::stop_sour
           };
           const auto references = find_references(token, core_bible_ref_ocr, std::move(data), local_settings);
           LOG_INFO("reference search finished: references=[{}]", util::format::join(references.value_or({}), ", "));
-          emit<signal_id::ended>(result_type{params.process_id(), references});
+          emit<signal_id::ended>(result_params{params.process_id(), references});
         }
         catch(const util::exception& e)
         {
           LOG_ERROR("exception occurred: {}", e);
-          emit<signal_id::ended>(result_type{params.process_id(), return_failure});
+          emit<signal_id::ended>(result_params{params.process_id(), return_failure});
         }
       },
       strand_id_
@@ -94,7 +94,7 @@ auto workflow_bible_ref_ocr::start(const start_params& params) -> std::stop_sour
   catch(const util::exception& e)
   {
     LOG_ERROR("exception occurred: {}", e);
-    emit<signal_id::ended>(result_type{params.process_id(), return_failure});
+    emit<signal_id::ended>(result_params{params.process_id(), return_failure});
   }
   return stop_source;
 }
@@ -106,7 +106,7 @@ auto workflow_bible_ref_ocr::find_references(
   const std::shared_ptr<core::core_bible_ref_ocr>& core_bible_ref_ocr,
   auto&& image_data,
   const settings_local& local_settings
-) -> decltype(result_type::result)
+) -> result_type
 {
   if(stop_token.stop_requested())
   {

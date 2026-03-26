@@ -1,8 +1,5 @@
 #pragma once
 
-#include "bibstd/bible/common.hpp"
-#include "bibstd/bible/reference.hpp"
-
 #include <optional>
 #include <string>
 
@@ -28,22 +25,6 @@ struct parser_common final
     std::string abbreviation;
     std::string language;
     std::optional<std::string> copyright;
-  };
-
-  ///
-  /// Struct containing relevant information defining a bible passage.
-  ///
-  struct passage_info final
-  {
-    // Constructor
-    passage_info(bible::reference reference, bible::translation translation);
-
-    // Operators
-    auto operator==(const passage_info&) const -> bool = default;
-
-    // Variables
-    bible::reference reference;
-    bible::translation translation;
   };
 
   ///

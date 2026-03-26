@@ -79,10 +79,10 @@ class workflow_bible_ref_lookup final
   , public framework::settings_owner<workflow_bible_ref_lookup_settings>
   , public signal::adapter<signal::named_signal<
       detail::workflow_bible_ref_lookup_signal_id::ended,
-      signal::signal_type<void(const detail::workflow_bible_ref_lookup_base_type::result_type&)>>>
+      signal::signal_type<void(const detail::workflow_bible_ref_lookup_base_type::result_params&)>>>
 {
 public: // Typedefs
-  using start_params = detail::workflow_bible_ref_lookup_base_type::start_params;
+  using params_type = detail::workflow_bible_ref_lookup_base_type::params_type;
   using result_type = detail::workflow_bible_ref_lookup_base_type::result_type;
 
 public: // Structors

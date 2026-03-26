@@ -1,8 +1,11 @@
 #pragma once
 
-#include "bibstd/bible/parser_common.hpp"
+#include "bibstd/bible/parser.hpp"
+#include "bibstd/bible/reference.hpp"
 
-#include <memory>
+#include <map>
+#include <optional>
+#include <string>
 #include <vector>
 
 namespace bibstd::bible
@@ -24,9 +27,8 @@ namespace bibstd::core
 class core_scripture_store final
 {
 public: // Typedefs
-  using scripture_info = bible::parser_common::scripture_info;
-  using passage_info = bible::parser_common::passage_info;
-  using html_passage = bible::parser_common::html_passage;
+  using scripture_info = bible::parser::scripture_info;
+  using html_passage = bible::parser::html_passage;
 
   ///
   /// Supported file types for scripture data.
@@ -51,23 +53,30 @@ public: // Structors
 public: // Accessors
   ///
   /// Get the available scriptures in the store.
-  /// \return A vector of scripture information for all available scriptures
+  /// \return A vector of scripture IDs for all available scriptures
   ///
-  auto available_scriptures() const -> std::vector<scripture_info>;
+  auto scripture_names() const -> std::vector<std::string>;
+
+  ///
+  /// Get information about a specific scripture.
+  /// \param id The ID of the scripture to retrieve
+  /// \return The information of the scripture, or an empty optional if not found
+  ///
+  auto info(const std::string& name) const -> std::optional<scripture_info>;
 
   ///
   /// Get the HTML content of a specific passage.
-  /// \param scripture Information about the scripture to retrieve
-  /// \param passage Information about the passage to retrieve
+  /// \param name The name of the scripture to retrieve
+  /// \param ref The reference defining the passage to get
   /// \return The HTML content of the passage, or an error code if retrieval fails
   ///
-  auto passage_html(const scripture_info& scripture, const passage_info& passage) const -> std::optional<html_passage>;
+  auto passage_html(const std::string& name, const bible::reference& ref) const -> std::optional<html_passage>;
 
 private: // Implementation
   auto load_usx(const io::zip_file_reader& zip_reader) -> bool;
 
 private: // Variables
-  std::vector<std::unique_ptr<bible::parser>> scripture_data_;
+  std::map<std::string, std::unique_ptr<bible::parser>> scripture_data_;
 };
 
 } // namespace bibstd::core

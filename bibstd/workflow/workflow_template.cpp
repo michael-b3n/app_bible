@@ -27,7 +27,7 @@ auto workflow_template::start(const start_params& params) -> std::stop_source
 {
   const std::stop_source stop_source;
   // do something
-  emit<signal_id::ended>(result_type{params.process_id(), std::unexpected{unexpected_result::failure}});
+  emit<signal_id::ended>(result_params{params.process_id(), std::unexpected{unexpected_result::failure}});
   return stop_source;
 }
 

@@ -29,9 +29,9 @@ auto parser::info() const -> scripture_info
 
 ///
 ///
-auto parser::passage_html(const passage_info& info) const -> std::expected<html_passage, error_code>
+auto parser::passage_html(const reference& ref) const -> std::expected<html_passage, error_code>
 {
-  return do_passage_html(info);
+  return do_passage_html(ref);
 }
 
 } // namespace bibstd::bible

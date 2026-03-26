@@ -121,7 +121,7 @@ private: // Overrides
   ///
   /// \see parser::passage_html
   ///
-  auto do_passage_html(const passage_info& info) const -> std::expected<html_passage, error_code> override;
+  auto do_passage_html(const reference& ref) const -> std::expected<html_passage, error_code> override;
 
 private: // Implementation
 

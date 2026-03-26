@@ -4,9 +4,12 @@
 #include "bibstd/res/scripture.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/ranges.hpp"
+#include "bibstd/util/string.hpp"
 
 #include <algorithm>
+#include <format>
 #include <optional>
+#include <ranges>
 #include <string_view>
 
 namespace bibstd::core
@@ -70,21 +73,28 @@ core_scripture_store::~core_scripture_store() noexcept = default;
 
 ///
 ///
-auto core_scripture_store::available_scriptures() const -> std::vector<scripture_info>
+auto core_scripture_store::scripture_names() const -> std::vector<std::string>
 {
-  return scripture_data_ | std::views::transform([](const auto& s) { return s->info(); }) | std::ranges::to<std::vector>();
+  return scripture_data_ | std::views::keys | std::ranges::to<std::vector>();
 }
 
 ///
 ///
-auto core_scripture_store::passage_html(const scripture_info& scripture, const passage_info& passage) const
+auto core_scripture_store::info(const std::string& name) const -> std::optional<scripture_info>
+{
+  return scripture_data_.contains(name) ? scripture_data_.at(name)->info() : std::optional<scripture_info>{};
+}
+
+///
+///
+auto core_scripture_store::passage_html(const std::string& name, const bible::reference& ref) const
   -> std::optional<html_passage>
 {
   auto result = std::optional<html_passage>{};
-  const auto it = std::ranges::find_if(scripture_data_, [&](const auto& s) { return s->info() == scripture; });
-  if(it != std::ranges::cend(scripture_data_))
+  if(scripture_data_.contains(name))
   {
-    const auto html_passage = (*it)->passage_html(passage);
+    decltype(auto) scripture = scripture_data_.at(name);
+    const auto html_passage = scripture->passage_html(ref);
     if(html_passage.has_value())
     {
       result = *html_passage;
@@ -92,17 +102,16 @@ auto core_scripture_store::passage_html(const scripture_info& scripture, const p
     else
     {
       LOG_WARN(
-        "failed to get passage html: scripture=\"{}\", reference=\"{}\", translation=\"{}\", error_code=\"{}\"",
-        scripture.name,
-        passage.reference,
-        util::enum_name(passage.translation),
+        "failed to get passage html: scripture=\"{}\", reference=\"{}\", error_code=\"{}\"",
+        scripture->info().name,
+        ref,
         util::enum_name(html_passage.error())
       );
     }
   }
   else
   {
-    LOG_WARN("scripture not found in store: name=\"{}\"", scripture.name);
+    LOG_WARN("scripture not found in store: name=\"{}\"", name);
   }
   return result;
 }
@@ -120,7 +129,21 @@ auto core_scripture_store::load_usx(const io::zip_file_reader& zip_reader) -> bo
   const auto loaded = reader->valid();
   if(loaded)
   {
-    scripture_data_.emplace_back(std::move(reader));
+    static constexpr auto uint_ending_format = " ({})";
+    auto name = reader->info().name;
+    if(scripture_data_.contains(name))
+    {
+      auto found_max_uint_ending = std::uint32_t{0};
+      std::ranges::for_each(
+        scripture_data_ | std::views::keys |
+          std::views::filter([&](const auto& n) { return util::string::starts_with(name, n); }) |
+          std::views::transform([](const auto& n)
+                                { return util::string::ends_with_formatted_uint(n, uint_ending_format).value_or(0); }),
+        [&](const auto i) { found_max_uint_ending = std::max(found_max_uint_ending, i); }
+      );
+      name = name + std::format(uint_ending_format, found_max_uint_ending + 1);
+    }
+    scripture_data_.emplace(name, std::move(reader));
   }
   return loaded;
 }

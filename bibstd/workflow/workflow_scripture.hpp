@@ -1,14 +1,13 @@
 #pragma once
 
-#include "bibstd/bible/parser_common.hpp"
+#include "bibstd/bible/parser.hpp"
+#include "bibstd/bible/reference.hpp"
 #include "bibstd/framework/settings_base.hpp"
 #include "bibstd/framework/settings_owner.hpp"
-#include "bibstd/framework/thread_pool.hpp"
-#include "bibstd/signal/adapter.hpp"
 #include "bibstd/workflow/workflow_base.hpp"
 
 #include <memory>
-#include <stop_token>
+#include <mutex>
 
 namespace bibstd::core
 {
@@ -37,13 +36,14 @@ enum class workflow_scripture_signal_id
 ///
 struct workflow_scripture_start_params final
 {
-  // TODO: Add start parameters
+  bible::reference reference;
+  std::optional<std::string> scripture_name;
 };
 
 ///
 /// Expected result type for workflow scripture.
 ///
-using workflow_scripture_expected_result_type = bible::parser_common::html_passage;
+using workflow_scripture_expected_result_type = bible::parser::html_passage;
 
 ///
 /// Base type definition.
@@ -76,12 +76,9 @@ public: // Variables
 class workflow_scripture final
   : public detail::workflow_scripture_base_type
   , public framework::settings_owner<workflow_scripture_settings>
-  , public signal::adapter<signal::named_signal<
-      detail::workflow_scripture_signal_id::ended,
-      signal::signal_type<void(const detail::workflow_scripture_base_type::result_type&)>>>
 {
 public: // Typedefs
-  using start_params = detail::workflow_scripture_base_type::start_params;
+  using params_type = detail::workflow_scripture_base_type::params_type;
   using result_type = detail::workflow_scripture_base_type::result_type;
 
 public: // Structors
@@ -94,10 +91,13 @@ public: // Modifiers
   /// \param params Start parameters for the workflow
   /// \return start result containing a process ID and a stop source for stopping the workflow
   ///
-  auto start(const start_params& params) -> std::stop_source;
+  auto get(const start_params& params) -> result_type;
+
+private: // Implementation
+  auto init() -> void;
 
 private: // Variables
-  const framework::thread_pool::strand_id_type strand_id_{framework::thread_pool::strand_id()};
+  mutable std::mutex mtx_;
   const std::unique_ptr<core::core_scripture_store> core_scripture_store_;
 };
 
