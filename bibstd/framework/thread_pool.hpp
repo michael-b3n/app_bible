@@ -93,6 +93,7 @@ private: // Implementation
 
 private: // Variables
   inline static std::atomic_bool initialized_{false};
+  inline static std::mutex init_mtx_{};
   inline static std::mutex mtx_{};
   inline static std::vector<std::unique_ptr<pool_element>> pool_{};
 };

@@ -33,7 +33,7 @@ workflow_scripture::~workflow_scripture() noexcept = default;
 
 ///
 ///
-auto workflow_scripture::get(const start_params& params) -> result_type
+auto workflow_scripture::get(const process_params& params) -> process_result
 {
   try
   {
@@ -45,7 +45,7 @@ auto workflow_scripture::get(const start_params& params) -> result_type
       return return_failure;
     }
     auto passage = core_scripture_store_->passage_html(*scripture_name, params->reference);
-    return passage ? result_type{std::move(*passage)} : return_failure;
+    return passage ? process_result{std::move(*passage)} : return_failure;
   }
   catch(const util::exception& e)
   {

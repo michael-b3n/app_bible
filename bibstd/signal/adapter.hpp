@@ -78,7 +78,7 @@ protected: // Accessors
   /// \return result of the signal call, if any
   ///
   template<signal_id ID, typename... SignalArgs>
-  auto emit(SignalArgs... args) -> auto;
+  auto notify(SignalArgs... args) -> auto;
 
 private: // Implementation
   template<signal_id ID>
@@ -112,7 +112,7 @@ auto adapter<Args...>::connect_extended(Slot&& slot) -> connection_type
 ///
 template<detail::adapter_arg... Args>
 template<adapter<Args...>::signal_id ID, typename... SignalArgs>
-auto adapter<Args...>::emit(SignalArgs... args) -> auto
+auto adapter<Args...>::notify(SignalArgs... args) -> auto
 {
   constexpr auto index = find_index<ID>();
   return std::get<index>(signals_).signal(args...);

@@ -2,6 +2,8 @@
 /// Main file.
 ///
 #include "res/version.hpp"
+#include "src/construct_backend.hpp"
+#include "src/construct_bridge.hpp"
 
 #include <bibstd/framework/thread_pool.hpp>
 #include <bibstd/system/filesystem.hpp>
@@ -12,8 +14,6 @@
 #include <bibstd/util/date.hpp>
 #include <bibstd/util/incbin.hpp>
 #include <bibstd/util/log.hpp>
-
-#include <bibstd/presenter/presenter_bible_ref_ocr.hpp>
 
 #include <bibqml/BridgeBibleRefOcr.hpp>
 
@@ -48,50 +48,15 @@ int main(int argc, char** argv)
     return EXIT_FAILURE;
   }
 
-  // Init backend
-  auto presenter_bible_ref_ocr = bibstd::presenter::presenter_bible_ref_ocr();
-
-  // Init thread pool
-  const auto pool_guard = bibstd::framework::thread_pool::init();
-
-  // Init hotkey system
-  const auto hotkey_guard = bibstd::system::hotkey::init();
-  // Register hotkeys. Currently no hotkey change is supported.
-  bibstd::system::hotkey::register_callback(
-    presenter_bible_ref_ocr.settings->hotkey->value(),
-    presenter_bible_ref_ocr.settings->hotkey_modifier->value(),
-    [&presenter_bible_ref_ocr, stop_source = std::stop_source()]() mutable
-    {
-      stop_source.request_stop();
-      const auto cursor_pos = bibstd::system::screen::cursor_position();
-      stop_source = presenter_bible_ref_ocr.start(cursor_pos);
-    }
-  );
+  // Init backend components.
+  auto backend = bible_assistant::construct_backend();
 
   // Initialize Qt application.
   QGuiApplication app(argc, argv);
   QQmlApplicationEngine engine;
 
   // Create OCR bridge and pass ownership to QML engine
-  auto bridge_bible_ref_ocr = bibqml::BridgeBibleRefOcr(presenter_bible_ref_ocr);
-
-  // Set initial properties for the QML root component
-  engine.setInitialProperties({
-    {"bridge", QVariant::fromValue(&bridge_bible_ref_ocr)}
-  });
-
-  QObject::connect(
-    &engine,
-    &QQmlApplicationEngine::objectCreationFailed,
-    &app,
-    [](const QUrl& url)
-    {
-      LOG_INFO("qml object creation failed: url: \"{}\"", url.toString().toStdString());
-      QCoreApplication::exit(EXIT_FAILURE);
-    },
-    Qt::QueuedConnection
-  );
-  engine.load(QUrl(QStringLiteral("qrc:/qt/qml/ui/qml/Main.qml")));
+  auto bridge = bible_assistant::construct_bridge(app, engine, backend);
 
   // Connect tray signals
   const auto do_on_exit = [&]() { QMetaObject::invokeMethod(&app, [&app] { app.quit(); }, Qt::QueuedConnection); };

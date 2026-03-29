@@ -1,16 +1,19 @@
 #pragma once
 
-#include <bibstd/framework/runtime_uid.hpp>
+#include "bibstd/workflow/workflow_hotkey.hpp"
+#include <bibstd/framework/process_params.hpp>
 
 #include <QObject>
 #include <QPoint>
 #include <qtmetamacros.h>
 #include <QtQml/qqmlregistration.h>
 
-namespace bibstd::presenter
+namespace bibstd::workflow
 {
-class presenter_bible_ref_ocr;
-} // namespace bibstd::presenter
+// Forward declaration
+class workflow_bible_ref_ocr;
+class workflow_hotkey;
+} // namespace bibstd::workflow
 
 namespace bibstd::signal
 {
@@ -21,8 +24,8 @@ namespace bibqml
 {
 
 ///
-/// QML bridge for presenter_bible_ref_ocr.
-/// Connects to presenter signals and exposes data via Q_PROPERTY.
+/// QML bridge for workflow_bible_ref_ocr.
+/// Connects to workflow signals and exposes data via Q_PROPERTY.
 ///
 class BridgeBibleRefOcr final : public QObject
 {
@@ -35,7 +38,11 @@ class BridgeBibleRefOcr final : public QObject
   Q_PROPERTY(int htmlPassageBeginIndex MEMBER htmlPassageBeginIndex_ NOTIFY htmlPassageBeginIndexChanged)
 
 public: // Structors
-  explicit BridgeBibleRefOcr(bibstd::presenter::presenter_bible_ref_ocr& presenter, QObject* parent = nullptr);
+  explicit BridgeBibleRefOcr(
+    std::shared_ptr<bibstd::workflow::workflow_bible_ref_ocr> workflow_bible_ref_ocr,
+    std::shared_ptr<bibstd::workflow::workflow_hotkey> workflow_hotkey,
+    QObject* parent = nullptr
+  );
   ~BridgeBibleRefOcr() noexcept override;
 
 signals:
@@ -50,7 +57,7 @@ private: // Variables
   QString htmlPassage_{};
   int htmlPassageBeginIndex_{0};
 
-  bibstd::framework::runtime_uid_type processId_{};
+  bibstd::framework::process_id_type processId_{};
   std::unique_ptr<bibstd::signal::connection_store> connections_;
 };
 

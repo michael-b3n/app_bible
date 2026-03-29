@@ -8,6 +8,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 
 namespace bibstd::system
 {
@@ -38,6 +39,7 @@ private: // Static helpers
   static auto get_message() -> void;
 
 private:
+  inline static std::mutex init_mtx_{};
   inline static std::unique_ptr<framework::active_worker> worker_{};
   inline static std::atomic_bool listen_to_msg_{true};
   inline static std::atomic<std::optional<unsigned long /*WORD*/>> windows_thread_id_{std::nullopt};

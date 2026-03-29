@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cassert>
 #include <future>
+#include <mutex>
 #include <ranges>
 
 namespace bibstd::system
@@ -140,6 +141,11 @@ auto message_handler(const MSG& msg, const std::map<int, std::function<void()>>&
 ///
 auto hotkey_impl::init() -> util::scoped_guard
 {
+  const auto lock = std::scoped_lock{init_mtx_};
+  if(worker_)
+  {
+    throw util::exception("hotkey system already initialized");
+  }
   worker_ = std::make_unique<framework::active_worker>();
   std::promise<void> promise;
   auto future = promise.get_future();
@@ -163,6 +169,7 @@ auto hotkey_impl::init() -> util::scoped_guard
   return util::scoped_guard(
     []()
     {
+      const auto lock = std::scoped_lock{init_mtx_};
       listen_to_msg_ = false;
       worker_->queue_task(
         [&]() { std::ranges::for_each(callback_map_ | std::views::keys, [](const auto id) { UnregisterHotKey(nullptr, id); }); }

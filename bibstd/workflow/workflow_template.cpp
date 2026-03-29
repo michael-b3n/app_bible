@@ -23,12 +23,10 @@ workflow_template::~workflow_template() noexcept = default;
 
 ///
 ///
-auto workflow_template::start(const start_params& params) -> std::stop_source
+auto workflow_template::start(const process_params& params) -> process_result
 {
-  const std::stop_source stop_source;
   // do something
-  emit<signal_id::ended>(result_params{params.process_id(), std::unexpected{unexpected_result::failure}});
-  return stop_source;
+  return return_failure;
 }
 
 } // namespace bibstd::workflow

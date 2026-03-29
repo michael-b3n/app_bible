@@ -6,6 +6,7 @@
 #include "bibstd/util/contains.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/non_owning_ptr.hpp"
+#include "bibstd/workflow/workflow_base.hpp"
 
 #include <filesystem>
 #include <mutex>
@@ -20,7 +21,7 @@ namespace bibstd::workflow
 /// There can be multiple workflows of the same type but all settings are shared.
 /// \tparam ...Args List of all settings types.
 ///
-class workflow_settings final
+class workflow_settings final : public workflow_base<workflow_settings>
 {
 public: // Typedefs
   template<framework::underlying_setting_type_erased_type T>

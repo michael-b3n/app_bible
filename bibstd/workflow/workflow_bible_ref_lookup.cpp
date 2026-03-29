@@ -26,7 +26,7 @@ workflow_bible_ref_lookup::~workflow_bible_ref_lookup() noexcept = default;
 
 ///
 ///
-auto workflow_bible_ref_lookup::lookup(const start_params& params) -> void
+auto workflow_bible_ref_lookup::lookup(const process_params& params) -> void
 {
   try
   {
@@ -40,12 +40,12 @@ auto workflow_bible_ref_lookup::lookup(const start_params& params) -> void
             params->references,
             [&](const auto& reference_range) { core_lookup_bibleserver_->open(reference_range, translations); }
           );
-          emit<signal_id::ended>(result_params{params.process_id()});
+          notify<signal_id::ended>(params.process_id());
         }
         catch(const util::exception& e)
         {
           LOG_ERROR("exception occurred: {}", e);
-          emit<signal_id::ended>(result_params{params.process_id(), return_failure});
+          notify<signal_id::ended>(params.process_id());
         }
       },
       strand_id_
@@ -54,7 +54,7 @@ auto workflow_bible_ref_lookup::lookup(const start_params& params) -> void
   catch(const util::exception& e)
   {
     LOG_ERROR("exception occurred: {}", e);
-    emit<signal_id::ended>(result_params{params.process_id(), std::unexpected{unexpected_result::failure}});
+    notify<signal_id::ended>(params.process_id());
   }
 }
 

@@ -85,7 +85,7 @@ setting<T>::setting(const std::string& path_, property<value_type>&& value, sett
         [this]
         {
           validate();
-          emit<setting_signal_id::validator_changed>();
+          notify<setting_signal_id::validator_changed>();
         }
       );
     },
@@ -118,7 +118,7 @@ auto setting<T>::value(const T& v) -> bool
       decltype(auto) old_value = value_.exchange(v);
       if(old_value != v)
       {
-        emit<setting_signal_id::value_changed>();
+        notify<setting_signal_id::value_changed>();
       }
       return true;
     },
@@ -128,7 +128,7 @@ auto setting<T>::value(const T& v) -> bool
       decltype(auto) old_value = value_.exchange(validated_value);
       if(old_value != validated_value)
       {
-        emit<setting_signal_id::value_changed>();
+        notify<setting_signal_id::value_changed>();
       }
       return validated_value == v;
     },
@@ -140,7 +140,7 @@ auto setting<T>::value(const T& v) -> bool
         decltype(auto) old_value = value_.exchange(v);
         if(old_value != v)
         {
-          emit<setting_signal_id::value_changed>();
+          notify<setting_signal_id::value_changed>();
         }
       }
       return contains;
@@ -162,7 +162,7 @@ auto setting<T>::validate() -> void
       decltype(auto) old_value = value_.exchange(validated_value);
       if(old_value != validated_value)
       {
-        emit<setting_signal_id::value_changed>();
+        notify<setting_signal_id::value_changed>();
       }
     },
     [&](const setting_validator_list<value_type>::sptr_type& validator_list)
@@ -186,7 +186,7 @@ auto setting<T>::validate() -> void
         }();
         if(changed)
         {
-          emit<setting_signal_id::value_changed>();
+          notify<setting_signal_id::value_changed>();
         }
       }
     }

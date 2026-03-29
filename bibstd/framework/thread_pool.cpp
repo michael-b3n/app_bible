@@ -3,6 +3,7 @@
 #include "bibstd/util/exception.hpp"
 
 #include <algorithm>
+#include <mutex>
 #include <ranges>
 
 namespace bibstd::framework
@@ -19,18 +20,19 @@ auto thread_pool::strand_id() -> strand_id_type
 ///
 auto thread_pool::init() -> util::scoped_guard
 {
-  const auto lock = std::lock_guard(mtx_);
-  initialized_ = true;
+  if(initialized_.exchange(true))
+  {
+    throw util::exception("thread pool already initialized");
+  }
+  const auto lock = std::scoped_lock{init_mtx_, mtx_};
   pool_.emplace_back(std::make_unique<pool_element>());
   return util::scoped_guard(
     []()
     {
-      {
-        initialized_ = false;
-        // Make sure the lock is not used by anyone else anymore. The initialized flag ensures,
-        // that the pool_ member is not modified or read from external threads anymore.
-        const auto lock = std::lock_guard(mtx_);
-      }
+      initialized_ = false;
+      // Make sure the lock is not used by anyone else anymore. The initialized flag ensures,
+      // that the pool_ member is not modified or read from external threads anymore.
+      const auto lock = std::scoped_lock{init_mtx_, mtx_};
       pool_.clear();
     }
   );
@@ -44,7 +46,7 @@ auto thread_pool::queue_task(task_type&& task) -> void
   {
     throw util::exception("thread pool not initialized");
   }
-  const auto lock = std::lock_guard(mtx_);
+  const auto lock = std::scoped_lock{mtx_};
   static const auto internal_strand_id = strand_id();
   queue_task_auto(task_data{std::move(task), task_id_type::new_uid(), internal_strand_id});
 }
@@ -57,7 +59,7 @@ auto thread_pool::queue_task(task_type&& task, const strand_id_type id) -> void
   {
     throw util::exception("thread pool not initialized");
   }
-  const auto lock = std::lock_guard(mtx_);
+  const auto lock = std::scoped_lock{mtx_};
   const auto dest_thread = std::ranges::find_if(
     pool_, [&](const auto& e) { return util::contains(e->ids, [id](const auto& p) { return p.strand_id == id; }); }
   );
@@ -115,7 +117,7 @@ auto thread_pool::create_task_wrapper(task_data&& data, const util::non_owning_p
     {
       forwarded_data.task();
     }
-    const auto post_lock = std::lock_guard(mtx_);
+    const auto post_lock = std::scoped_lock{mtx_};
     std::erase_if(element->ids, [&](const auto& p) { return p.task_id == forwarded_data.task_id; });
   };
 }

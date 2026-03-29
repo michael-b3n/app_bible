@@ -24,6 +24,8 @@ struct core_tesseract_common final
   // Static functions
   ///
   /// Find tessdata folder by searching from executable folder upwards.
+  /// First it looks for `{executable_folder}/share/tessdata`, then it searches recursively
+  /// from the executable folder upwards for a "tessdata" folder.
   /// \return optional path to tessdata folder, std::nullopt if not found
   ///
   [[nodiscard]] static auto tessdata_folder_finder() -> std::optional<std::filesystem::path>;

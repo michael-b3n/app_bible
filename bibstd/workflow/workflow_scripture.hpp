@@ -2,6 +2,7 @@
 
 #include "bibstd/bible/parser.hpp"
 #include "bibstd/bible/reference.hpp"
+#include "bibstd/framework/process_params.hpp"
 #include "bibstd/framework/settings_base.hpp"
 #include "bibstd/framework/settings_owner.hpp"
 #include "bibstd/workflow/workflow_base.hpp"
@@ -16,44 +17,6 @@ class core_scripture_store;
 } // namespace bibstd::core
 namespace bibstd::workflow
 {
-
-// Forward declarations
-class workflow_scripture;
-
-namespace detail
-{
-
-///
-/// Available signal IDs.
-///
-enum class workflow_scripture_signal_id
-{
-  ended
-};
-
-///
-/// Start parameters for workflow scripture.
-///
-struct workflow_scripture_start_params final
-{
-  bible::reference reference;
-  std::optional<std::string> scripture_name;
-};
-
-///
-/// Expected result type for workflow scripture.
-///
-using workflow_scripture_expected_result_type = bible::parser::html_passage;
-
-///
-/// Base type definition.
-///
-using workflow_scripture_base_type = workflow_base<
-  workflow_scripture,                       // derived workflow
-  workflow_scripture_start_params,          // start params type,
-  workflow_scripture_expected_result_type>; // expected result type
-
-} // namespace detail
 
 ///
 /// Settings corresponding to workflow scripture.
@@ -70,16 +33,20 @@ public: // Variables
 
 ///
 /// Workflow for scripture.
-/// Signal IDs to connect to:
-/// - ended: Emitted when the workflow ends. Slots receive the result parameters `result_type`.
 ///
 class workflow_scripture final
-  : public detail::workflow_scripture_base_type
+  : public workflow_base<workflow_scripture>
   , public framework::settings_owner<workflow_scripture_settings>
 {
 public: // Typedefs
-  using params_type = detail::workflow_scripture_base_type::params_type;
-  using result_type = detail::workflow_scripture_base_type::result_type;
+  struct params final
+  {
+    bible::reference reference;
+    std::optional<std::string> scripture_name;
+  };
+
+  using process_params = framework::process_params<params>;
+  using process_result = framework::process_result<bible::parser::html_passage>;
 
 public: // Structors
   workflow_scripture();
@@ -87,11 +54,11 @@ public: // Structors
 
 public: // Modifiers
   ///
-  /// Start the workflow scripture.
-  /// \param params Start parameters for the workflow
-  /// \return start result containing a process ID and a stop source for stopping the workflow
+  /// Get scripture passage.
+  /// \param params Process parameters containing the reference and optional scripture name
+  /// \return scripture passage, or an unexpected result in case of failure
   ///
-  auto get(const start_params& params) -> result_type;
+  auto get(const process_params& params) -> process_result;
 
 private: // Implementation
   auto init() -> void;
