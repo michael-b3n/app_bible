@@ -14,29 +14,22 @@ namespace bibstd::framework
 {
 
 ///
-/// Signaling IDs for setting class.
+/// Struct containing signals for setting class.
 ///
-enum class setting_signal_id
+struct setting_signals final
 {
   /// Value changed signal: will be emitted when the setting value changes.
-  value_changed,
+  signal::signal_type<void()> value_changed;
   /// Validator changed signal: will be emitted when the setting validator changes. A change of the setting validator
   /// can change the value of the setting. In the case the signal `value_changed` will be emitted first.
-  validator_changed,
+  signal::signal_type<void()> validator_changed;
 };
-
-///
-/// Setting signal adapter type.
-///
-using setting_signal_adapter = signal::adapter<
-  signal::named_signal<setting_signal_id::value_changed, signal::signal_type<void()>>,
-  signal::named_signal<setting_signal_id::validator_changed, signal::signal_type<void()>>>;
 
 ///
 /// Setting class.
 ///
 template<underlying_setting_type T>
-class setting final : public setting_signal_adapter
+class setting final : public signal::adapter<setting_signals>
 {
 public: // Typedefs
   using value_type = T;
@@ -85,7 +78,7 @@ setting<T>::setting(const std::string& path_, property<value_type>&& value, sett
         [this]
         {
           validate();
-          notify<setting_signal_id::validator_changed>();
+          notify(&setting_signals::validator_changed);
         }
       );
     },
@@ -118,7 +111,7 @@ auto setting<T>::value(const T& v) -> bool
       decltype(auto) old_value = value_.exchange(v);
       if(old_value != v)
       {
-        notify<setting_signal_id::value_changed>();
+        notify(&setting_signals::value_changed);
       }
       return true;
     },
@@ -128,7 +121,7 @@ auto setting<T>::value(const T& v) -> bool
       decltype(auto) old_value = value_.exchange(validated_value);
       if(old_value != validated_value)
       {
-        notify<setting_signal_id::value_changed>();
+        notify(&setting_signals::value_changed);
       }
       return validated_value == v;
     },
@@ -140,7 +133,7 @@ auto setting<T>::value(const T& v) -> bool
         decltype(auto) old_value = value_.exchange(v);
         if(old_value != v)
         {
-          notify<setting_signal_id::value_changed>();
+          notify(&setting_signals::value_changed);
         }
       }
       return contains;
@@ -162,7 +155,7 @@ auto setting<T>::validate() -> void
       decltype(auto) old_value = value_.exchange(validated_value);
       if(old_value != validated_value)
       {
-        notify<setting_signal_id::value_changed>();
+        notify(&setting_signals::value_changed);
       }
     },
     [&](const setting_validator_list<value_type>::sptr_type& validator_list)
@@ -186,7 +179,7 @@ auto setting<T>::validate() -> void
         }();
         if(changed)
         {
-          notify<setting_signal_id::value_changed>();
+          notify(&setting_signals::value_changed);
         }
       }
     }

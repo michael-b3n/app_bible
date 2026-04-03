@@ -40,12 +40,12 @@ auto workflow_bible_ref_lookup::lookup(const process_params& params) -> void
             params->references,
             [&](const auto& reference_range) { core_lookup_bibleserver_->open(reference_range, translations); }
           );
-          notify<signal_id::ended>(params.process_id());
+          notify(&signals_type::ended, params.process_id());
         }
         catch(const util::exception& e)
         {
           LOG_ERROR("exception occurred: {}", e);
-          notify<signal_id::ended>(params.process_id());
+          notify(&signals_type::ended, params.process_id());
         }
       },
       strand_id_
@@ -54,7 +54,7 @@ auto workflow_bible_ref_lookup::lookup(const process_params& params) -> void
   catch(const util::exception& e)
   {
     LOG_ERROR("exception occurred: {}", e);
-    notify<signal_id::ended>(params.process_id());
+    notify(&signals_type::ended, params.process_id());
   }
 }
 

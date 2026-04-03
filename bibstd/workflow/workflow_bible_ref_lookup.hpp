@@ -7,6 +7,7 @@
 #include "bibstd/framework/settings_owner.hpp"
 #include "bibstd/framework/thread_pool.hpp"
 #include "bibstd/signal/adapter.hpp"
+#include "bibstd/signal/common.hpp"
 #include "bibstd/workflow/workflow_base.hpp"
 
 #include <memory>
@@ -19,18 +20,14 @@ class core_lookup_bibleserver;
 } // namespace bibstd::core
 namespace bibstd::workflow
 {
-namespace detail
-{
 
 ///
-/// Available signal IDs.
+/// Signals for workflow bible reference lookup.
 ///
-enum class workflow_bible_ref_lookup_signal_id
+struct workflow_bible_ref_lookup_signals final
 {
-  ended
+  signal::signal_type<void(framework::process_id_type)> ended;
 };
-
-} // namespace detail
 
 ///
 /// Settings corresponding to workflow bible reference lookup.
@@ -53,9 +50,7 @@ public: // Variables
 class workflow_bible_ref_lookup final
   : public workflow_base<workflow_bible_ref_lookup>
   , public framework::settings_owner<workflow_bible_ref_lookup_settings>
-  , public signal::adapter<signal::named_signal<
-      detail::workflow_bible_ref_lookup_signal_id::ended,
-      signal::signal_type<void(framework::process_id_type)>>>
+  , public signal::adapter<workflow_bible_ref_lookup_signals>
 {
 public: // Typedefs
   struct params final

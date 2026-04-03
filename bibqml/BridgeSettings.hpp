@@ -13,14 +13,14 @@ namespace bibqml
 /// QML property binding for type-erased settings.
 /// This class can bind to all supported type-erased setting types.
 ///
-class BridgeSettingBinder : public QObject
+class BridgeSettings : public QObject
 {
   Q_OBJECT
   QML_ELEMENT
   QML_SINGLETON
 
 public: // Structors
-  explicit BridgeSettingBinder(bibstd::util::non_owning_ptr<QObject> parent = nullptr);
+  explicit BridgeSettings(bibstd::util::non_owning_ptr<QObject> parent = nullptr);
 
 public: // Invokable methods
   Q_INVOKABLE QString test() const;

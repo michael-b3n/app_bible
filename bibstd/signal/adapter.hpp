@@ -1,144 +1,142 @@
 #pragma once
 
-#include "bibstd/meta/pack.hpp"
-#include "bibstd/meta/type_traits.hpp"
 #include "bibstd/signal/common.hpp"
+
+#include <concepts>
+#include <functional>
+#include <type_traits>
 
 namespace bibstd::signal
 {
 
 ///
-/// Named signal template.
+/// Concept for executors that can be used with the adapter.
 ///
-template<auto ID, typename T>
-struct named_signal;
-
-///
-/// Named signal specification
-///
-template<auto ID, typename T>
-struct named_signal<ID, signal_type<T>>
-{
-  // Constants
-  static constexpr auto id = ID;
-
-  // Variables
-  signal_type<T> signal;
+template<typename T>
+concept executor_kind = requires(T t, std::move_only_function<void()> task) {
+  { t(std::move(task)) } -> std::same_as<void>;
+  { t.store(scoped_connection_type{}) } -> std::same_as<void>;
 };
-
-namespace detail
-{
-
-template<typename T>
-struct is_named_signal : std::false_type
-{};
-template<auto I, typename T>
-struct is_named_signal<named_signal<I, signal_type<T>>> : std::true_type
-{};
-template<typename T>
-concept adapter_arg = is_named_signal<T>::value;
-
-} // namespace detail
 
 ///
 /// Signal adapter class.
 ///
-template<detail::adapter_arg... Args>
+template<std::default_initializable T>
 class adapter
 {
-  static_assert(meta::are_same_v<decltype(Args::id)...>, "registered signals must have same ID types");
-
 public: // Typedefs
-  using signal_id = decltype(meta::pack<Args...>::first_type::id);
+  using signals_type = T;
 
-public: // Constants
-  static constexpr auto registered_ids = std::array{Args::id...};
+public: // Structors
+  adapter() = default;
+  virtual ~adapter() noexcept = default;
 
 public: // Modifiers
   ///
-  /// Connect a slot to the signal with the specified ID.
+  /// Connect a slot to the signal specified by the projection.
+  /// \param sig_projection Projection to the signal to connect
   /// \param slot Slot to connect
   /// \return scoped connection corresponding to connected slot
   ///
-  template<signal_id ID, typename Slot>
-  [[nodiscard]] auto connect(Slot&& slot) -> scoped_connection_type;
+  [[nodiscard]] auto connect(auto sig_projection, auto&& slot) -> scoped_connection_type;
 
   ///
-  /// Connect a slot to the signal with the specified ID, allowing extended functionality.
+  /// Connect a slot to the signal specified by the projection, allowing extended functionality.
+  /// \param sig_projection Projection to the signal to connect
   /// \param slot Slot to connect
   /// \return connection corresponding to connected slot
   ///
-  template<signal_id ID, typename Slot>
-  auto connect_extended(Slot&& slot) -> connection_type;
+  auto connect_extended(auto sig_projection, auto&& slot) -> connection_type;
+
+  ///
+  ///  Connect a slot to the signal specified by the projection, ensuring the slot is called
+  /// in the context of the provided executor. The lifetime of the executor must exceed the lifetime of the slot. The slot
+  /// connection is bound to the lifetime of the executor.
+  /// \param sig_projection Projection to the signal to connect
+  /// \param slot Slot to connect
+  /// \param executor Executor to use for the slot
+  ///
+  auto connect_queued(auto sig_projection, auto&& slot, executor_kind auto& executor) -> void;
+
+  ///
+  /// Connect a slot to the signal specified by the projection, allowing extended functionality and ensuring
+  /// the slot is called in the context of the provided executor. The lifetime of the executor must exceed the lifetime of the
+  /// slot. The slot connection is bound to the lifetime of the executor.
+  /// \param sig_projection Projection to the signal to connect
+  /// \param slot Slot to connect
+  /// \param executor Executor to use for the slot
+  ///
+  auto connect_queued_extended(auto sig_projection, auto&& slot, executor_kind auto& executor) -> void;
 
 protected: // Accessors
   ///
-  /// Emit the signal with the specified ID, passing the provided arguments to the connected slots.
+  /// Emit the signal specified by the projection, passing the provided arguments to the connected slots.
+  /// \param sig_projection Projection to the signal to emit
   /// \param args Arguments to pass to the connected slots
   /// \return result of the signal call, if any
   ///
-  template<signal_id ID, typename... SignalArgs>
-  auto notify(SignalArgs... args) -> auto;
-
-private: // Implementation
-  template<signal_id ID>
-  consteval static auto find_index() -> std::size_t;
+  auto notify(auto sig_projection, auto&&... args) -> auto;
 
 private: // Variables
-  std::tuple<Args...> signals_;
+  T sigs_;
 };
 
 ///
 ///
-template<detail::adapter_arg... Args>
-template<adapter<Args...>::signal_id ID, typename Slot>
-auto adapter<Args...>::connect(Slot&& slot) -> scoped_connection_type
+template<std::default_initializable T>
+auto adapter<T>::connect(auto sig_projection, auto&& slot) -> scoped_connection_type
 {
-  constexpr auto index = find_index<ID>();
-  return std::get<index>(signals_).signal.connect(std::forward<Slot>(slot));
+  return std::invoke(sig_projection, sigs_).connect(std::forward<decltype(slot)>(slot));
 }
 
 ///
 ///
-template<detail::adapter_arg... Args>
-template<adapter<Args...>::signal_id ID, typename Slot>
-auto adapter<Args...>::connect_extended(Slot&& slot) -> connection_type
+template<std::default_initializable T>
+auto adapter<T>::connect_extended(auto sig_projection, auto&& slot) -> connection_type
 {
-  constexpr auto index = find_index<ID>();
-  return std::get<index>(signals_).signal.connect_extended(std::forward<Slot>(slot));
+  return std::invoke(sig_projection, sigs_).connect_extended(std::forward<decltype(slot)>(slot));
 }
 
 ///
 ///
-template<detail::adapter_arg... Args>
-template<adapter<Args...>::signal_id ID, typename... SignalArgs>
-auto adapter<Args...>::notify(SignalArgs... args) -> auto
+template<std::default_initializable T>
+auto adapter<T>::connect_queued(auto sig_projection, auto&& slot, executor_kind auto& executor) -> void
 {
-  constexpr auto index = find_index<ID>();
-  return std::get<index>(signals_).signal(args...);
-}
+  using sig_type = std::remove_cvref_t<std::invoke_result_t<decltype(sig_projection), T&>>;
+  using function_type = to_functional<sig_type, std::function>::type;
+  static_assert(std::is_convertible_v<decltype(slot), function_type>);
 
-///
-///
-template<detail::adapter_arg... Args>
-template<adapter<Args...>::signal_id ID>
-consteval auto adapter<Args...>::find_index() -> std::size_t
-{
-  constexpr auto find_index = [&]<std::size_t I>(std::size_t& retval_index)
+  function_type func = [slot = std::forward<decltype(slot)>(slot), &executor](auto&&... args)
   {
-    if constexpr(std::tuple_element_t<I, std::tuple<Args...>>::id == ID)
-    {
-      retval_index = I;
-    }
+    executor([slot = std::move(slot), args = std::make_tuple(std::forward<decltype(args)>(args)...)]() mutable
+             { std::apply(std::move(slot), std::move(args)); });
   };
-  constexpr auto index = [&]<std::size_t... I>(std::index_sequence<I...>)
+  executor.store(std::invoke(sig_projection, sigs_).connect(std::move(func)));
+}
+
+///
+///
+template<std::default_initializable T>
+auto adapter<T>::connect_queued_extended(auto sig_projection, auto&& slot, executor_kind auto& executor) -> void
+{
+  using sig_type = std::remove_cvref_t<std::invoke_result_t<decltype(sig_projection), T&>>;
+  using function_type = to_functional<sig_type, std::function>::type_extended;
+  static_assert(std::is_convertible_v<decltype(slot), function_type>);
+
+  function_type func = [slot = std::forward<decltype(slot)>(slot), &executor](auto&&... args)
   {
-    auto retval = std::numeric_limits<std::size_t>::max();
-    (find_index.template operator()<I>(retval), ...);
-    return retval;
-  }(std::make_index_sequence<std::tuple_size_v<std::tuple<Args...>>>{});
-  static_assert(index < std::tuple_size_v<std::tuple<Args...>>, "no index found matching specified ID");
-  return index;
+    executor([slot = std::move(slot), args = std::make_tuple(std::forward<decltype(args)>(args)...)]() mutable
+             { std::apply(std::move(slot), std::move(args)); });
+  };
+  executor.store(std::invoke(sig_projection, sigs_).connect_extended(std::move(func)));
+}
+
+///
+///
+template<std::default_initializable T>
+auto adapter<T>::notify(auto sig_projection, auto&&... args) -> auto
+{
+  return std::invoke(sig_projection, sigs_)(std::forward<decltype(args)>(args)...);
 }
 
 } // namespace bibstd::signal

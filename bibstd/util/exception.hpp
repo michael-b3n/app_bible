@@ -38,15 +38,6 @@ inline exception::exception(const std::string& error, const std::source_location
   , location_{loc}
   , stacktrace_{stacktrace}
 {
-  LOG_ERROR(
-    "exception {}\n  file: {}:{}:{}\n  function: {}\nstacktrace: {}",
-    error,
-    loc.file_name(),
-    loc.line(),
-    loc.column(),
-    loc.function_name(),
-    stacktrace
-  );
 }
 
 } // namespace bibstd::util

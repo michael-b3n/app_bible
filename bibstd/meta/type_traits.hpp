@@ -7,6 +7,18 @@ namespace bibstd::meta
 {
 
 ///
+/// Type trait to check if a type is templated.
+///
+template<typename T>
+struct is_templated final : std::false_type
+{};
+template<template<typename...> typename T, typename... Args>
+struct is_templated<T<Args...>> final : std::true_type
+{};
+template<typename T>
+inline constexpr auto is_templated_v = is_templated<std::remove_cvref_t<T>>::value;
+
+///
 /// Type trait that removes the optional wrapper from a type if it is an optional, otherwise returns the type itself.
 ///
 template<typename T>

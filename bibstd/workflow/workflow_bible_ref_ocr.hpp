@@ -7,7 +7,6 @@
 #include "bibstd/util/language.hpp"
 #include "bibstd/util/screen_types.hpp"
 #include "bibstd/workflow/workflow_base.hpp"
-#include "bibstd/workflow/workflow_hotkey.hpp"
 #include "bibstd/workflow/workflow_scripture.hpp"
 
 #include <memory>

@@ -42,7 +42,7 @@ private: // Variables
   // Private functions listed first since they manage the underlying setting lifetime
 
 public: // Variables
-  const setting_signal_adapter& signal_adapter;
+  const signal::adapter<setting_signals>& signal_adapter;
   const std::string path;
   const setting_validator_type_erased<value_type> validator;
 };
