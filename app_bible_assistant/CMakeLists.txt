@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 4.3)
 
 #
 # Include cmake functions
@@ -61,6 +61,7 @@ foreach(file ${${PROJECT_NAME}_QML_FILES})
   cmake_path(RELATIVE_PATH file BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
   list(APPEND ${PROJECT_NAME}_QML_FILES_RELATIVE ${file})
 endforeach()
+
 file(GLOB_RECURSE ${PROJECT_NAME}_SVG_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/qml/*.svg")
 foreach(file ${${PROJECT_NAME}_SVG_FILES})
   cmake_path(RELATIVE_PATH file BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
