@@ -1,5 +1,4 @@
 import QtQuick
-import BibQml
 
 TabButtonIconSimple
 {

@@ -5,7 +5,7 @@
 
 #include <memory>
 
-namespace bible_assistant
+namespace aba
 {
 
 ///
@@ -29,4 +29,4 @@ struct backend_instance final
 ///
 auto construct_backend() -> backend_instance;
 
-} // namespace bible_assistant
+} // namespace aba

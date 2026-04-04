@@ -5,7 +5,7 @@
 #include <QRect>
 #include <QtQmlIntegration/qqmlintegration.h>
 
-namespace bibqml
+namespace aba::qml
 {
 
 ///
@@ -34,4 +34,4 @@ public: // Accessors
   Q_INVOKABLE QRect screenGeometryAt(const QPoint& global_pos);
 };
 
-} // namespace bibqml
+} // namespace aba::qml

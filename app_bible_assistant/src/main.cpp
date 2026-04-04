@@ -38,9 +38,9 @@ int main(int argc, char** argv)
 {
   const auto logger = bibstd::util::logger();
   LOG_INFO("executable: {}", bibstd::system::filesystem::executable_location().string());
-  LOG_INFO("version: {}", bible_assistant::version::version_string);
-  LOG_INFO("commit_hash: {}", bible_assistant::version::commit_hash);
-  LOG_INFO("commit_date: {}", bible_assistant::version::commit_date);
+  LOG_INFO("version: {}", aba::version::version_string);
+  LOG_INFO("commit_hash: {}", aba::version::commit_hash);
+  LOG_INFO("commit_date: {}", aba::version::commit_date);
 
   if(!bibstd::system::screen::init())
   {
@@ -49,14 +49,14 @@ int main(int argc, char** argv)
   }
 
   // Init backend components.
-  auto backend = bible_assistant::construct_backend();
+  auto backend = aba::construct_backend();
 
   // Initialize Qt application.
   QGuiApplication app(argc, argv);
   QQmlApplicationEngine engine;
 
   // Create OCR bridge and pass ownership to QML engine
-  auto bridge = bible_assistant::construct_bridge(app, engine, backend);
+  auto bridge = aba::construct_bridge(app, engine, backend);
 
   // Connect tray signals
   const auto do_on_exit = [&]() { QMetaObject::invokeMethod(&app, [&app] { app.quit(); }, Qt::QueuedConnection); };

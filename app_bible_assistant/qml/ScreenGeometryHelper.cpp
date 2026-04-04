@@ -1,9 +1,9 @@
-#include "bibqml/ScreenGeometryHelper.hpp"
+#include "ScreenGeometryHelper.hpp"
 
 #include <QGuiApplication>
 #include <QScreen>
 
-namespace bibqml
+namespace aba::qml
 {
 
 ///
@@ -29,4 +29,4 @@ QRect ScreenGeometryHelper::screenGeometryAt(const QPoint& global_pos)
   return QRect(0, 0, 0, 0);
 }
 
-} // namespace bibqml
+} // namespace aba::qml

@@ -6,7 +6,7 @@
 #include <bibqml/BridgeBibleRefOcr.hpp>
 #include <memory>
 
-namespace bible_assistant
+namespace aba
 {
 
 ///
@@ -43,4 +43,4 @@ auto construct_bridge(QGuiApplication& app, QQmlApplicationEngine& engine, backe
   return bibqml_inst;
 }
 
-} // namespace bible_assistant
+} // namespace aba

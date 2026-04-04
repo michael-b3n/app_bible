@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.VectorImage
-import BibQml
 
 TabButtonBase
 {

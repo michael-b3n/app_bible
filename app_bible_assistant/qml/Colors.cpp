@@ -1,6 +1,6 @@
-#include "bibqml/Colors.hpp"
+#include "Colors.hpp"
 
-namespace bibqml
+namespace aba::qml
 {
 
 ///
@@ -14,4 +14,4 @@ Colors::Colors(QObject* parent)
 ///
 Colors::~Colors() noexcept = default;
 
-} // namespace bibqml
+} // namespace aba::qml

@@ -9,7 +9,7 @@
 
 #include <memory>
 
-namespace bible_assistant
+namespace aba
 {
 
 ///
@@ -31,4 +31,4 @@ auto construct_backend() -> backend_instance
   };
 }
 
-} // namespace bible_assistant
+} // namespace aba

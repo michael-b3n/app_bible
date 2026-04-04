@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QtQmlIntegration/qqmlintegration.h>
 
-namespace bibqml
+namespace aba::qml
 {
 
 ///
@@ -45,4 +45,4 @@ private: // Variables
   QColor pressed_{"#1e7c7dff"};
 };
 
-} // namespace bibqml
+} // namespace aba::qml

@@ -13,7 +13,7 @@ namespace bibqml
 // Forward declarations
 class BridgeBibleRefOcr;
 } // namespace bibqml
-namespace bible_assistant
+namespace aba
 {
 
 struct bridge_instance final
@@ -28,4 +28,4 @@ struct bridge_instance final
 ///
 auto construct_bridge(QGuiApplication& app, QQmlApplicationEngine& engine, backend_instance& backend) -> bridge_instance;
 
-} // namespace bible_assistant
+} // namespace aba
