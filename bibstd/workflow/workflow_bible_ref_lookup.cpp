@@ -16,7 +16,8 @@ workflow_bible_ref_lookup_settings::workflow_bible_ref_lookup_settings()
 ///
 ///
 workflow_bible_ref_lookup::workflow_bible_ref_lookup()
-  : core_lookup_bibleserver_{std::make_unique<core::core_lookup_bibleserver>()}
+  : thread_pool_guard_{framework::thread_pool::init()}
+  , core_lookup_bibleserver_{std::make_unique<core::core_lookup_bibleserver>()}
 {
 }
 

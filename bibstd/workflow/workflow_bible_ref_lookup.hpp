@@ -24,7 +24,7 @@ namespace bibstd::workflow
 ///
 /// Signals for workflow bible reference lookup.
 ///
-struct workflow_bible_ref_lookup_signals final
+struct workflow_bible_ref_lookup_sigs final
 {
   signal::signal_type<void(framework::process_id_type)> ended;
 };
@@ -50,7 +50,7 @@ public: // Variables
 class workflow_bible_ref_lookup final
   : public workflow_base<workflow_bible_ref_lookup>
   , public framework::settings_owner<workflow_bible_ref_lookup_settings>
-  , public signal::adapter<workflow_bible_ref_lookup_signals>
+  , public signal::adapter<workflow_bible_ref_lookup_sigs>
 {
 public: // Typedefs
   struct params final
@@ -71,6 +71,7 @@ public: // Modifiers
   auto lookup(const process_params& params) -> void;
 
 private: // Variables
+  const util::shared_scope_guard thread_pool_guard_;
   const framework::thread_pool::strand_id_type strand_id_{framework::thread_pool::strand_id()};
   const std::unique_ptr<core::core_lookup_bibleserver> core_lookup_bibleserver_;
 };

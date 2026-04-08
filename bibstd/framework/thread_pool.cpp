@@ -18,24 +18,35 @@ auto thread_pool::strand_id() -> strand_id_type
 
 ///
 ///
-auto thread_pool::init() -> util::scoped_guard
+auto thread_pool::init() -> util::shared_scope_guard
 {
-  if(initialized_.exchange(true))
-  {
-    throw util::exception("thread pool already initialized");
-  }
-  const auto lock = std::scoped_lock{init_mtx_, mtx_};
-  pool_.emplace_back(std::make_unique<pool_element>());
-  return util::scoped_guard(
+  static util::shared_scope_guard::creator _guard_creator{};
+  static std::condition_variable _cv_init{};
+
+  auto lock = std::unique_lock{mtx_};
+  auto guard = _guard_creator.create(
     []()
     {
       initialized_ = false;
       // Make sure the lock is not used by anyone else anymore. The initialized flag ensures,
       // that the pool_ member is not modified or read from external threads anymore.
-      const auto lock = std::scoped_lock{init_mtx_, mtx_};
-      pool_.clear();
+      {
+        const auto lock = std::scoped_lock{mtx_};
+        pool_.clear();
+      }
+      _cv_init.notify_all();
     }
   );
+  if(guard.is_initial_instance())
+  {
+    if(!pool_.empty())
+    {
+      _cv_init.wait(lock, []() { return pool_.empty(); });
+    }
+    initialized_ = true;
+    pool_.emplace_back(std::make_unique<pool_element>());
+  }
+  return guard;
 }
 
 ///

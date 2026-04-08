@@ -1,7 +1,8 @@
 #pragma once
 
-#include "bibstd/workflow/workflow_hotkey.hpp"
 #include <bibstd/framework/process_params.hpp>
+#include <bibstd/signal/scoped_connection_guard.hpp>
+#include <bibstd/workflow/workflow_hotkey.hpp>
 
 #include <QObject>
 #include <QPoint>
@@ -12,7 +13,6 @@ namespace bibstd::workflow
 {
 // Forward declaration
 class workflow_bible_ref_ocr;
-class workflow_hotkey;
 } // namespace bibstd::workflow
 
 namespace bibstd::signal
@@ -51,14 +51,25 @@ signals:
   void htmlPassageChanged(const QString& htmlPassage);
   void htmlPassageBeginIndexChanged(int htmlPassageBeginIndex);
 
+public: // Modifiers
+  ///
+  /// Disconnect all signal connections.
+  /// This will stop the frontend backend communication.
+  ///
+  auto disconnect() -> void;
+
+private: // Implementation
+  auto onFindReference() -> void;
+
 private: // Variables
   bool running_{false};
   QPoint cursorPosition_{0, 0};
   QString htmlPassage_{};
   int htmlPassageBeginIndex_{0};
 
+  const bibstd::workflow::workflow_hotkey::shared_sig_type findReferenceSig_{};
   bibstd::framework::process_id_type processId_{};
-  std::unique_ptr<bibstd::signal::connection_store> connections_;
+  std::unique_ptr<bibstd::signal::scoped_connection_guard> connections_;
 };
 
 } // namespace bibqml

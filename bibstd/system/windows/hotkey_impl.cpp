@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <condition_variable>
 #include <future>
 #include <mutex>
 #include <ranges>
@@ -139,45 +140,64 @@ auto message_handler(const MSG& msg, const std::map<int, std::function<void()>>&
 
 ///
 ///
-auto hotkey_impl::init() -> util::scoped_guard
+auto hotkey_impl::init() -> util::shared_scope_guard
 {
-  const auto lock = std::scoped_lock{init_mtx_};
-  if(worker_)
-  {
-    throw util::exception("hotkey system already initialized");
-  }
-  worker_ = std::make_unique<framework::active_worker>();
-  std::promise<void> promise;
-  auto future = promise.get_future();
-  worker_->queue_task(
-    [&]()
+  static std::mutex _mtx;
+  static util::shared_scope_guard::creator _guard_creator{};
+  static util::shared_scope_guard _thread_pool_guard;
+  static std::condition_variable _cv_init;
+
+  auto lock = std::unique_lock{_mtx};
+  auto guard = _guard_creator.create(
+    []()
     {
-      windows_thread_id_ = GetCurrentThreadId();
+      const auto lock = std::scoped_lock{_mtx};
+      listen_to_msg_ = false;
+      std::promise<void> promise;
+      auto future = promise.get_future();
       worker_->queue_task(
         [&]()
         {
-          // PeekMessage to create the message queue for this thread.
-          // This is needed such that PostThreadMessage can post messages to it.
-          PeekMessage(&message(), nullptr, 0, 0, PM_REMOVE);
+          std::ranges::for_each(callback_map_ | std::views::keys, [](const auto id) { UnregisterHotKey(nullptr, id); });
           promise.set_value();
         }
       );
-      worker_->queue_task(get_message);
-    }
-  );
-  future.get();
-  return util::scoped_guard(
-    []()
-    {
-      const auto lock = std::scoped_lock{init_mtx_};
-      listen_to_msg_ = false;
-      worker_->queue_task(
-        [&]() { std::ranges::for_each(callback_map_ | std::views::keys, [](const auto id) { UnregisterHotKey(nullptr, id); }); }
-      );
       PostThreadMessage(windows_thread_id_.load().value(), WM_QUIT, 0, 0);
+      future.get();
       worker_.reset();
+      _thread_pool_guard.reset();
+      _cv_init.notify_all();
     }
   );
+  if(guard.is_initial_instance())
+  {
+    if(worker_)
+    {
+      _cv_init.wait(lock, []() { return !worker_; });
+    }
+    _thread_pool_guard = framework::thread_pool::init();
+    worker_ = std::make_unique<framework::active_worker>();
+    std::promise<void> promise;
+    auto future = promise.get_future();
+    worker_->queue_task(
+      [&]()
+      {
+        windows_thread_id_ = GetCurrentThreadId();
+        worker_->queue_task(
+          [&]()
+          {
+            // PeekMessage to create the message queue for this thread.
+            // This is needed such that PostThreadMessage can post messages to it.
+            PeekMessage(&message(), nullptr, 0, 0, PM_REMOVE);
+            promise.set_value();
+          }
+        );
+        worker_->queue_task(get_message);
+      }
+    );
+    future.get();
+  }
+  return guard;
 }
 
 ///
@@ -214,10 +234,13 @@ auto hotkey_impl::unregister_callback(const hotkey_common::key key, const hotkey
   register_queue_.queue(
     [key, mod]()
     {
-      const auto key_id = id_map_.at({key, mod});
-      UnregisterHotKey(nullptr, key_id);
-      id_map_.erase({key, mod});
-      callback_map_.erase(key_id);
+      if(id_map_.contains({key, mod}))
+      {
+        const auto key_id = id_map_.at({key, mod});
+        UnregisterHotKey(nullptr, key_id);
+        id_map_.erase({key, mod});
+        callback_map_.erase(key_id);
+      }
     }
   );
   PostThreadMessage(windows_thread_id_.load().value(), WM_NULL, 0, 0);

@@ -5,8 +5,16 @@ namespace bibstd::signal
 
 ///
 ///
+executor::executor()
+  : thread_pool_guard_{framework::thread_pool::init()}
+{
+}
+
+///
+///
 executor::executor(const framework::thread_pool::strand_id_type strand_id)
-  : strand_id_{strand_id}
+  : thread_pool_guard_{framework::thread_pool::init()}
+  , strand_id_{strand_id}
 {
 }
 

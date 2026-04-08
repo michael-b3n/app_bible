@@ -2,10 +2,7 @@
 
 #include <boost/signals2.hpp>
 
-#include <catch2/catch_test_macros.hpp>
 #include <functional>
-#include <mutex>
-#include <vector>
 
 namespace bibstd::signal
 {
@@ -35,6 +32,12 @@ struct is_signal_type<signal_type<T>> final : std::true_type
 template<typename T>
 inline constexpr auto is_signal_type_v = is_signal_type<std::remove_cvref_t<T>>::value;
 
+///
+/// Signal concept to check if a type is a signal type.
+///
+template<typename T>
+concept signal_like = is_signal_type_v<T>;
+
 namespace detail
 {
 
@@ -56,8 +59,7 @@ struct signal_signature_extractor<R(Args...)> final
 /// Type trait to access signal signature.
 /// The signal signature consists of the return type and the argument types of the signal.
 ///
-template<typename T>
-  requires(is_signal_type_v<T>)
+template<signal_like T>
 struct signal_signature
 {
 private:
@@ -77,8 +79,7 @@ public:
 /// \tparam T signal type to convert to functional type
 /// \tparam F functional type to convert to (std::function or move_only_function)
 ///
-template<typename T, template<typename...> typename F>
-  requires(is_signal_type_v<T>)
+template<signal_like T, template<typename...> typename F>
 struct to_functional;
 template<typename T>
 struct to_functional<T, std::function> final
@@ -110,31 +111,5 @@ using scoped_connection_type = boost::signals2::scoped_connection;
 /// This is used to block a signal temporarily.
 ///
 using connection_block_type = boost::signals2::shared_connection_block;
-
-///
-/// Connection store that stores connections to signals and disconnects them when destroyed.
-///
-class connection_store final
-{
-public: // Constructor
-  connection_store() = default;
-  ~connection_store() noexcept;
-
-public: // Modifiers
-  ///
-  /// Add connection to connection store.
-  /// \param con Connection that shall be added
-  ///
-  auto store(scoped_connection_type&& con) -> void;
-
-  ///
-  /// Clear connection store and disconnect all connections.
-  ///
-  auto clear() -> void;
-
-private: // Variables
-  mutable std::mutex mtx_;
-  std::vector<scoped_connection_type> connections_;
-};
 
 } // namespace bibstd::signal

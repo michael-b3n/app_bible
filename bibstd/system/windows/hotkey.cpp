@@ -1,12 +1,13 @@
 #include "bibstd/system/hotkey.hpp"
 #include "bibstd/system/windows/hotkey_impl.hpp"
+#include "bibstd/util/scope_guard.hpp"
 
 namespace bibstd::system
 {
 
 ///
 ///
-auto hotkey::init() -> util::scoped_guard
+auto hotkey::init() -> util::shared_scope_guard
 {
   return hotkey_impl::init();
 }

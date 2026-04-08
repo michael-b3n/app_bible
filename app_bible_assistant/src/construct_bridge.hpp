@@ -2,7 +2,7 @@
 
 #include "src/construct_backend.hpp"
 
-#include <bibstd/util/scoped_guard.hpp>
+#include <bibstd/util/scope_guard.hpp>
 #include <bibstd/workflow/workflow_base.hpp>
 
 #include <QGuiApplication>
@@ -18,9 +18,16 @@ namespace aba
 
 struct bridge_instance final
 {
-  // QML bridge instances
+  // Variables
   std::unique_ptr<bibqml::BridgeBibleRefOcr> bridge_bible_ref_ocr;
 };
+
+///
+/// Disconnect all signal connections and perform necessary cleanup for the bridge instance.
+/// This will stop the frontend backend communication.
+/// \param instance The bridge instance to disconnect
+///
+auto disconnect_bridge(bridge_instance& instance) -> void;
 
 ///
 /// Initialize backend components.

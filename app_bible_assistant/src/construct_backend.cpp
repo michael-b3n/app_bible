@@ -23,11 +23,9 @@ auto construct_backend() -> backend_instance
 
   // Construct workflows here. The returned scoped guard will deinitialize the workflows when it goes out of scope.
   return backend_instance{
-    .pool_guard{bibstd::framework::thread_pool::init()},
     .workflow_hotkey{std::move(workflow_hotkey)},
     .workflow_scripture{std::move(workflow_scripture)},
-    .workflow_bible_ref_ocr{std::move(workflow_bible_ref_ocr)},
-    .hotkey_guard{bibstd::system::hotkey::init()}
+    .workflow_bible_ref_ocr{std::move(workflow_bible_ref_ocr)}
   };
 }
 

@@ -2,7 +2,7 @@
 
 #include "bibstd/framework/active_worker.hpp"
 #include "bibstd/system/hotkey_common.hpp"
-#include "bibstd/util/scoped_guard.hpp"
+#include "bibstd/util/scope_guard.hpp"
 
 #include <atomic>
 #include <functional>
@@ -22,7 +22,7 @@ public: // Static modifiers
   ///
   /// \see hotkey::init
   ///
-  static auto init() -> util::scoped_guard;
+  static auto init() -> util::shared_scope_guard;
 
   ///
   /// \see hotkey::register_callback
@@ -39,7 +39,6 @@ private: // Static helpers
   static auto get_message() -> void;
 
 private:
-  inline static std::mutex init_mtx_{};
   inline static std::unique_ptr<framework::active_worker> worker_{};
   inline static std::atomic_bool listen_to_msg_{true};
   inline static std::atomic<std::optional<unsigned long /*WORD*/>> windows_thread_id_{std::nullopt};

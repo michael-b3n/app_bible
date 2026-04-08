@@ -11,6 +11,14 @@ namespace aba
 
 ///
 ///
+auto disconnect_bridge(bridge_instance& instance) -> void
+{
+  assert(instance.bridge_bible_ref_ocr);
+  instance.bridge_bible_ref_ocr->disconnect();
+}
+
+///
+///
 auto construct_bridge(QGuiApplication& app, QQmlApplicationEngine& engine, backend_instance& backend) -> bridge_instance
 {
   // Create OCR bridge and pass ownership to QML engine

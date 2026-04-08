@@ -59,7 +59,11 @@ int main(int argc, char** argv)
   auto bridge = aba::construct_bridge(app, engine, backend);
 
   // Connect tray signals
-  const auto do_on_exit = [&]() { QMetaObject::invokeMethod(&app, [&app] { app.quit(); }, Qt::QueuedConnection); };
+  const auto do_on_exit = [&]()
+  {
+    aba::disconnect_bridge(bridge);
+    QMetaObject::invokeMethod(&app, [&app] { app.quit(); }, Qt::QueuedConnection);
+  };
   const auto open_github = []() { bibstd::system::open_browser::open("https://github.com/michael-b3n/app_bible"); };
   // Start system tray.
   const auto tray_guard = bibstd::system::tray::init(

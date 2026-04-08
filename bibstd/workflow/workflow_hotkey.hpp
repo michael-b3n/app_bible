@@ -1,9 +1,10 @@
 #pragma once
 
+#include "bibstd/signal/common.hpp"
 #include "bibstd/system/hotkey_common.hpp"
+#include "bibstd/util/scope_guard.hpp"
 #include "bibstd/workflow/workflow_base.hpp"
 
-#include <functional>
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -18,21 +19,8 @@ namespace bibstd::workflow
 class workflow_hotkey final : public workflow_base<workflow_hotkey>
 {
 public: // Typedefs
-  ///
-  /// Register parameters to register a callback to a specific path.
-  ///
-  struct register_params final
-  {
-    // Typedefs
-    using callback_type = std::function<void()>;
-
-    // Constructors
-    register_params(std::string&& path, callback_type&& callback);
-
-    // Variables
-    std::string path;
-    callback_type callback;
-  };
+  using path_type = std::string;
+  using shared_sig_type = std::shared_ptr<signal::signal_type<void()>>;
 
   ///
   /// Hotkey parameters to assign a registered callback to a specific hotkey.
@@ -43,10 +31,10 @@ public: // Typedefs
     using hotkey_type = system::hotkey_common;
 
     // Constructors
-    hotkey_params(std::string&& path, hotkey_type::key_modifier modifier, hotkey_type::key key);
+    hotkey_params(path_type&& path, hotkey_type::key_modifier modifier, hotkey_type::key key);
 
     // Variables
-    std::string path;
+    path_type path;
     hotkey_type::key_modifier modifier;
     hotkey_type::key key;
   };
@@ -72,17 +60,16 @@ public: // Modifiers
 
   ///
   /// Register a callback to a specific path.
-  /// \param params Register parameters containing the path and callback
+  /// \param path The path to register the callback
+  /// \return The shared signal associated with the path
   ///
-  auto register_callback(const register_params& params) -> void;
-
-private: // Typedefs
-  struct shutdown_flag final
-  {};
+  [[nodiscard]] auto register_callback(const path_type& path) -> shared_sig_type;
 
 private: // Variables
+  const util::shared_scope_guard thread_pool_guard_;
+  const util::shared_scope_guard hotkey_guard_;
   mutable std::mutex mtx_;
-  std::unordered_map<std::string, register_params::callback_type> callbacks_;
+  std::unordered_map<path_type, shared_sig_type> shared_sigs_;
 };
 
 } // namespace bibstd::workflow

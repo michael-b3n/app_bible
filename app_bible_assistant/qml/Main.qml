@@ -7,7 +7,7 @@ QtObject
 {
   id: root
 
-  required property BridgeBibleRefOcr bridge
+  required property BridgeBibleRefOcr bridgeBibleRefOcr
 
   // Constants
   /*no binding*/ readonly property double goldenRatio: 1.618
@@ -44,7 +44,7 @@ QtObject
   // Connections
   property Connections bridgeConnections: Connections
   {
-    target: root.bridge
+    target: root.bridgeBibleRefOcr
 
     function onCursorPositionChanged(cursorPosition)
     {
@@ -202,7 +202,7 @@ QtObject
 
         stepSize: root.stepSize
         margin: root.margin
-        runningState: root.bridge.running
+        runningState: root.bridgeBibleRefOcr.running
         anchors.fill: parent
 
         onCloseClicked: () =>

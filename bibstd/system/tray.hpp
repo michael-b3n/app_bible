@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bibstd/framework/active_worker.hpp"
-#include "bibstd/util/scoped_guard.hpp"
+#include "bibstd/util/scope_guard.hpp"
 
 #include <tray.hpp>
 
@@ -40,7 +40,7 @@ public: // Typedefs
   using entry_type = std::variant<button, label, separator, toggle>;
 
 public: // Static modifiers
-  static auto init(icon_buffer icon, std::vector<entry_type>&& entries) -> util::scoped_guard;
+  static auto init(icon_buffer icon, std::vector<entry_type>&& entries) -> util::shared_scope_guard;
 
 private: // Static helpers
   static auto get_message() -> void;

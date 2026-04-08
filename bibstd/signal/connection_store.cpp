@@ -1,4 +1,4 @@
-#include "bibstd/signal/common.hpp"
+#include "bibstd/signal/connection_store.hpp"
 
 namespace bibstd::signal
 {

@@ -2,6 +2,8 @@
 
 #include "bibstd/framework/thread_pool.hpp"
 #include "bibstd/signal/common.hpp"
+#include "bibstd/signal/connection_store.hpp"
+#include "bibstd/util/scope_guard.hpp"
 
 namespace bibstd::signal
 {
@@ -13,7 +15,7 @@ namespace bibstd::signal
 class executor final
 {
 public: // Constructor
-  executor() = default;
+  executor();
   executor(framework::thread_pool::strand_id_type strand_id);
 
 public: // Operators
@@ -34,8 +36,9 @@ public: // Modifiers
   auto store(scoped_connection_type&& con) -> void;
 
 private: // Variables
-  std::optional<framework::thread_pool::strand_id_type> strand_id_{};
-  connection_store connections_{};
+  const util::shared_scope_guard thread_pool_guard_;
+  std::optional<framework::thread_pool::strand_id_type> strand_id_;
+  connection_store connections_;
 };
 
 } // namespace bibstd::signal

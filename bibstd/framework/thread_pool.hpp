@@ -3,7 +3,7 @@
 #include "bibstd/framework/active_worker.hpp"
 #include "bibstd/framework/task_queue.hpp"
 #include "bibstd/util/non_owning_ptr.hpp"
-#include "bibstd/util/scoped_guard.hpp"
+#include "bibstd/util/scope_guard.hpp"
 #include "bibstd/util/uid.hpp"
 
 #include <atomic>
@@ -39,7 +39,7 @@ public: // Init
   /// Init thread pool.
   /// \return scoped guard to clean up the object on destruction
   ///
-  static auto init() -> util::scoped_guard;
+  static auto init() -> util::shared_scope_guard;
 
 public: // Modifiers
   ///
@@ -93,7 +93,6 @@ private: // Implementation
 
 private: // Variables
   inline static std::atomic_bool initialized_{false};
-  inline static std::mutex init_mtx_{};
   inline static std::mutex mtx_{};
   inline static std::vector<std::unique_ptr<pool_element>> pool_{};
 };
