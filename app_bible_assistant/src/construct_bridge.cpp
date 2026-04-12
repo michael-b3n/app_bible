@@ -21,8 +21,6 @@ auto disconnect_bridge(bridge_instance& instance) -> void
 ///
 auto construct_bridge(QGuiApplication& app, QQmlApplicationEngine& engine, backend_instance& backend) -> bridge_instance
 {
-  // Create OCR bridge and pass ownership to QML engine
-
   // clang-format off
   auto workflow_bible_ref_ocr = std::static_pointer_cast<bibstd::workflow::workflow_bible_ref_ocr>(backend.workflow_bible_ref_ocr);
   auto workflow_hotkey = std::static_pointer_cast<bibstd::workflow::workflow_hotkey>(backend.workflow_hotkey);

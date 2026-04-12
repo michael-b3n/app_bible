@@ -52,7 +52,7 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(
 
       const auto [text, begin_index] = [&]
       {
-        auto unpack = std::make_pair(std::string{}, 0);
+        auto unpack = std::make_pair(std::string{"..."}, 0);
         try
         {
           if(result && result->passage)
@@ -76,9 +76,9 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(
             running_ = false;
             htmlPassage_ = QString::fromStdString(text);
             htmlPassageBeginIndex_ = begin_index;
-            Q_EMIT runningChanged(running_);
             Q_EMIT htmlPassageChanged(htmlPassage_);
             Q_EMIT htmlPassageBeginIndexChanged(htmlPassageBeginIndex_);
+            Q_EMIT runningChanged(running_);
           }
         },
         Qt::QueuedConnection

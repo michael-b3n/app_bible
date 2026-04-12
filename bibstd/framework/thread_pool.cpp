@@ -57,9 +57,12 @@ auto thread_pool::queue_task(task_type&& task) -> void
   {
     throw util::exception("thread pool not initialized");
   }
-  const auto lock = std::scoped_lock{mtx_};
+  auto lock = std::unique_lock{mtx_};
   static const auto internal_strand_id = strand_id();
   queue_task_auto(task_data{std::move(task), task_id_type::new_uid(), internal_strand_id});
+  auto abandoned = extract_abandoned_workers();
+  lock.unlock();
+  abandoned.clear();
 }
 
 ///
@@ -70,7 +73,7 @@ auto thread_pool::queue_task(task_type&& task, const strand_id_type id) -> void
   {
     throw util::exception("thread pool not initialized");
   }
-  const auto lock = std::scoped_lock{mtx_};
+  auto lock = std::unique_lock{mtx_};
   const auto dest_thread = std::ranges::find_if(
     pool_, [&](const auto& e) { return util::contains(e->ids, [id](const auto& p) { return p.strand_id == id; }); }
   );
@@ -83,6 +86,9 @@ auto thread_pool::queue_task(task_type&& task, const strand_id_type id) -> void
   {
     queue_task_auto(task_data{std::move(task), task_id_type::new_uid(), id});
   }
+  auto abandoned = extract_abandoned_workers();
+  lock.unlock();
+  abandoned.clear();
 }
 
 ///
@@ -92,7 +98,6 @@ auto thread_pool::queue_task_index(task_data&& data, const std::size_t index) ->
   decltype(auto) element = pool_.at(index);
   element->ids.emplace_back(id_pair{data.task_id, data.strand_id});
   element->worker.queue_task(create_task_wrapper(std::move(data), element.get()));
-  remove_abandoned_workers();
 }
 
 ///
@@ -109,7 +114,6 @@ auto thread_pool::queue_task_auto(task_data&& data) -> void
   decltype(auto) element = pool_.at(index);
   element->ids.emplace_back(id_pair{data.task_id, data.strand_id});
   element->worker.queue_task(create_task_wrapper(std::move(data), element.get()));
-  remove_abandoned_workers();
 }
 
 ///
@@ -135,19 +139,26 @@ auto thread_pool::create_task_wrapper(task_data&& data, const util::non_owning_p
 
 ///
 ///
-auto thread_pool::remove_abandoned_workers() -> void
+auto thread_pool::extract_abandoned_workers() -> pool_type
 {
   using ms = std::chrono::milliseconds;
   const auto now = std::chrono::system_clock::now();
-  std::erase_if(
+  pool_type abandoned;
+  std::ranges::for_each(
     pool_,
-    [&](const auto& element)
+    [&](auto& element)
     {
       const auto empty_ids = element->ids.empty();
       const auto inactive_duration = now > element->last_use ? std::chrono::duration_cast<ms>(now - element->last_use) : ms{0};
-      return empty_ids && inactive_duration > std::chrono::minutes{1};
+      if(empty_ids && inactive_duration > std::chrono::minutes{1})
+      {
+        abandoned.emplace_back(std::move(element));
+        element = nullptr;
+      }
     }
   );
+  std::erase_if(pool_, [](const auto& element) { return element == nullptr; });
+  return abandoned;
 }
 
 } // namespace bibstd::framework

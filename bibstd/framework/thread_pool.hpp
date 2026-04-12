@@ -85,16 +85,18 @@ private: // Typedefs
     strand_id_type strand_id{};
   };
 
+  using pool_type = std::vector<std::unique_ptr<pool_element>>;
+
 private: // Implementation
   static auto queue_task_index(task_data&& data, std::size_t index) -> void;
   static auto queue_task_auto(task_data&& data) -> void;
   static auto create_task_wrapper(task_data&& data, util::non_owning_ptr<pool_element> element) -> task_type;
-  static auto remove_abandoned_workers() -> void;
+  static auto extract_abandoned_workers() -> pool_type;
 
 private: // Variables
   inline static std::atomic_bool initialized_{false};
   inline static std::mutex mtx_{};
-  inline static std::vector<std::unique_ptr<pool_element>> pool_{};
+  inline static pool_type pool_{};
 };
 
 } // namespace bibstd::framework

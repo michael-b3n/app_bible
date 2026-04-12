@@ -11,6 +11,7 @@ Item
   required property int stepSize
   required property int margin
   required property bool runningState
+  required property string htmlPassage
 
   implicitWidth: 640
   implicitHeight: 480
@@ -83,6 +84,7 @@ Item
 
       MainTabContent
       {
+        htmlPassage: root.htmlPassage
       }
 
       SettingsTabContent

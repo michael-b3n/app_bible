@@ -2,17 +2,11 @@
 
 #include "src/construct_backend.hpp"
 
-#include <bibstd/util/scope_guard.hpp>
-#include <bibstd/workflow/workflow_base.hpp>
+#include <bibqml/BridgeBibleRefOcr.hpp>
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
-namespace bibqml
-{
-// Forward declarations
-class BridgeBibleRefOcr;
-} // namespace bibqml
 namespace aba
 {
 
@@ -30,8 +24,11 @@ struct bridge_instance final
 auto disconnect_bridge(bridge_instance& instance) -> void;
 
 ///
-/// Initialize backend components.
-/// \return backend instance
+/// Initialize the bridge instances.
+/// \param app The QGuiApplication instance
+/// \param engine The QQmlApplicationEngine instance
+/// \param backend The backend instance
+/// \return bridge instance
 ///
 auto construct_bridge(QGuiApplication& app, QQmlApplicationEngine& engine, backend_instance& backend) -> bridge_instance;
 

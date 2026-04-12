@@ -8,20 +8,20 @@ namespace bibstd::framework
 task_queue::~task_queue() noexcept
 {
   {
-    const auto queue_lock = std::scoped_lock(queue_mtx_, task_mtx_);
+    const auto queue_lock = std::scoped_lock{queue_mtx_, task_mtx_};
     shutdown_ = true;
     std::queue<task_type> empty_queue;
     std::swap(task_queue_, empty_queue);
   }
   task_cv_.notify_all();
-  const auto lock = std::lock_guard(queue_mtx_); // wait until lock is freed
+  const auto lock = std::scoped_lock{queue_mtx_}; // wait until lock is freed
 }
 
 ///
 ///
 auto task_queue::empty() const -> bool
 {
-  const auto lock = std::lock_guard(queue_mtx_);
+  const auto lock = std::scoped_lock{queue_mtx_};
   return task_queue_.empty();
 }
 
@@ -29,7 +29,7 @@ auto task_queue::empty() const -> bool
 ///
 auto task_queue::size() const -> std::size_t
 {
-  const auto lock = std::lock_guard(queue_mtx_);
+  const auto lock = std::scoped_lock{queue_mtx_};
   return task_queue_.size();
 }
 
@@ -38,7 +38,7 @@ auto task_queue::size() const -> std::size_t
 auto task_queue::queue(task_type&& task) -> void
 {
   {
-    const auto lock = std::lock_guard(queue_mtx_);
+    const auto lock = std::scoped_lock{queue_mtx_};
     task_queue_.emplace(std::forward<decltype(task)>(task));
   }
   task_cv_.notify_one();
@@ -79,7 +79,7 @@ auto task_queue::do_task_impl(std::unique_lock<std::mutex>& queue_lock) -> void
     queue_lock.unlock();
     if(task)
     {
-      const auto task_lock = std::lock_guard(task_mtx_);
+      const auto task_lock = std::scoped_lock{task_mtx_};
       task();
     }
   }

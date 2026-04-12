@@ -203,6 +203,7 @@ QtObject
         stepSize: root.stepSize
         margin: root.margin
         runningState: root.bridgeBibleRefOcr.running
+        htmlPassage: root.bridgeBibleRefOcr.htmlPassage
         anchors.fill: parent
 
         onCloseClicked: () =>

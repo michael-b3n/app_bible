@@ -5,17 +5,13 @@
 #include "src/construct_backend.hpp"
 #include "src/construct_bridge.hpp"
 
-#include <bibstd/framework/thread_pool.hpp>
 #include <bibstd/system/filesystem.hpp>
-#include <bibstd/system/hotkey.hpp>
 #include <bibstd/system/open_browser.hpp>
 #include <bibstd/system/screen.hpp>
 #include <bibstd/system/tray.hpp>
 #include <bibstd/util/date.hpp>
 #include <bibstd/util/incbin.hpp>
 #include <bibstd/util/log.hpp>
-
-#include <bibqml/BridgeBibleRefOcr.hpp>
 
 #include <QGuiApplication>
 #include <QMetaObject>
