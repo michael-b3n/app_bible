@@ -9,6 +9,7 @@
 #include "bibstd/util/timer.hpp"
 #include "bibstd/util/visit_helper.hpp"
 
+#include <atomic>
 #include <pugixml.hpp>
 
 #ifdef DEBUG
@@ -56,6 +57,8 @@ private: // Typedefs
     // Variables
     std::vector<xml_node> to_be_deleted;
     std::vector<xml_node> to_be_unfolded;
+    std::uint32_t paragraph_counter;
+    std::string current_book;
     std::string current_chapter;
   };
 
@@ -97,7 +100,7 @@ private: // Typedefs
   ///
   /// Function pointer type for node transformation actions.
   ///
-  using a_fptr = void (*)(xml_node&, data&);
+  using a_fptr = void (*)(xml_node&, data&, int);
 
   ///
   /// Struct to represent a node rename action.
@@ -115,21 +118,43 @@ private: // Constants
   ///
   /// Function pointer marking a node for deletion.
   ///
-  static constexpr a_fptr a_delete = [](xml_node& node, data& d) { d.to_be_deleted.push_back(node); };
+  static constexpr a_fptr a_delete = [](xml_node& node, data& d, [[maybe_unused]] int depth)
+  { d.to_be_deleted.push_back(node); };
 
   ///
   /// Function pointer unfolding a node for unfolding.
   ///
-  static constexpr a_fptr a_unfold = [](xml_node& node, data& d) { d.to_be_unfolded.push_back(node); };
+  static constexpr a_fptr a_unfold = [](xml_node& node, data& d, [[maybe_unused]] int depth)
+  { d.to_be_unfolded.push_back(node); };
+
+  ///
+  /// Function pointer caching the current book name and marking the node for deletion.
+  ///
+  static constexpr a_fptr a_cache_book_and_delete = [](xml_node& node, data& d, [[maybe_unused]] int depth)
+  {
+    d.current_book = node.text().get();
+    d.to_be_deleted.push_back(node);
+  };
+
+  ///
+  /// Function pointer renaming a node to paragraph format and marking it with a paragraph ID.
+  ///
+  static constexpr a_fptr a_mark_paragraph_and_rename = [](xml_node& node, data& d, const int depth)
+  {
+    node.remove_attributes();
+    const auto id = std::format(parser_usx::template_paragraph_id, depth, d.paragraph_counter++);
+    node.append_attribute(parser_usx::attribute_paragraph_id).set_value(id);
+    node.set_name(parser::format_paragraph);
+  };
 
   ///
   /// Function pointer caching chapter and deleting the node.
   ///
-  static constexpr a_fptr a_cache_chapter_and_delete = [](xml_node& node, data& d)
+  static constexpr a_fptr a_cache_chapter_and_delete = [](xml_node& node, data& d, [[maybe_unused]] int depth)
   {
     const auto chapter_number = std::string_view(node.attribute("number").value());
     d.current_chapter = chapter_number;
-    node.text().set(std::format("{}", chapter_number));
+    node.text().set(std::format("{} {}", d.current_book, chapter_number));
     node.remove_attributes();
     node.set_name(parser::format_chapter_number);
   };
@@ -137,7 +162,7 @@ private: // Constants
   ///
   /// Function pointer inserting passage number and renaming the node to passage number format.
   ///
-  static constexpr a_fptr a_insert_passage_number_and_rename = [](xml_node& node, data& d)
+  static constexpr a_fptr a_insert_passage_number_and_rename = [](xml_node& node, data& d, [[maybe_unused]] int depth)
   {
     const auto verse_number = std::string_view(node.attribute("number").value());
     node.text().set(std::format("{}", verse_number));
@@ -153,9 +178,8 @@ private: // Constants
   static constexpr auto node_transform_map = util::make_const_map<node, std::variant<a_rename, a_fptr>>({
     {                          node{"usx", _any_attr},                                     a_unfold},
     {                         node{"book", _any_attr},                                     a_delete},
-    {        node{"para", attribute{"style", "toc1"}},                                     a_delete},
-    {           node{"para", attribute{"style", "p"}},           a_rename{parser::format_paragraph}},
-    {                         node{"para", _any_attr},                                     a_delete},
+    {           node{"para", attribute{"style", "h"}},                      a_cache_book_and_delete},
+    {                         node{"para", _any_attr},                  a_mark_paragraph_and_rename},
     {node{"chapter", attribute{"number", _any_value}},                   a_cache_chapter_and_delete},
     {                      node{"chapter", _any_attr},                                     a_delete},
     {  node{"verse", attribute{"number", _any_value}},           a_insert_passage_number_and_rename},
@@ -218,7 +242,14 @@ auto node_usx_to_html_walker::node::operator==(const xml_node& other) const -> b
 ///
 ///
 node_usx_to_html_walker::node_usx_to_html_walker(std::string_view reference_id_prefix)
-  : d_{.reference_id_prefix{reference_id_prefix}, .to_be_deleted{}, .to_be_unfolded{}, .current_chapter{}}
+  : d_{
+      .reference_id_prefix{reference_id_prefix},
+      .to_be_deleted{},
+      .to_be_unfolded{},
+      .paragraph_counter = 0,
+      .current_book{},
+      .current_chapter{}
+    }
 {
 }
 
@@ -240,7 +271,7 @@ auto node_usx_to_html_walker::for_each(xml_node& node) -> bool
           node.set_name(rename.new_name);
           node.remove_attributes();
         },
-        [&](const a_fptr& action) { action(node, d_); }
+        [&](const a_fptr& action) { action(node, d_, depth()); }
       );
     }
     else
@@ -728,7 +759,7 @@ auto load_book_data(const io::zip_file_reader& zip_reader) -> std::unique_ptr<pu
         LOG_ERROR("failed to load \"{}\" data: expected \"{}.usx\" file within archive", util::enum_name(id), abbreviation);
         return false;
       }
-      const auto parse_result = src.load_string(content->c_str());
+      const auto parse_result = src.load_string(content->c_str(), pugi::parse_default | pugi::parse_ws_pcdata);
       if(!parse_result)
       {
         LOG_ERROR("failed to parse \"{}.usx\": {}", abbreviation, parse_result.description());
@@ -742,8 +773,10 @@ auto load_book_data(const io::zip_file_reader& zip_reader) -> std::unique_ptr<pu
     doc->reset();
   }
 #ifdef DEBUG
+  static std::atomic_uint counter{0};
   std::filesystem::create_directory("debug");
-  doc->save_file("debug/debug_output.xml");
+  const auto filename = std::format("debug/debug_output_{}.xml", counter.fetch_add(1));
+  doc->save_file(filename.c_str());
 #endif
   return doc;
 }
@@ -810,7 +843,7 @@ auto parser_usx::do_passage_html(const reference& ref) const -> std::expected<ht
   node.parent().print(writer, "", pugi::format_raw);
 
   const auto reference_pos = writer.out.find(reference_id);
-  const auto offset = reference_id.size() + 2 /*'"' + '>'*/;
+  const auto offset = reference_id.size() + 2; // '"' + '>'
   if(reference_pos != std::string::npos && reference_pos + offset < writer.out.size())
   {
     // return reference_pos + offset as well to get the position of the actual verse content

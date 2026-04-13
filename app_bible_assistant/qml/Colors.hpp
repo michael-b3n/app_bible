@@ -6,6 +6,18 @@
 
 namespace aba::qml
 {
+namespace detail
+{
+
+///
+/// Helper function to convert a hex color string to a QColor object.
+/// The input string should be in the format "#RRGGBBAA" or "#RRGGBB".
+/// \param color The hex color string to convert
+/// \return The corresponding QColor object
+///
+auto toQColor(std::string color) -> QColor;
+
+} // namespace detail
 
 ///
 /// QML Colors singleton.
@@ -37,12 +49,12 @@ signals:
   void pressedChanged();
 
 private: // Variables
-  QColor backgroundTransparent_{"#3ad0d2e2"};
-  QColor backgroundSolid_{"#3ad0d2ff"};
-  QColor border_{"#adb9baff"};
-  QColor text_{"#ffffff"};
-  QColor hover_{"#69b2b4ff"};
-  QColor pressed_{"#1e7c7dff"};
+  QColor backgroundTransparent_{detail::toQColor("#fef5deed")};
+  QColor backgroundSolid_{detail::toQColor("#fef5deff")};
+  QColor border_{detail::toQColor("#937a7aff")};
+  QColor text_{detail::toQColor("#000000ff")};
+  QColor hover_{detail::toQColor("#eabca8ff")};
+  QColor pressed_{detail::toQColor("#937a7aff")};
 };
 
 } // namespace aba::qml

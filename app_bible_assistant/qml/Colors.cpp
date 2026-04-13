@@ -1,7 +1,26 @@
 #include "Colors.hpp"
 
+#include <algorithm>
+
 namespace aba::qml
 {
+namespace detail
+{
+
+///
+///
+auto toQColor(std::string color) -> QColor
+{
+  static constexpr auto rgba_size = std::string_view{"#RRGGBBAA"}.size();
+  if(color.size() == rgba_size)
+  {
+    // convert from #RRGGBBAA to #AARRGGBB format
+    std::ranges::rotate(color.begin() + 1, color.end() - 2, color.end());
+  }
+  return QColor(color.data());
+}
+
+} // namespace detail
 
 ///
 ///

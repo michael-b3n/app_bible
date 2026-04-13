@@ -101,6 +101,9 @@ public: // Constants
   static_assert(books.size() == util::enum_count<book_id>());
 
   static constexpr auto attribute_reference_id = "data-reference-id";
+  static constexpr auto attribute_paragraph_id = "data-paragraph-id";
+
+  static constexpr auto template_paragraph_id = "para-{}-{}";
   static constexpr auto template_reference_id = "ref-{}-{}-{}";
 
 public: // Constructor
