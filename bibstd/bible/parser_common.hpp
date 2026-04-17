@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace bibstd::bible
 {
@@ -28,8 +29,7 @@ struct parser_common final
   };
 
   ///
-  /// Struct containing the HTML content of a bible passage,
-  /// along with the begin index of the first verse in the passage.
+  /// Struct containing the HTML content of a bible passage.
   ///
   struct html_passage final
   {
@@ -37,8 +37,8 @@ struct parser_common final
     auto operator==(const html_passage&) const -> bool = default;
 
     // Variables
-    std::size_t begin_index;
     std::string content;
+    std::vector<std::string> cross_references;
   };
 };
 

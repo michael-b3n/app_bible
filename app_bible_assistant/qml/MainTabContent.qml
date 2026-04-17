@@ -11,10 +11,6 @@ Item
   Connections
   {
     target: root.bridgeBibleRefOcr
-    function onHtmlPassageBeginIndexChanged(index)
-    {
-      Qt.callLater(textEdit.scrollToIndex, index)
-    }
   }
 
   ScrollView

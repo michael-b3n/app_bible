@@ -35,7 +35,6 @@ class BridgeBibleRefOcr final : public QObject
   Q_PROPERTY(bool running MEMBER running_ NOTIFY runningChanged)
   Q_PROPERTY(QPoint cursorPosition MEMBER cursorPosition_ NOTIFY cursorPositionChanged)
   Q_PROPERTY(QString htmlPassage MEMBER htmlPassage_ NOTIFY htmlPassageChanged)
-  Q_PROPERTY(int htmlPassageBeginIndex MEMBER htmlPassageBeginIndex_ NOTIFY htmlPassageBeginIndexChanged)
 
 public: // Structors
   explicit BridgeBibleRefOcr(
@@ -49,7 +48,6 @@ signals:
   void runningChanged(bool running);
   void cursorPositionChanged(const QPoint& cursorPosition);
   void htmlPassageChanged(const QString& htmlPassage);
-  void htmlPassageBeginIndexChanged(int htmlPassageBeginIndex);
 
 public: // Modifiers
   ///
@@ -65,7 +63,6 @@ private: // Variables
   bool running_{false};
   QPoint cursorPosition_{0, 0};
   QString htmlPassage_{};
-  int htmlPassageBeginIndex_{0};
 
   const bibstd::workflow::workflow_hotkey::shared_sig_type findReferenceSig_{};
   bibstd::framework::process_id_type processId_{};

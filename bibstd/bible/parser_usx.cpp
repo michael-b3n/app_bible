@@ -1,328 +1,28 @@
 #include "bibstd/bible/parser_usx.hpp"
 #include "bibstd/bible/common.hpp"
 #include "bibstd/io/zip_file_reader.hpp"
-#include "bibstd/util/const_map.hpp"
+#include "bibstd/util/contains.hpp"
 #include "bibstd/util/enum.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/string.hpp"
 #include "bibstd/util/timer.hpp"
-#include "bibstd/util/visit_helper.hpp"
+#include "bibstd/util/uid.hpp"
 
-#include <atomic>
 #include <pugixml.hpp>
 
-#ifdef DEBUG
-  #include <filesystem>
-#endif
 #include <algorithm>
+#include <array>
 #include <map>
 #include <optional>
 #include <ranges>
 #include <string>
 #include <string_view>
-#include <type_traits>
 
 namespace bibstd::bible
 {
 namespace detail
 {
-
-///
-/// Node content transform walker that transforms all nodes found from USX to HTML format.
-///
-class node_usx_to_html_walker : public pugi::xml_tree_walker
-{
-public: // Constants
-
-public: // Structors
-  ///
-  /// Construct a USX to HTML walker for a specific book.
-  /// \param dest The destination XML node to transform into HTML
-  ///
-  node_usx_to_html_walker(std::string_view reference_id_prefix);
-
-private: // Typedefs
-  using xml_node = pugi::xml_node;
-  using xml_attribute = pugi::xml_attribute;
-
-  ///
-  /// Data struct to hold state during tree traversal,
-  ///
-  struct data final
-  {
-    // Constants
-    const std::string reference_id_prefix;
-
-    // Variables
-    std::vector<xml_node> to_be_deleted;
-    std::vector<xml_node> to_be_unfolded;
-    std::uint32_t paragraph_counter;
-    std::string current_book;
-    std::string current_chapter;
-  };
-
-  ///
-  /// Struct to represent an attribute.
-  ///
-  struct attribute final
-  {
-    std::string_view name;
-    std::optional<std::string_view> value;
-    constexpr auto operator==(const attribute&) const -> bool = default;
-
-    ///
-    /// Compare this attribute matcher with an actual XML attribute.
-    /// \param other The XML attribute to compare against
-    /// \return true if the attribute name matches and value matches (if value is specified), false otherwise
-    ///
-    auto operator==(const pugi::xml_attribute& other) const -> bool;
-  };
-
-  ///
-  /// Struct to represent a node.
-  ///
-  struct node final
-  {
-    std::string_view name;
-    std::optional<attribute> attr;
-
-    constexpr auto operator==(const node&) const -> bool = default;
-
-    ///
-    /// Compare this node matcher with an actual XML node.
-    /// \param other The XML node to compare against
-    /// \return true if the node name and attribute (if specified) match, false otherwise
-    ///
-    auto operator==(const pugi::xml_node& other) const -> bool;
-  };
-
-  ///
-  /// Function pointer type for node transformation actions.
-  ///
-  using a_fptr = void (*)(xml_node&, data&, int);
-
-  ///
-  /// Struct to represent a node rename action.
-  ///
-  struct a_rename final
-  {
-    std::string_view new_name;
-    auto operator==(const a_rename&) const -> bool = default;
-  };
-
-private: // Constants
-  static constexpr auto _any_attr = std::optional<attribute>{};
-  static constexpr auto _any_value = std::optional<std::string_view>{};
-
-  ///
-  /// Function pointer marking a node for deletion.
-  ///
-  static constexpr a_fptr a_delete = [](xml_node& node, data& d, [[maybe_unused]] int depth)
-  { d.to_be_deleted.push_back(node); };
-
-  ///
-  /// Function pointer unfolding a node for unfolding.
-  ///
-  static constexpr a_fptr a_unfold = [](xml_node& node, data& d, [[maybe_unused]] int depth)
-  { d.to_be_unfolded.push_back(node); };
-
-  ///
-  /// Function pointer caching the current book name and marking the node for deletion.
-  ///
-  static constexpr a_fptr a_cache_book_and_delete = [](xml_node& node, data& d, [[maybe_unused]] int depth)
-  {
-    d.current_book = node.text().get();
-    d.to_be_deleted.push_back(node);
-  };
-
-  ///
-  /// Function pointer renaming a node to paragraph format and marking it with a paragraph ID.
-  ///
-  static constexpr a_fptr a_mark_paragraph_and_rename = [](xml_node& node, data& d, const int depth)
-  {
-    node.remove_attributes();
-    const auto id = std::format(parser_usx::template_paragraph_id, depth, d.paragraph_counter++);
-    node.append_attribute(parser_usx::attribute_paragraph_id).set_value(id);
-    node.set_name(parser::format_paragraph);
-  };
-
-  ///
-  /// Function pointer caching chapter and deleting the node.
-  ///
-  static constexpr a_fptr a_cache_chapter_and_delete = [](xml_node& node, data& d, [[maybe_unused]] int depth)
-  {
-    const auto chapter_number = std::string_view(node.attribute("number").value());
-    d.current_chapter = chapter_number;
-    node.text().set(std::format("{} {}", d.current_book, chapter_number));
-    node.remove_attributes();
-    node.set_name(parser::format_chapter_number);
-  };
-
-  ///
-  /// Function pointer inserting passage number and renaming the node to passage number format.
-  ///
-  static constexpr a_fptr a_insert_passage_number_and_rename = [](xml_node& node, data& d, [[maybe_unused]] int depth)
-  {
-    const auto verse_number = std::string_view(node.attribute("number").value());
-    node.text().set(std::format("{}", verse_number));
-    node.remove_attributes();
-    const auto id = std::format(parser_usx::template_reference_id, d.reference_id_prefix, d.current_chapter, verse_number);
-    node.append_attribute(parser_usx::attribute_reference_id).set_value(id);
-    node.set_name(parser::format_verse_number);
-  };
-
-  ///
-  /// Mapping of nodes to their corresponding transformation actions (rename, delete, unfold, etc.).
-  ///
-  static constexpr auto node_transform_map = util::make_const_map<node, std::variant<a_rename, a_fptr>>({
-    {                          node{"usx", _any_attr},                                     a_unfold},
-    {                         node{"book", _any_attr},                                     a_delete},
-    {           node{"para", attribute{"style", "h"}},                      a_cache_book_and_delete},
-    {                         node{"para", _any_attr},                  a_mark_paragraph_and_rename},
-    {node{"chapter", attribute{"number", _any_value}},                   a_cache_chapter_and_delete},
-    {                      node{"chapter", _any_attr},                                     a_delete},
-    {  node{"verse", attribute{"number", _any_value}},           a_insert_passage_number_and_rename},
-    {                        node{"verse", _any_attr},                                     a_delete},
-    {          node{"char", attribute{"style", "bd"}},                  a_rename{parser::html_bold}},
-    {          node{"char", attribute{"style", "it"}},                a_rename{parser::html_italic}},
-    {          node{"char", attribute{"style", "em"}},          a_rename{parser::format_emphasized}},
-    {          node{"char", attribute{"style", "nd"}},         a_rename{parser::format_name_of_god}},
-    {         node{"char", attribute{"style", "add"}}, a_rename{parser::format_translator_addition}},
-    {                         node{"char", _any_attr},                                     a_unfold},
-    {                         node{"note", _any_attr},                                     a_delete}
-  });
-
-private: // Overrides
-  ///
-  /// Process each node during tree traversal.
-  /// Transforms USX nodes to HTML format by renaming nodes, caching chapter numbers,
-  /// inserting verse numbers, and marking nodes for deletion.
-  /// \param node The current XML node being traversed
-  /// \return true to continue traversal, false to stop
-  ///
-  auto for_each(xml_node& node) -> bool override;
-
-  ///
-  /// Called when traversal exits a node and all its children have been processed.
-  /// First unfolds nodes by moving their children to their parent (lifting content up),
-  /// then safely removes all nodes that were marked for deletion during traversal.
-  /// Processes nodes in reverse order with parent validation to avoid double-deletion.
-  /// \param node The node being exited (unused)
-  /// \return true to continue traversal
-  ///
-  auto end(xml_node& node) -> bool override;
-
-private: // Variables
-  data d_;
-};
-
-///
-///
-auto node_usx_to_html_walker::attribute::operator==(const xml_attribute& other) const -> bool
-{
-  if(other && name == std::string_view(other.name()))
-  {
-    return !value.has_value() || *value == std::string_view{other.value()};
-  }
-  return false;
-}
-
-///
-///
-auto node_usx_to_html_walker::node::operator==(const xml_node& other) const -> bool
-{
-  if(name == std::string_view(other.name()))
-  {
-    return !attr.has_value() || *attr == other.attribute(attr->name);
-  }
-  return false;
-}
-
-///
-///
-node_usx_to_html_walker::node_usx_to_html_walker(std::string_view reference_id_prefix)
-  : d_{
-      .reference_id_prefix{reference_id_prefix},
-      .to_be_deleted{},
-      .to_be_unfolded{},
-      .paragraph_counter = 0,
-      .current_book{},
-      .current_chapter{}
-    }
-{
-}
-
-///
-///
-auto node_usx_to_html_walker::for_each(xml_node& node) -> bool
-{
-  decltype(auto) type = node.type();
-  if(type == pugi::xml_node_type::node_element)
-  {
-    const auto it = std::ranges::find_if(node_transform_map, [&](const auto& element) { return element.first == node; });
-    if(it != std::ranges::cend(node_transform_map))
-    {
-      decltype(auto) to_node = it->second;
-      util::visit_lambdas(
-        to_node,
-        [&](const a_rename& rename)
-        {
-          node.set_name(rename.new_name);
-          node.remove_attributes();
-        },
-        [&](const a_fptr& action) { action(node, d_, depth()); }
-      );
-    }
-    else
-    {
-      LOG_WARN(
-        "no transformation specified for node: name=\"{}\", attributes=[{}]",
-        node.name(),
-        util::string::join(
-          node.attributes() |
-            std::views::transform([](const auto& attr) { return std::format("{}=\"{}\"", attr.name(), attr.value()); }),
-          ", "
-        )
-      );
-    }
-  }
-  return true;
-}
-
-///
-///
-auto node_usx_to_html_walker::end([[maybe_unused]] xml_node& node) -> bool
-{
-  // First pass: unfold nodes by moving their content to parent
-  std::ranges::for_each(
-    d_.to_be_unfolded | std::views::reverse,
-    [](auto& node_to_unfold)
-    {
-      if(auto parent = node_to_unfold.parent())
-      {
-        while(auto child = node_to_unfold.first_child())
-        {
-          parent.insert_move_before(child, node_to_unfold);
-        }
-        parent.remove_child(node_to_unfold);
-      }
-    }
-  );
-
-  // Second pass: remove all nodes marked for deletion
-  std::ranges::for_each(
-    d_.to_be_deleted | std::views::reverse,
-    [](auto& node_to_remove)
-    {
-      if(auto parent = node_to_remove.parent())
-      {
-        parent.remove_child(node_to_remove);
-      }
-    }
-  );
-  return true;
-}
 
 ///
 /// Simple node content walker that concatenates the content of all nodes found.
@@ -673,44 +373,395 @@ auto load_copyright(const pugi::xml_document& doc) -> std::optional<std::string>
 }
 
 ///
-/// Convert USX XML nodes to HTML syntax.
-/// \param id The book ID corresponding to the USX content being converted
-/// \param src The source XML node containing USX content to convert
-/// \param dest The destination XML node to append the converted HTML content to
-/// \return true if conversion was successful, false otherwise
+/// Serialize inline USX content to HTML string.
+/// Handles char styles (bold, italic, etc.) and skips notes.
+/// \param node The XML node to serialize
+/// \return HTML string
 ///
-auto usx_to_html(book_id id, const pugi::xml_node& src, pugi::xml_node& dest) -> bool
+auto serialize_inline_to_html(const pugi::xml_node& node) -> std::string
 {
-  try
+  auto result = std::string{};
+  for(auto child : node.children())
   {
-    const auto valid = static_cast<bool>(src) && static_cast<bool>(dest);
-    if(valid)
+    const auto type = child.type();
+    if(type == pugi::node_pcdata || type == pugi::node_cdata)
     {
-      auto usx_node = src.child("usx");
-      usx_node.set_name(util::enum_name(id));
-      usx_node.remove_attributes();
-      auto walker = node_usx_to_html_walker{util::enum_name(id)};
-      usx_node.traverse(walker);
-      dest.append_copy(usx_node);
-      return true;
+      result.append(child.value());
+    }
+    else if(type == pugi::node_element)
+    {
+      const auto name = std::string_view{child.name()};
+      if(name == "char")
+      {
+        const auto style = std::string_view{child.attribute("style").value()};
+        const auto inner = serialize_inline_to_html(child);
+        // clang-format off
+        if(style == "bd") { result.append(std::format("<{0}>{1}</{0}>", parser::html_bold, inner)); }
+        else if(style == "it" || style == "em") { result.append(std::format("<{0}>{1}</{0}>", parser::html_italic, inner)); }
+        else if(style == "nd") { result.append(std::format("<{0}>{1}</{0}>", parser::format_name_of_god, inner)); }
+        else if(style == "add") { result.append(std::format("<{0}>{1}</{0}>", parser::format_translator_addition, inner)); }
+        else { result.append(inner); }
+        // clang-format on
+      }
+      else if(name == "note")
+      {
+        // skip footnotes
+      }
+      else
+      {
+        result.append(serialize_inline_to_html(child));
+      }
+    }
+  }
+  return result;
+}
+
+///
+/// Check if a paragraph style is a content paragraph (not header/title/table of contents).
+/// \param style The style attribute value
+/// \return true if it is a content paragraph
+///
+auto is_content_paragraph(std::string_view style) -> bool
+{
+  static constexpr auto non_content = std::array{"h", "toc1", "toc2", "toc3", "mt", "mt1", "mt2", "mt3"};
+  return !util::contains(non_content, style);
+}
+
+///
+/// Extract text content from an XML node tree.
+/// \param node The XML node
+/// \return concatenated text content
+///
+auto get_inline_text(const pugi::xml_node& node) -> std::string
+{
+  auto result = std::string{};
+  for(auto child : node.children())
+  {
+    if(child.type() == pugi::node_pcdata || child.type() == pugi::node_cdata)
+    {
+      result.append(child.value());
+    }
+    else if(child.type() == pugi::node_element)
+    {
+      result.append(get_inline_text(child));
+    }
+  }
+  return result;
+}
+
+///
+/// Parsing state for tracking the current verse being assembled.
+///
+struct verse_parse_state final
+{
+  // Typedefs
+  using paragraph_id_type = util::uid<struct paragraph_id_tag>;
+
+  struct segment final
+  {
+    paragraph_id_type paragraph_id{};
+    std::string_view paragraph_attribute_value{parser::html_custom_undefined};
+    std::string content{""};
+  };
+
+  std::vector<segment> segments{};
+  std::vector<std::string> current_xrefs{};
+  std::optional<std::uint32_t> chapter{};
+  std::optional<std::uint32_t> verse{};
+  std::optional<paragraph_id_type> current_paragraph_id{};
+};
+
+///
+/// Flush accumulated segments and cross-references for the current verse into the passage map.
+/// Resets segments and cross-references afterwards. Does nothing if no complete verse is pending.
+/// \param id The book identifier used to create the reference
+/// \param state The current parsing state (segments and xrefs are cleared)
+/// \param passage_map The map to store the assembled passage into
+///
+auto flush_verse(const book_id id, verse_parse_state& state, parser_usx::passage_map_type& passage_map) -> void
+{
+  if(!state.verse || !state.chapter || state.segments.empty())
+  {
+    return;
+  }
+  std::erase_if(state.segments, [](const auto& s) { return s.content.empty(); });
+  if(state.segments.empty())
+  {
+    return;
+  }
+
+  auto html = std::string{};
+  for(const auto& seg : state.segments)
+  {
+    html.append(std::format(R"(<p {}="{}">)", parser::html_custom_attr_id, seg.paragraph_attribute_value));
+    html.append(seg.content);
+    html.append("</p>");
+  }
+  const auto ref = reference::create(id, *state.chapter, *state.verse);
+  if(!ref)
+  {
+    LOG_WARN("invalid reference: book={}, chapter={}, verse={}", util::enum_name(id), *state.chapter, *state.verse);
+    state.segments.clear();
+    state.current_xrefs.clear();
+    return;
+  }
+  passage_map[*ref] = {std::move(html), std::move(state.current_xrefs)};
+  state.current_xrefs = {};
+  state.segments.clear();
+}
+
+///
+/// Handle a chapter marker: flush the current verse and begin a new chapter.
+/// \param id The book identifier
+/// \param chapter_number The new chapter number
+/// \param state The current parsing state (chapter set, verse reset)
+/// \param passage_map The map to flush the previous verse into
+///
+auto begin_chapter(
+  const book_id id, const std::uint32_t chapter_number, verse_parse_state& state, parser_usx::passage_map_type& passage_map
+) -> void
+{
+  flush_verse(id, state, passage_map);
+  state.chapter = chapter_number;
+  state.verse = std::nullopt;
+}
+
+///
+/// Handle a verse marker: flush the current verse and begin a new one.
+/// \param id The book identifier
+/// \param verse_number The new verse number
+/// \param state The current parsing state (verse number set)
+/// \param passage_map The map to flush the previous verse into
+///
+auto begin_verse(
+  const book_id id, const std::uint32_t verse_number, verse_parse_state& state, parser_usx::passage_map_type& passage_map
+) -> void
+{
+  flush_verse(id, state, passage_map);
+  state.verse = verse_number;
+}
+
+///
+/// Append text content to the current verse's active segment.
+/// Creates a new segment when the paragraph context changes. Ignores content before any verse starts.
+/// \param state The current parsing state
+/// \param text The text to append
+///
+auto append_content(verse_parse_state& state, const std::string& text) -> void
+{
+  static constexpr auto add_segment = [](verse_parse_state& state, const std::string& text)
+  {
+    const auto paragraph_value = state.current_paragraph_id ? parser::html_custom_begin : parser::html_custom_undefined;
+    state.segments.push_back(
+      {state.current_paragraph_id.value_or(verse_parse_state::paragraph_id_type{}), paragraph_value, text}
+    );
+  };
+
+  if(!state.verse || !state.chapter)
+  {
+    LOG_WARN("failed to append content for unknown reference");
+    return;
+  }
+  if(!state.segments.empty())
+  {
+    const auto same_paragraph = state.current_paragraph_id == state.segments.back().paragraph_id;
+    if(!same_paragraph)
+    {
+      add_segment(state, text);
     }
     else
     {
-      LOG_ERROR("invalid nodes provided for usx to html conversion");
+      state.segments.back().content.append(text);
     }
-    return valid;
   }
-  catch(const util::exception& e)
+  else
   {
-    LOG_ERROR("failed to transform usx to html: {}", e.what());
-    return false;
+    add_segment(state, text);
   }
 }
 
 ///
-/// Load scripture information from the zip reader.
-/// \param zip_reader The zip file reader to load from
-/// \return The loaded scripture information
+/// Extract cross-reference texts from a <note style="x"> element's <char style="xt"> children.
+/// \param note_node The <note> XML element to extract from
+/// \return Vector of non-empty cross-reference text strings
+///
+auto extract_cross_references(const pugi::xml_node& note_node) -> std::vector<std::string>
+{
+  auto xrefs = std::vector<std::string>{};
+  for(auto note_child : note_node.children())
+  {
+    if(
+      note_child.type() == pugi::node_element && std::string_view(note_child.name()) == "char" &&
+      std::string_view(note_child.attribute("style").value()) == "xt"
+    )
+    {
+      auto text = get_inline_text(note_child);
+      if(!text.empty())
+      {
+        xrefs.push_back(std::move(text));
+      }
+    }
+  }
+  return xrefs;
+}
+
+///
+/// Process a single XML element within USX content.
+/// Dispatches verse markers, chapter markers, cross-reference notes, and inline styled elements.
+/// \param id The book identifier
+/// \param element The XML element node to process
+/// \param state The current parsing state
+/// \param passage_map The map to store completed verses into
+///
+auto process_element(
+  const book_id id, const pugi::xml_node& element, verse_parse_state& state, parser_usx::passage_map_type& passage_map
+) -> void
+{
+  const auto name = std::string_view(element.name());
+
+  if(name == "verse")
+  {
+    if(const auto attr = element.attribute("number"))
+    {
+      begin_verse(id, attr.as_uint(), state, passage_map);
+    }
+  }
+  else if(name == "chapter")
+  {
+    if(const auto attr = element.attribute("number"))
+    {
+      begin_chapter(id, attr.as_uint(), state, passage_map);
+    }
+  }
+  else if(name == "note" && std::string_view(element.attribute("style").value()) == "x")
+  {
+    auto xrefs = extract_cross_references(element);
+    state.current_xrefs.insert(
+      state.current_xrefs.end(), std::make_move_iterator(xrefs.begin()), std::make_move_iterator(xrefs.end())
+    );
+  }
+  else if(name != "note")
+  {
+    const auto html = serialize_inline_to_html(element);
+    if(!html.empty())
+    {
+      append_content(state, html);
+    }
+  }
+}
+
+///
+/// Process a single XML node (text or element) within USX content.
+/// Text nodes are appended to the current verse. Element nodes are dispatched via process_element.
+/// \param id The book identifier
+/// \param node The XML node to process
+/// \param state The current parsing state
+/// \param passage_map The map to store completed verses into
+///
+auto process_node(
+  const book_id id, const pugi::xml_node& node, verse_parse_state& state, parser_usx::passage_map_type& passage_map
+) -> void
+{
+  const auto type = node.type();
+  if(type == pugi::node_pcdata || type == pugi::node_cdata)
+  {
+    const auto text = std::string(node.value());
+    if(!text.empty())
+    {
+      append_content(state, text);
+    }
+  }
+  else if(type == pugi::node_element)
+  {
+    const auto name = std::string_view(node.name());
+    if(name == "para" && is_content_paragraph(std::string_view(node.attribute("style").value())))
+    {
+      state.current_paragraph_id = decltype(state.current_paragraph_id)::value_type{};
+      for(auto child : node.children())
+      {
+        process_node(id, child, state, passage_map);
+      }
+      state.current_paragraph_id = std::nullopt;
+    }
+    else
+    {
+      process_element(id, node, state, passage_map);
+    }
+  }
+}
+
+///
+/// Parse USX content for a single book into per-verse HTML passages with cross-references.
+/// \param id The book identifier
+/// \param usx_content The raw USX XML string
+/// \return Map of references to html_passage objects, empty on parse failure
+///
+auto parse_book_passages(const book_id id, const std::string& usx_content) -> parser_usx::passage_map_type
+{
+  pugi::xml_document doc;
+  const auto parse_result = doc.load_string(usx_content.c_str(), pugi::parse_default | pugi::parse_ws_pcdata);
+  if(!parse_result)
+  {
+    LOG_ERROR("failed to parse USX content for {}: {}", util::enum_name(id), parse_result.description());
+    return {};
+  }
+
+  const auto usx_node = doc.child("usx");
+  if(!usx_node)
+  {
+    LOG_ERROR("no <usx> root element found for {}", util::enum_name(id));
+    return {};
+  }
+
+  auto passage_map = parser_usx::passage_map_type{};
+  auto state = verse_parse_state{};
+
+  for(auto child : usx_node.children())
+  {
+    process_node(id, child, state, passage_map);
+  }
+
+  flush_verse(id, state, passage_map);
+  return passage_map;
+}
+
+///
+/// Load all passage data for every book from the zip archive.
+/// \param zip_reader The zip file reader to load book USX files from
+/// \return Map of all references to html_passage objects, empty on failure
+///
+auto load_book_data(const io::zip_file_reader& zip_reader) -> parser_usx::passage_map_type
+{
+  SCOPED_TIMER_LOG();
+  auto result = parser_usx::passage_map_type{};
+
+  const auto success = std::ranges::all_of(
+    parser_usx::books,
+    [&](const auto& book)
+    {
+      const auto& [id, abbreviation] = book;
+      const auto content = load_entry(zip_reader, std::format("{}.usx", abbreviation));
+      if(!content.has_value() || content->empty())
+      {
+        LOG_ERROR("failed to load \"{}\" data: expected \"{}.usx\" file within archive", util::enum_name(id), abbreviation);
+        return false;
+      }
+      auto book_result = parse_book_passages(id, *content);
+      result.merge(book_result);
+      return true;
+    }
+  );
+  if(!success)
+  {
+    result.clear();
+  }
+  return result;
+}
+
+///
+/// Load scripture metadata (name, abbreviation, language, copyright) from the zip archive.
+/// \param zip_reader The zip file reader containing metadata.xml
+/// \return The loaded scripture information, or std::nullopt on failure
 ///
 auto load_info_data(const io::zip_file_reader& zip_reader) -> std::optional<parser_usx::scripture_info>
 {
@@ -736,67 +787,23 @@ auto load_info_data(const io::zip_file_reader& zip_reader) -> std::optional<pars
   };
 }
 
-///
-/// Load book data from the zip reader.
-/// \param zip_reader The zip file reader to load from
-/// \return The loaded book data
-///
-auto load_book_data(const io::zip_file_reader& zip_reader) -> std::unique_ptr<pugi::xml_document>
-{
-  SCOPED_TIMER_LOG();
-  auto doc = std::make_unique<pugi::xml_document>();
-  pugi::xml_document src;
-
-  const auto success = std::ranges::all_of(
-    parser_usx::books,
-    [&](const auto& book)
-    {
-      const auto& [id, abbreviation] = book;
-      src.reset();
-      const auto content = load_entry(zip_reader, std::format("{}.usx", abbreviation));
-      if(!content.has_value() || content->empty())
-      {
-        LOG_ERROR("failed to load \"{}\" data: expected \"{}.usx\" file within archive", util::enum_name(id), abbreviation);
-        return false;
-      }
-      const auto parse_result = src.load_string(content->c_str(), pugi::parse_default | pugi::parse_ws_pcdata);
-      if(!parse_result)
-      {
-        LOG_ERROR("failed to parse \"{}.usx\": {}", abbreviation, parse_result.description());
-        return false;
-      }
-      return usx_to_html(id, src, *doc);
-    }
-  );
-  if(!success)
-  {
-    doc->reset();
-  }
-#ifdef DEBUG
-  static std::atomic_uint counter{0};
-  std::filesystem::create_directory("debug");
-  const auto filename = std::format("debug/debug_output_{}.xml", counter.fetch_add(1));
-  doc->save_file(filename.c_str());
-#endif
-  return doc;
-}
-
 } // namespace detail
 
 ///
 ///
 parser_usx::parser_usx(const io::zip_file_reader& zip_reader)
   : info_data_{detail::load_info_data(zip_reader)}
-  , book_data_{detail::load_book_data(zip_reader)}
 {
+  verse_data_ = detail::load_book_data(zip_reader);
   if(valid())
   {
     LOG_INFO(
-      "loaded scripture: name=\"{}\", abbreviation=\"{}\", language=\"{}\", copyright=\"{}\"",
+      "loaded scripture: name=\"{}\", abbreviation=\"{}\", language=\"{}\", copyright=\"{}\", verses={}",
       info_data_->name,
       info_data_->abbreviation,
       info_data_->language,
-      info_data_->copyright.value_or("not found")
+      info_data_->copyright.value_or("not found"),
+      verse_data_.size()
     );
   }
 }
@@ -809,7 +816,7 @@ parser_usx::~parser_usx() noexcept = default;
 ///
 auto parser_usx::do_valid() const -> bool
 {
-  return book_data_ && info_data_.has_value();
+  return !verse_data_.empty() && info_data_.has_value();
 }
 
 ///
@@ -825,36 +832,13 @@ auto parser_usx::do_info() const -> scripture_info
 ///
 auto parser_usx::do_passage_html(const reference& ref) const -> std::expected<html_passage, error_code>
 {
-  struct xml_string_writer final : public pugi::xml_writer
+  const auto it = verse_data_.find(ref);
+  if(it != verse_data_.end())
   {
-    // Overrides
-    auto write(const void* data, size_t size) -> void override { out.append(static_cast<const char*>(data), size); }
-
-    // Variables
-    std::string out;
-  };
-
-  const auto reference_id =
-    std::format(parser_usx::template_reference_id, util::enum_name(ref.book()), ref.chapter(), ref.verse());
-  decltype(auto) node =
-    book_data_->find_node([&](pugi::xml_node n)
-                          { return reference_id == n.attribute(parser_usx::attribute_reference_id).as_string(); });
-  auto writer = xml_string_writer{};
-  node.parent().print(writer, "", pugi::format_raw);
-
-  const auto reference_pos = writer.out.find(reference_id);
-  const auto offset = reference_id.size() + 2; // '"' + '>'
-  if(reference_pos != std::string::npos && reference_pos + offset < writer.out.size())
-  {
-    // return reference_pos + offset as well to get the position of the actual verse content
-    // within the generated HTML, which can be used for highlighting the verse
-    return html_passage{reference_pos + offset, std::move(writer.out)};
+    return it->second;
   }
-  else
-  {
-    LOG_ERROR("failed to find reference id in generated html: reference_id=\"{}\"", reference_id);
-    return std::unexpected(error_code::not_found);
-  }
+  LOG_ERROR("verse not found: {}", ref);
+  return std::unexpected(error_code::not_found);
 }
 
 } // namespace bibstd::bible

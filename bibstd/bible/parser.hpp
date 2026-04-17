@@ -4,6 +4,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace bibstd::bible
 {
@@ -31,8 +32,8 @@ public: // Typedefs
   };
 
   ///
-  /// Struct containing the HTML content of a bible passage,
-  /// along with the begin index of the first verse in the passage.
+  /// Struct containing the HTML content of a bible verse,
+  /// with paragraph markers using data-id attribute ("begin", "continue", or "undefined").
   ///
   struct html_passage final
   {
@@ -40,8 +41,8 @@ public: // Typedefs
     auto operator==(const html_passage&) const -> bool = default;
 
     // Variables
-    std::size_t begin_index;
     std::string content;
+    std::vector<std::string> cross_references;
   };
 
   ///
@@ -54,12 +55,22 @@ public: // Typedefs
   };
 
 public: // Constants
+  // Basic HTML tag constants
   static constexpr std::string_view html_bold = "b";
   static constexpr std::string_view html_italic = "i";
   static constexpr std::string_view html_paragraph = "p";
+  static constexpr std::string_view html_span = "span";
   static constexpr std::string_view html_superscript = "sup";
   static constexpr std::string_view html_h3 = "h3";
 
+  // Custom HTML constants
+  static constexpr std::string_view html_custom_attr_id = "data-id";
+
+  static constexpr std::string_view html_custom_begin = "begin";
+  static constexpr std::string_view html_custom_continue = "continue";
+  static constexpr std::string_view html_custom_undefined = "undefined";
+
+  // Formatting constants
   static constexpr std::string_view format_chapter_number = html_h3;
   static constexpr std::string_view format_verse_number = html_superscript;
   static constexpr std::string_view format_paragraph = html_paragraph;

@@ -50,14 +50,14 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(
 
       const auto result = workflow_bible_ref_ocr->find({{cursor_pos}});
 
-      const auto [text, begin_index] = [&]
+      const auto text = [&]
       {
-        auto unpack = std::make_pair(std::string{"..."}, 0);
+        auto unpack = std::string{"..."};
         try
         {
           if(result && result->passage)
           {
-            unpack = std::make_pair(result->passage->content, numeric_cast<int>(result->passage->begin_index));
+            unpack = result->passage->content;
           }
         }
         catch(const std::exception& e)
@@ -69,15 +69,13 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(
 
       QMetaObject::invokeMethod(
         this,
-        [this, process_id, text, begin_index]()
+        [this, process_id, text]()
         {
           if(running_ && processId_ == process_id)
           {
             running_ = false;
             htmlPassage_ = QString::fromStdString(text);
-            htmlPassageBeginIndex_ = begin_index;
             Q_EMIT htmlPassageChanged(htmlPassage_);
-            Q_EMIT htmlPassageBeginIndexChanged(htmlPassageBeginIndex_);
             Q_EMIT runningChanged(running_);
           }
         },

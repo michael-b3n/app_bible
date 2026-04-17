@@ -2,16 +2,12 @@
 
 #include "bibstd/bible/common.hpp"
 #include "bibstd/bible/parser.hpp"
+#include "bibstd/bible/reference.hpp"
 #include "bibstd/util/const_map.hpp"
 #include "bibstd/util/enum.hpp"
 
-#include <memory>
+#include <map>
 
-namespace pugi
-{
-// Forward declarations
-class xml_document;
-} // namespace pugi
 namespace bibstd::io
 {
 // Forward declarations
@@ -100,11 +96,8 @@ public: // Constants
   });
   static_assert(books.size() == util::enum_count<book_id>());
 
-  static constexpr auto attribute_reference_id = "data-reference-id";
-  static constexpr auto attribute_paragraph_id = "data-paragraph-id";
-
-  static constexpr auto template_paragraph_id = "para-{}-{}";
-  static constexpr auto template_reference_id = "ref-{}-{}-{}";
+public: // Typedefs
+  using passage_map_type = std::map<reference, html_passage>;
 
 public: // Constructor
   parser_usx(const io::zip_file_reader& zip_reader);
@@ -130,7 +123,7 @@ private: // Implementation
 
 private: // Variables
   const std::optional<scripture_info> info_data_;
-  const std::unique_ptr<pugi::xml_document> book_data_;
+  passage_map_type verse_data_;
 };
 
 } // namespace bibstd::bible
