@@ -82,11 +82,10 @@ auto workflow_bible_ref_ocr::find(const process_params& params) -> process_resul
       {
         const auto reference =
           std::ranges::min_element(*references, [](const auto& a, const auto& b) { return a.begin() < b.begin(); })->begin();
-        auto p = workflow_scripture::process_params{
-          {reference, std::nullopt}
-        };
-        auto passage_result = workflow_scripture_->get(p);
-        retval.passage = passage_result ? passage_result.value() : decltype(retval.passage){std::nullopt};
+        if(auto passage_result = workflow_scripture_->get(workflow_scripture::params{reference, std::nullopt}))
+        {
+          retval = result{.reference_ranges = *references, .first_reference = reference, .passage = passage_result.value()};
+        }
       }
       return retval;
     }

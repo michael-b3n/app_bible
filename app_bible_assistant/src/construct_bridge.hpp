@@ -3,6 +3,7 @@
 #include "src/construct_backend.hpp"
 
 #include <bibqml/BridgeBibleRefOcr.hpp>
+#include <bibqml/AbstractListModelPassage.hpp>
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -14,6 +15,7 @@ struct bridge_instance final
 {
   // Variables
   std::unique_ptr<bibqml::BridgeBibleRefOcr> bridge_bible_ref_ocr;
+  std::unique_ptr<bibqml::AbstractListModelPassage> abstract_list_model_passage;
 };
 
 ///

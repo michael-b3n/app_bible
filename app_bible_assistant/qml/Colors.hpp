@@ -36,6 +36,13 @@ class Colors final : public QObject
   Q_PROPERTY(QColor hover MEMBER hover_ NOTIFY hoverChanged)
   Q_PROPERTY(QColor pressed MEMBER pressed_ NOTIFY pressedChanged)
 
+  Q_PROPERTY(QColor verseBox MEMBER verseBox_ NOTIFY verseBoxChanged)
+  Q_PROPERTY(QColor verseText MEMBER verseText_ NOTIFY verseTextChanged)
+  Q_PROPERTY(QColor chapterBox MEMBER chapterBox_ NOTIFY chapterBoxChanged)
+  Q_PROPERTY(QColor chapterText MEMBER chapterText_ NOTIFY chapterTextChanged)
+  Q_PROPERTY(QColor bookHeader MEMBER bookHeader_ NOTIFY bookHeaderChanged)
+  Q_PROPERTY(QColor bookHeaderText MEMBER bookHeaderText_ NOTIFY bookHeaderTextChanged)
+
 public: // Structors
   explicit Colors(QObject* parent = nullptr);
   ~Colors() noexcept override;
@@ -48,6 +55,13 @@ signals:
   void hoverChanged();
   void pressedChanged();
 
+  void verseBoxChanged();
+  void verseTextChanged();
+  void chapterBoxChanged();
+  void chapterTextChanged();
+  void bookHeaderChanged();
+  void bookHeaderTextChanged();
+
 private: // Variables
   QColor backgroundTransparent_{detail::toQColor("#fef5deed")};
   QColor backgroundSolid_{detail::toQColor("#fef5deff")};
@@ -55,6 +69,13 @@ private: // Variables
   QColor text_{detail::toQColor("#000000ff")};
   QColor hover_{detail::toQColor("#eabca8ff")};
   QColor pressed_{detail::toQColor("#937a7aff")};
+
+  QColor verseBox_{detail::toQColor("#5B4A8Aff")};
+  QColor verseText_{detail::toQColor("#FFFFFFff")};
+  QColor chapterBox_{detail::toQColor("#7B5EA7ff")};
+  QColor chapterText_{detail::toQColor("#F0E6FFff")};
+  QColor bookHeader_{detail::toQColor("#9B7DC8ff")};
+  QColor bookHeaderText_{detail::toQColor("#FFFFFFff")};
 };
 
 } // namespace aba::qml

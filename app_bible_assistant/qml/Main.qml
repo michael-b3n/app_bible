@@ -8,6 +8,7 @@ QtObject
   id: root
 
   required property BridgeBibleRefOcr bridgeBibleRefOcr
+  required property AbstractListModelPassage listModelPassage
 
   // Constants
   /*no binding*/ readonly property double goldenRatio: 1.618
@@ -15,7 +16,6 @@ QtObject
   /*no binding*/ readonly property int margin: 4
   /*no binding*/ readonly property int radius : margin * 2
   /*no binding*/ readonly property int opacityDuration: 200
-  /*no binding*/ readonly property int tailLengthMax: stepSize * 2
   /*no binding*/ readonly property int minimalWidth: stepSize * goldenRatio * 3
   /*no binding*/ readonly property int minimalHeight: stepSize + 2 * margin
 
@@ -130,32 +130,12 @@ QtObject
 
     color: "transparent"
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
-    opacity: Math.min(bubble.opacity + speechBubble.opacity, 1)
-    visible: bubble.opacity > 0 || speechBubble.opacity > 0
+    opacity: speechBubble.opacity
+    visible: speechBubble.opacity > 0
     x: root.cursorX + root.offsetToCursorX
     y: root.cursorY + root.offsetToCursorY
     width: root.mainWidth
     height: root.mainHeight
-
-    Rectangle
-    {
-      id: bubble
-
-      anchors.fill: parent
-      border.color: Colors.border
-      color: Colors.backgroundTransparent
-      opacity: 0
-      radius: root.radius
-
-      Behavior on opacity
-      {
-        NumberAnimation
-        {
-          duration: root.opacityDuration
-          easing.type: Easing.InOutQuad
-        }
-      }
-    }
 
     MouseAreaHelper // Mouse area for interaction
     {
@@ -201,6 +181,7 @@ QtObject
         id: mainTabLayout
 
         bridgeBibleRefOcr: root.bridgeBibleRefOcr
+        listModelPassage: root.listModelPassage
 
         stepSize: root.stepSize
         margin: root.margin
@@ -223,16 +204,7 @@ QtObject
   //
   function show()
   {
-    if(showTail())
-    {
-      speechBubble.opacity = 1
-      bubble.opacity = 0
-    }
-    else
-    {
-      bubble.opacity = 1
-      speechBubble.opacity = 0
-    }
+    speechBubble.opacity = 1
     Qt.callLater(function() { main.raise() })
   }
 
@@ -241,7 +213,6 @@ QtObject
   //
   function hide()
   {
-    bubble.opacity = 0
     speechBubble.opacity = 0
   }
 
@@ -312,19 +283,4 @@ QtObject
     return {x: newOffsetX, y: newOffsetY, width: newWidth, height: newHeight}
   }
 
-  //
-  // Check with the offsets and the bubble position if the tail of the speech bubble should be shown.
-  //
-  function showTail()
-  {
-    let leftX = root.cursorX + root.offsetToCursorX
-    let rightX = leftX + root.mainWidth
-    let topY = root.cursorY + root.offsetToCursorY
-    let bottomY = topY + root.mainHeight
-    let tailLengthMax = root.tailLengthMax
-
-    let inRangeX = root.cursorX >= leftX - tailLengthMax && root.cursorX <= rightX + tailLengthMax
-    let inRangeY = root.cursorY >= topY - tailLengthMax && root.cursorY <= bottomY + tailLengthMax
-    return inRangeX && inRangeY
-  }
 }

@@ -10,6 +10,7 @@ Item
   id: root
 
   required property BridgeBibleRefOcr bridgeBibleRefOcr
+  required property AbstractListModelPassage listModelPassage
 
   required property int stepSize
   required property int margin
@@ -88,6 +89,7 @@ Item
       MainTabContent
       {
         bridgeBibleRefOcr: root.bridgeBibleRefOcr
+        listModelPassage: root.listModelPassage
       }
 
       SettingsTabContent

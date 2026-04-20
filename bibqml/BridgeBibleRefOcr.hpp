@@ -48,6 +48,7 @@ signals:
   void runningChanged(bool running);
   void cursorPositionChanged(const QPoint& cursorPosition);
   void htmlPassageChanged(const QString& htmlPassage);
+  void referenceFound(const QString& bookId, int chapter, int verse);
 
 public: // Modifiers
   ///

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bibstd/bible/reference.hpp"
 #include "bibstd/bible/reference_range.hpp"
 #include "bibstd/framework/process_params.hpp"
 #include "bibstd/framework/settings_base.hpp"
@@ -53,9 +54,16 @@ public: // Typedefs
   {
     util::screen_coordinates_type cursor_position{0, 0};
   };
+
+  ///
+  /// Result of bible reference ocr process.
+  /// This contains the found reference ranges, the first reference found
+  /// and the passage content for the first reference found.
+  ///
   struct result final
   {
     std::vector<bible::reference_range> reference_ranges;
+    std::optional<bible::reference> first_reference;
     std::optional<bible::parser::html_passage> passage;
   };
 
