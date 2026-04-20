@@ -22,7 +22,7 @@ auto disconnect_bridge(bridge_instance& instance) -> void
 
 ///
 ///
-auto construct_bridge(QGuiApplication& app, QQmlApplicationEngine& engine, backend_instance& backend) -> bridge_instance
+auto construct_bridge(QGuiApplication& app, backend_instance& backend) -> bridge_instance
 {
   // clang-format off
   auto workflow_bible_ref_ocr = std::static_pointer_cast<bibstd::workflow::workflow_bible_ref_ocr>(backend.workflow_bible_ref_ocr);
@@ -42,10 +42,17 @@ auto construct_bridge(QGuiApplication& app, QQmlApplicationEngine& engine, backe
     &bibqml::AbstractListModelPassage::resetWithReference
   );
 
+  return bibqml_inst;
+}
+
+///
+///
+auto connect_engine(QQmlApplicationEngine& engine, QGuiApplication& app, bridge_instance& bridge) -> void
+{
   // Set initial properties for the QML root component
   engine.setInitialProperties({
-    {"bridgeBibleRefOcr",        QVariant::fromValue(bibqml_inst.bridge_bible_ref_ocr.get())},
-    { "listModelPassage", QVariant::fromValue(bibqml_inst.abstract_list_model_passage.get())}
+    {"bridgeBibleRefOcr",        QVariant::fromValue(bridge.bridge_bible_ref_ocr.get())},
+    { "listModelPassage", QVariant::fromValue(bridge.abstract_list_model_passage.get())}
   });
 
   QObject::connect(
@@ -60,7 +67,6 @@ auto construct_bridge(QGuiApplication& app, QQmlApplicationEngine& engine, backe
     Qt::QueuedConnection
   );
   engine.load(QUrl(QStringLiteral("qrc:/qt/qml/ui/qml/Main.qml")));
-  return bibqml_inst;
 }
 
 } // namespace aba

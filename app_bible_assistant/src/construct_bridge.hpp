@@ -2,8 +2,8 @@
 
 #include "src/construct_backend.hpp"
 
-#include <bibqml/BridgeBibleRefOcr.hpp>
 #include <bibqml/AbstractListModelPassage.hpp>
+#include <bibqml/BridgeBibleRefOcr.hpp>
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -28,10 +28,17 @@ auto disconnect_bridge(bridge_instance& instance) -> void;
 ///
 /// Initialize the bridge instances.
 /// \param app The QGuiApplication instance
-/// \param engine The QQmlApplicationEngine instance
 /// \param backend The backend instance
 /// \return bridge instance
 ///
-auto construct_bridge(QGuiApplication& app, QQmlApplicationEngine& engine, backend_instance& backend) -> bridge_instance;
+auto construct_bridge(QGuiApplication& app, backend_instance& backend) -> bridge_instance;
+
+///
+/// Connect the QML engine to the bridge instances and load the main QML file.
+/// \param engine The QQmlApplicationEngine instance
+/// \param app The QGuiApplication instance
+/// \param bridge The bridge instance
+///
+auto connect_engine(QQmlApplicationEngine& engine, QGuiApplication& app, bridge_instance& bridge) -> void;
 
 } // namespace aba

@@ -49,10 +49,12 @@ int main(int argc, char** argv)
 
   // Initialize Qt application.
   QGuiApplication app(argc, argv);
-  QQmlApplicationEngine engine;
 
-  // Create OCR bridge and pass ownership to QML engine
-  auto bridge = aba::construct_bridge(app, engine, backend);
+  // Note bridge must be declared before engine so it outlives QML objects
+  auto bridge = aba::construct_bridge(app, backend);
+
+  QQmlApplicationEngine engine;
+  aba::connect_engine(engine, app, bridge);
 
   // Connect tray signals
   const auto do_on_exit = [&]()

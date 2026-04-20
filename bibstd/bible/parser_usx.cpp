@@ -549,6 +549,11 @@ auto begin_verse(
 ///
 auto append_content(verse_parse_state& state, const std::string& text) -> void
 {
+  if(!state.verse || !state.chapter)
+  {
+    return;
+  }
+
   static constexpr auto add_segment = [](verse_parse_state& state, const std::string& text)
   {
     const auto paragraph_value = state.current_paragraph_id ? parser::html_custom_begin : parser::html_custom_undefined;
@@ -557,11 +562,6 @@ auto append_content(verse_parse_state& state, const std::string& text) -> void
     );
   };
 
-  if(!state.verse || !state.chapter)
-  {
-    LOG_WARN("failed to append content for unknown reference");
-    return;
-  }
   if(!state.segments.empty())
   {
     const auto same_paragraph = state.current_paragraph_id == state.segments.back().paragraph_id;
