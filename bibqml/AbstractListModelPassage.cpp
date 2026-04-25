@@ -12,10 +12,34 @@
 
 namespace bibqml
 {
+namespace detail
+{
+
+///
+/// Get the default scripture from the workflow scripture.
+/// \param workflow_scripture Workflow scripture reference
+/// \return default scripture, or std::nullopt if no scripture could be obtained
+///
+auto default_scripture(bibstd::workflow::workflow_scripture& workflow_scripture)
+  -> std::optional<std::shared_ptr<bibstd::bible::scripture>>
+{
+  static constexpr auto default_scripture_params = bibstd::workflow::workflow_scripture::scripture_params::value_type{};
+  auto scripture = workflow_scripture.scripture(default_scripture_params);
+  if(!scripture)
+  {
+    LOG_WARN("failed to get default scripture");
+    return std::nullopt;
+  }
+  return scripture.value().scripture;
+}
+
+} // namespace detail
 
 ///
 ///
-AbstractListModelPassage::AbstractListModelPassage(std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture, QObject* parent)
+AbstractListModelPassage::AbstractListModelPassage(
+  std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture, QObject* parent
+)
   : QAbstractListModel(parent)
   , workflow_scripture_{std::move(workflow_scripture)}
 {
@@ -81,8 +105,14 @@ void AbstractListModelPassage::resetWithReference(const QString& bookId, const i
     LOG_WARN("invalid book id: {}", bookId.toStdString());
     return;
   }
-  const auto ref =
-    bibstd::bible::reference::create(*book, static_cast<std::uint32_t>(chapter), static_cast<std::uint32_t>(verse));
+  const auto scripture = detail::default_scripture(*workflow_scripture_);
+  if(!scripture)
+  {
+    LOG_WARN("failed to get default scripture");
+    return;
+  }
+
+  const auto ref = bibstd::bible::reference::create(*book, chapter, verse, scripture.value()->versification());
   if(!ref)
   {
     LOG_WARN("invalid reference: {} {}, {}", bookId.toStdString(), chapter, verse);
@@ -107,23 +137,29 @@ void AbstractListModelPassage::loadPrevious(const int count)
   {
     return;
   }
+  const auto scripture = detail::default_scripture(*workflow_scripture_);
+  if(!scripture)
+  {
+    return;
+  }
+  decltype(auto) versification = scripture.value()->versification();
+
   auto ref = entries_.front().ref;
   auto newEntries = std::vector<Entry>{};
 
   std::ignore = std::ranges::all_of(
     bibstd::util::ranges::index_view_to(count),
-    [&]([[maybe_unused]] auto)
+    [&, prev = std::optional<decltype(ref)>{}]([[maybe_unused]] auto) mutable
     {
-      const auto prev = ref;
-      --ref;
-      const auto valid = ref != prev;
-      if(valid)
+      prev = versification.prev(ref);
+      if(prev)
       {
-        const bool bookChanged = ref.book() != prev.book();
-        const bool chapterChanged = bookChanged || ref.chapter() != prev.chapter();
-        newEntries.push_back(makeEntry(ref, bookChanged, chapterChanged));
+        const bool bookChanged = ref.book() != prev->book();
+        const bool chapterChanged = bookChanged || ref.chapter() != prev->chapter();
+        newEntries.push_back(makeEntry(*prev, bookChanged, chapterChanged));
+        ref = *prev;
       }
-      return valid;
+      return prev.has_value();
     }
   );
   // Reverse since we collected them backwards
@@ -152,23 +188,29 @@ void AbstractListModelPassage::loadNext(const int count)
   {
     return;
   }
+  const auto scripture = detail::default_scripture(*workflow_scripture_);
+  if(!scripture)
+  {
+    return;
+  }
+  decltype(auto) versification = scripture.value()->versification();
+
   auto ref = entries_.back().ref;
   auto newEntries = std::vector<Entry>{};
 
   std::ignore = std::ranges::all_of(
     bibstd::util::ranges::index_view_to(count),
-    [&]([[maybe_unused]] auto)
+    [&, next = std::optional<decltype(ref)>{}]([[maybe_unused]] auto) mutable
     {
-      const auto prev = ref;
-      ++ref;
-      const auto valid = ref != prev;
-      if(valid)
+      next = versification.next(ref);
+      if(next)
       {
-        const bool bookChanged = ref.book() != prev.book();
-        const bool chapterChanged = bookChanged || ref.chapter() != prev.chapter();
-        newEntries.push_back(makeEntry(ref, bookChanged, chapterChanged));
+        const bool bookChanged = ref.book() != next->book();
+        const bool chapterChanged = bookChanged || ref.chapter() != next->chapter();
+        newEntries.push_back(makeEntry(*next, bookChanged, chapterChanged));
+        ref = *next;
       }
-      return valid;
+      return next.has_value();
     }
   );
 
@@ -183,21 +225,20 @@ void AbstractListModelPassage::loadNext(const int count)
 ///
 auto AbstractListModelPassage::fetchPassage(const bibstd::bible::reference& ref) -> QString
 {
-  auto params = bibstd::workflow::workflow_scripture::process_params{
-    {ref, std::nullopt}
-  };
-  auto result = workflow_scripture_->get(params);
+  auto params = bibstd::workflow::workflow_scripture::passage_params::value_type{ref, std::nullopt};
+  auto result = workflow_scripture_->passage(params);
   if(result)
   {
-    return QString::fromStdString(result->content);
+    return QString::fromStdString(result->passage.content);
   }
   return QString{"..."};
 }
 
 ///
 ///
-auto AbstractListModelPassage::makeEntry(const bibstd::bible::reference& ref, const bool forceBookHeader, const bool forceChapterHeader)
-  -> Entry
+auto AbstractListModelPassage::makeEntry(
+  const bibstd::bible::reference& ref, const bool forceBookHeader, const bool forceChapterHeader
+) -> Entry
 {
   const auto& prettyName = bibstd::bible::book_name_variants_de::pretty_names.at(ref.book());
   const auto bookName = QString::fromUtf8(prettyName.data(), static_cast<qsizetype>(prettyName.size()));

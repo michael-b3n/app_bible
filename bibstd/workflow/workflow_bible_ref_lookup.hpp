@@ -52,12 +52,14 @@ class workflow_bible_ref_lookup final
   , public framework::settings_owner<workflow_bible_ref_lookup_settings>
   , public signal::adapter<workflow_bible_ref_lookup_sigs>
 {
-public: // Typedefs
-  struct params final
+private: // Typedefs
+  struct params_t final
   {
     std::vector<bible::reference_range> references;
   };
-  using process_params = framework::process_params<params>;
+
+public: // Typedefs
+  using params = framework::process_params<params_t>;
 
 public: // Structors
   workflow_bible_ref_lookup();
@@ -68,7 +70,7 @@ public: // Modifiers
   /// Lookup bible references.
   /// \param params Start parameters for the workflow
   ///
-  auto lookup(const process_params& params) -> void;
+  auto lookup(const params& params) -> void;
 
 private: // Variables
   const util::shared_scope_guard thread_pool_guard_;

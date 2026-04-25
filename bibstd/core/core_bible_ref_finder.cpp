@@ -1,5 +1,8 @@
 #include "bibstd/core/core_bible_ref_finder.hpp"
 #include "bibstd/bible/book_name_variants_de.hpp"
+#include "bibstd/bible/common.hpp"
+#include "bibstd/bible/reference.hpp"
+#include "bibstd/bible/versification.hpp"
 #include "bibstd/math/value_range.hpp"
 #include "bibstd/txt/find_uint.hpp"
 #include "bibstd/txt/script_common.hpp"
@@ -29,7 +32,8 @@ auto match_passage_template_section(
   const std::span<const std::uint32_t> numbers,
   const std::string_view section,
   auto& current_level,
-  std::uint32_t& current_chapter
+  std::uint32_t& current_chapter,
+  const bible::versification& versification
 ) -> std::vector<bible::reference_range>
 {
   using passage_level = std::remove_reference_t<decltype(current_level)>;
@@ -37,8 +41,8 @@ auto match_passage_template_section(
   const auto numbers_size = numbers.size();
   if(std::string_view("#X#-#X#") == section && numbers_size == 4)
   {
-    const auto ref1 = bible::reference::create(book, numbers.at(0), numbers.at(1));
-    const auto ref2 = bible::reference::create(book, numbers.at(2), numbers.at(3));
+    const auto ref1 = bible::reference::create(book, numbers.at(0), numbers.at(1), versification);
+    const auto ref2 = bible::reference::create(book, numbers.at(2), numbers.at(3), versification);
     if(ref1 && ref2)
     {
       result.emplace_back(bible::reference_range(ref1.value(), ref2.value()));
@@ -48,8 +52,8 @@ auto match_passage_template_section(
   }
   else if(std::string_view("#X#-#") == section && numbers_size == 3)
   {
-    const auto ref1 = bible::reference::create(book, numbers.at(0), numbers.at(1));
-    const auto ref2 = bible::reference::create(book, numbers.at(0), numbers.at(2));
+    const auto ref1 = bible::reference::create(book, numbers.at(0), numbers.at(1), versification);
+    const auto ref2 = bible::reference::create(book, numbers.at(0), numbers.at(2), versification);
     if(ref1 && ref2)
     {
       result.emplace_back(bible::reference_range(ref1.value(), ref2.value()));
@@ -61,8 +65,8 @@ auto match_passage_template_section(
   {
     if(current_level == passage_level::verse)
     {
-      const auto ref1 = bible::reference::create(book, current_chapter, numbers.at(0));
-      const auto ref2 = bible::reference::create(book, numbers.at(1), numbers.at(2));
+      const auto ref1 = bible::reference::create(book, current_chapter, numbers.at(0), versification);
+      const auto ref2 = bible::reference::create(book, numbers.at(1), numbers.at(2), versification);
       if(ref1 && ref2)
       {
         result.emplace_back(bible::reference_range(ref1.value(), ref2.value()));
@@ -70,8 +74,8 @@ auto match_passage_template_section(
     }
     else
     {
-      const auto ref1 = bible::reference::create(book, numbers.at(0), 1u);
-      const auto ref2 = bible::reference::create(book, numbers.at(1), numbers.at(2));
+      const auto ref1 = bible::reference::create(book, numbers.at(0), 1u, versification);
+      const auto ref2 = bible::reference::create(book, numbers.at(1), numbers.at(2), versification);
       if(ref1 && ref2)
       {
         result.emplace_back(bible::reference_range(ref1.value(), ref2.value()));
@@ -82,7 +86,7 @@ auto match_passage_template_section(
   }
   else if(std::string_view("#X#") == section && numbers_size == 2)
   {
-    const auto ref = bible::reference::create(book, numbers.at(0), numbers.at(1));
+    const auto ref = bible::reference::create(book, numbers.at(0), numbers.at(1), versification);
     if(ref)
     {
       result.emplace_back(bible::reference_range(ref.value()));
@@ -94,8 +98,8 @@ auto match_passage_template_section(
   {
     if(current_level == passage_level::verse)
     {
-      const auto ref1 = bible::reference::create(book, current_chapter, numbers.at(0));
-      const auto ref2 = bible::reference::create(book, current_chapter, numbers.at(1));
+      const auto ref1 = bible::reference::create(book, current_chapter, numbers.at(0), versification);
+      const auto ref2 = bible::reference::create(book, current_chapter, numbers.at(1), versification);
       if(ref1 && ref2)
       {
         result.emplace_back(bible::reference_range(ref1.value(), ref2.value()));
@@ -103,8 +107,9 @@ auto match_passage_template_section(
     }
     else
     {
-      const auto ref1 = bible::reference::create(book, numbers.at(0), 1u);
-      const auto ref2 = bible::reference::create(book, numbers.at(1), verse_count(book, numbers.at(1)).value_or(0));
+      const auto verse_count = versification.verse_count(book, bible::reference::chapter_type{numbers.at(1)});
+      const auto ref1 = bible::reference::create(book, numbers.at(0), 1u, versification);
+      const auto ref2 = bible::reference::create(book, numbers.at(1), verse_count, versification);
       if(ref1 && ref2)
       {
         result.emplace_back(bible::reference_range(ref1.value(), ref2.value()));
@@ -116,7 +121,7 @@ auto match_passage_template_section(
   {
     if(current_level == passage_level::verse)
     {
-      const auto ref = bible::reference::create(book, current_chapter, numbers.front());
+      const auto ref = bible::reference::create(book, current_chapter, numbers.front(), versification);
       if(ref)
       {
         result.emplace_back(bible::reference_range(ref.value()));
@@ -124,8 +129,9 @@ auto match_passage_template_section(
     }
     else
     {
-      const auto ref1 = bible::reference::create(book, numbers.front(), 1u);
-      const auto ref2 = bible::reference::create(book, numbers.front(), verse_count(book, numbers.front()).value_or(0));
+      const auto verse_count = versification.verse_count(book, bible::reference::chapter_type{numbers.front()});
+      const auto ref1 = bible::reference::create(book, numbers.front(), 1u, versification);
+      const auto ref2 = bible::reference::create(book, numbers.front(), verse_count, versification);
       if(ref1 && ref2)
       {
         result.emplace_back(bible::reference_range(ref1.value(), ref2.value()));
@@ -140,8 +146,9 @@ auto match_passage_template_section(
 
 ///
 ///
-auto core_bible_ref_finder::parse(const std::string_view text, const std::size_t index, const util::language language) const
-  -> parse_result
+auto core_bible_ref_finder::parse(
+  const std::string_view text, const std::size_t index, const util::language language, const bible::versification& versification
+) const -> parse_result
 {
   auto book = find_book(text, index, language);
   if(!book)
@@ -153,7 +160,8 @@ auto core_bible_ref_finder::parse(const std::string_view text, const std::size_t
       book->book_id,
       create_passage_template(
         text.substr(book->index_range_numbers.begin, index_range_type::size(book->index_range_numbers)), language
-      )
+      ),
+      versification
     ),
     .index_range_origin = index_range_type{book->index_range_book.begin, book->index_range_numbers.end},
   };
@@ -280,8 +288,10 @@ auto core_bible_ref_finder::find_numbers_after_book_name(
           {
             digit_found = true;
           }
-          else if(category == txt::script_common::category::letter &&
-                  !util::contains(number_postfix_chars, [&](const auto v) { return util::string::starts_with(character, v); }))
+          else if(
+            category == txt::script_common::category::letter &&
+            !util::contains(number_postfix_chars, [&](const auto v) { return util::string::starts_with(character, v); })
+          )
           {
             numbers_end = pos;
           }
@@ -303,8 +313,10 @@ auto core_bible_ref_finder::try_validate_numbers_range(
     language,
     [&](const auto& letters) -> std::size_t
     {
-      if(numbers_end < text_after_name.size() && numbers_end > 0 &&
-         txt::script_common::is_char(letters, text_after_name, numbers_end, txt::script_common::category::letter))
+      if(
+        numbers_end < text_after_name.size() && numbers_end > 0 &&
+        txt::script_common::is_char(letters, text_after_name, numbers_end, txt::script_common::category::letter)
+      )
       {
         const auto text_from_last_number = text_after_name.substr(numbers_end - 1);
         const auto belongs_to_book_name = std::ranges::any_of(
@@ -390,10 +402,12 @@ auto core_bible_ref_finder::normalize_passage_text(const std::string_view text, 
         [&]([[maybe_unused]] const auto)
         {
           const auto subview = text.substr(counter);
-          if(const auto iter = std::ranges::find_if(
-               number_postfixes, [&](const auto postfix) { return util::string::starts_with(subview, postfix); }
-             );
-             iter != std::ranges::cend(number_postfixes))
+          if(
+            const auto iter = std::ranges::find_if(
+              number_postfixes, [&](const auto postfix) { return util::string::starts_with(subview, postfix); }
+            );
+            iter != std::ranges::cend(number_postfixes)
+          )
           {
             counter += iter->size(); // Ignore possible postfixes
           }
@@ -452,8 +466,9 @@ auto core_bible_ref_finder::identify_transition(const std::string_view text, std
 
 ///
 ///
-auto core_bible_ref_finder::match_passage_template(const bible::book_id book, passage_template_type&& passage_template) const
-  -> std::vector<bible::reference_range>
+auto core_bible_ref_finder::match_passage_template(
+  const bible::book_id book, passage_template_type&& passage_template, const bible::versification& versification
+) const -> std::vector<bible::reference_range>
 {
   if(!util::valid(book))
   {
@@ -464,7 +479,10 @@ auto core_bible_ref_finder::match_passage_template(const bible::book_id book, pa
   const auto numbers = passage_template_numbers(passage_template);
   if(passage_template.empty())
   {
-    result.emplace_back(bible::reference_range(bible::reference::create(book, 1u, 1u).value()));
+    if(const auto ref = bible::reference::create(book, 1u, 1u, versification))
+    {
+      result.emplace_back(bible::reference_range(ref.value()));
+    }
     return result;
   }
   else if(down_transition_chars.empty())
@@ -483,7 +501,12 @@ auto core_bible_ref_finder::match_passage_template(const bible::book_id book, pa
     auto current_level = passage_level::chapter;
     auto current_chapter = numbers.front();
     const auto found = detail::match_passage_template_section(
-      book, passage_sections.front().numbers, passage_sections.front().generic_template, current_level, current_chapter
+      book,
+      passage_sections.front().numbers,
+      passage_sections.front().generic_template,
+      current_level,
+      current_chapter,
+      versification
     );
     result.insert(result.cend(), found.cbegin(), found.cend());
     return result;
@@ -500,7 +523,7 @@ auto core_bible_ref_finder::match_passage_template(const bible::book_id book, pa
       [&](const auto& passage_section)
       {
         const auto found = detail::match_passage_template_section(
-          book, passage_section.numbers, passage_section.generic_template, current_level, current_chapter
+          book, passage_section.numbers, passage_section.generic_template, current_level, current_chapter, versification
         );
         const auto result = !found.empty();
         if(result)
@@ -525,7 +548,9 @@ auto core_bible_ref_finder::match_passage_template(const bible::book_id book, pa
     {
       const auto& [c, references] = pair;
       const auto verse_count = std::ranges::fold_left(
-        references, std::uint32_t{0}, [](std::uint32_t total, const auto& ref) { return total + ref.size(); }
+        references,
+        std::uint32_t{0},
+        [&](const std::uint32_t total, const auto& ref) { return total + versification.size(ref).value(); }
       );
       reference_ranges_verse_count.emplace_back(std::pair{c, verse_count});
     }

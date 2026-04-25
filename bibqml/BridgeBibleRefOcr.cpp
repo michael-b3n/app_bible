@@ -67,9 +67,9 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(
             first_reference = result->first_reference;
           }
         }
-        catch(const std::exception& e)
+        catch(...)
         {
-          LOG_ERROR("exception occurred while unpacking passage: {}", e.what());
+          LOG_ERROR("exception occurred while unpacking passage: {}", bibstd::util::exception_report());
         }
         return std::tuple{reference_ranges, first_reference, passage_content};
       }();
@@ -98,9 +98,9 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(
     }
   );
 
-  workflow_hotkey->assign_hotkey(
+  workflow_hotkey->assign_hotkey({
     {ocr_find_path, bibstd::system::hotkey_common::key_modifier::alt, bibstd::system::hotkey_common::key::vk_f}
-  );
+  });
 }
 
 ///

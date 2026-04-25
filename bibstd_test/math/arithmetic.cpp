@@ -26,8 +26,8 @@ constexpr auto min = std::numeric_limits<T>::lowest();
 TEST_CASE("Integer arithmetic", "[math]")
 {
   // Typedefs
-  using unsigned_types = meta::pack<std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t>;
-  using signed_types = meta::pack<std::int8_t, std::int16_t, std::int32_t, std::int64_t>;
+  using unsigned_types = std::tuple<std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t>;
+  using signed_types = std::tuple<std::int8_t, std::int16_t, std::int32_t, std::int64_t>;
   using all_types = meta::combine_pack_t<unsigned_types, signed_types>;
 
   using all_t = for_each_type<all_types>;
@@ -85,7 +85,7 @@ TEST_CASE("Integer arithmetic", "[math]")
 TEST_CASE("Floating point arithmetic", "[math]")
 {
   // Typedefs
-  using fp_types = meta::pack<float, double>;
+  using fp_types = std::tuple<float, double>;
   using fp_t = for_each_type<fp_types>;
 
   // clang-format off

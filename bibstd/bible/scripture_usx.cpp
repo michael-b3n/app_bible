@@ -1,4 +1,4 @@
-#include "bibstd/bible/parser_usx.hpp"
+#include "bibstd/bible/scripture_usx.hpp"
 #include "bibstd/bible/common.hpp"
 #include "bibstd/io/zip_file_reader.hpp"
 #include "bibstd/util/contains.hpp"
@@ -18,6 +18,7 @@
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace bibstd::bible
 {
@@ -396,10 +397,10 @@ auto serialize_inline_to_html(const pugi::xml_node& node) -> std::string
         const auto style = std::string_view{child.attribute("style").value()};
         const auto inner = serialize_inline_to_html(child);
         // clang-format off
-        if(style == "bd") { result.append(std::format("<{0}>{1}</{0}>", parser::html_bold, inner)); }
-        else if(style == "it" || style == "em") { result.append(std::format("<{0}>{1}</{0}>", parser::html_italic, inner)); }
-        else if(style == "nd") { result.append(std::format("<{0}>{1}</{0}>", parser::format_name_of_god, inner)); }
-        else if(style == "add") { result.append(std::format("<{0}>{1}</{0}>", parser::format_translator_addition, inner)); }
+        if(style == "bd") { result.append(std::format("<b>{}</b>", inner)); }
+        else if(style == "it" || style == "em") { result.append(std::format("<i>{}</i>", inner)); }
+        else if(style == "nd") { result.append(std::format("<{0}>{1}</{0}>", scripture::html_format_name_of_god, inner)); }
+        else if(style == "add") { result.append(std::format("<{0}>{1}</{0}>", scripture::html_format_translator_addition, inner)); }
         else { result.append(inner); }
         // clang-format on
       }
@@ -460,7 +461,7 @@ struct verse_parse_state final
   struct segment final
   {
     paragraph_id_type paragraph_id{};
-    std::string_view paragraph_attribute_value{parser::html_custom_undefined};
+    std::string_view paragraph_attribute_value{scripture::html_custom_attr_value_p_undefined};
     std::string content{""};
   };
 
@@ -478,7 +479,7 @@ struct verse_parse_state final
 /// \param state The current parsing state (segments and xrefs are cleared)
 /// \param passage_map The map to store the assembled passage into
 ///
-auto flush_verse(const book_id id, verse_parse_state& state, parser_usx::passage_map_type& passage_map) -> void
+auto flush_verse(const book_id id, verse_parse_state& state, scripture_usx::passage_map_type& passage_map) -> void
 {
   if(!state.verse || !state.chapter || state.segments.empty())
   {
@@ -493,20 +494,13 @@ auto flush_verse(const book_id id, verse_parse_state& state, parser_usx::passage
   auto html = std::string{};
   for(const auto& seg : state.segments)
   {
-    html.append(std::format(R"(<p {}="{}">)", parser::html_custom_attr_id, seg.paragraph_attribute_value));
+    html.append(std::format(R"(<p {}="{}">)", scripture::html_custom_attr_name_id, seg.paragraph_attribute_value));
     html.append(seg.content);
     html.append("</p>");
   }
-  const auto ref = reference::create(id, *state.chapter, *state.verse);
-  if(!ref)
-  {
-    LOG_WARN("invalid reference: book={}, chapter={}, verse={}", util::enum_name(id), *state.chapter, *state.verse);
-    state.segments.clear();
-    state.current_xrefs.clear();
-    return;
-  }
-  passage_map[*ref] = {std::move(html), std::move(state.current_xrefs)};
-  state.current_xrefs = {};
+  const auto ref = scripture::reference_type::create_unguarded(id, *state.chapter, *state.verse);
+  passage_map.emplace(ref, scripture::passage_html_type{ref, std::move(html), std::move(state.current_xrefs)});
+  state.current_xrefs.clear();
   state.segments.clear();
 }
 
@@ -518,7 +512,7 @@ auto flush_verse(const book_id id, verse_parse_state& state, parser_usx::passage
 /// \param passage_map The map to flush the previous verse into
 ///
 auto begin_chapter(
-  const book_id id, const std::uint32_t chapter_number, verse_parse_state& state, parser_usx::passage_map_type& passage_map
+  const book_id id, const std::uint32_t chapter_number, verse_parse_state& state, scripture_usx::passage_map_type& passage_map
 ) -> void
 {
   flush_verse(id, state, passage_map);
@@ -534,7 +528,7 @@ auto begin_chapter(
 /// \param passage_map The map to flush the previous verse into
 ///
 auto begin_verse(
-  const book_id id, const std::uint32_t verse_number, verse_parse_state& state, parser_usx::passage_map_type& passage_map
+  const book_id id, const std::uint32_t verse_number, verse_parse_state& state, scripture_usx::passage_map_type& passage_map
 ) -> void
 {
   flush_verse(id, state, passage_map);
@@ -556,7 +550,8 @@ auto append_content(verse_parse_state& state, const std::string& text) -> void
 
   static constexpr auto add_segment = [](verse_parse_state& state, const std::string& text)
   {
-    const auto paragraph_value = state.current_paragraph_id ? parser::html_custom_begin : parser::html_custom_undefined;
+    const auto paragraph_value =
+      state.current_paragraph_id ? scripture::html_custom_attr_value_p_begin : scripture::html_custom_attr_value_p_undefined;
     state.segments.push_back(
       {state.current_paragraph_id.value_or(verse_parse_state::paragraph_id_type{}), paragraph_value, text}
     );
@@ -614,7 +609,7 @@ auto extract_cross_references(const pugi::xml_node& note_node) -> std::vector<st
 /// \param passage_map The map to store completed verses into
 ///
 auto process_element(
-  const book_id id, const pugi::xml_node& element, verse_parse_state& state, parser_usx::passage_map_type& passage_map
+  const book_id id, const pugi::xml_node& element, verse_parse_state& state, scripture_usx::passage_map_type& passage_map
 ) -> void
 {
   const auto name = std::string_view(element.name());
@@ -659,7 +654,7 @@ auto process_element(
 /// \param passage_map The map to store completed verses into
 ///
 auto process_node(
-  const book_id id, const pugi::xml_node& node, verse_parse_state& state, parser_usx::passage_map_type& passage_map
+  const book_id id, const pugi::xml_node& node, verse_parse_state& state, scripture_usx::passage_map_type& passage_map
 ) -> void
 {
   const auto type = node.type();
@@ -696,7 +691,7 @@ auto process_node(
 /// \param usx_content The raw USX XML string
 /// \return Map of references to html_passage objects, empty on parse failure
 ///
-auto parse_book_passages(const book_id id, const std::string& usx_content) -> parser_usx::passage_map_type
+auto parse_book_passages(const book_id id, const std::string& usx_content) -> scripture_usx::passage_map_type
 {
   pugi::xml_document doc;
   const auto parse_result = doc.load_string(usx_content.c_str(), pugi::parse_default | pugi::parse_ws_pcdata);
@@ -713,7 +708,7 @@ auto parse_book_passages(const book_id id, const std::string& usx_content) -> pa
     return {};
   }
 
-  auto passage_map = parser_usx::passage_map_type{};
+  auto passage_map = scripture_usx::passage_map_type{};
   auto state = verse_parse_state{};
 
   for(auto child : usx_node.children())
@@ -730,25 +725,33 @@ auto parse_book_passages(const book_id id, const std::string& usx_content) -> pa
 /// \param zip_reader The zip file reader to load book USX files from
 /// \return Map of all references to html_passage objects, empty on failure
 ///
-auto load_book_data(const io::zip_file_reader& zip_reader) -> parser_usx::passage_map_type
+auto load_book_data(const io::zip_file_reader& zip_reader) -> scripture_usx::passage_map_type
 {
   SCOPED_TIMER_LOG();
-  auto result = parser_usx::passage_map_type{};
+  auto result = scripture_usx::passage_map_type{};
 
   const auto success = std::ranges::all_of(
-    parser_usx::books,
+    scripture_usx::books,
     [&](const auto& book)
     {
-      const auto& [id, abbreviation] = book;
-      const auto content = load_entry(zip_reader, std::format("{}.usx", abbreviation));
-      if(!content.has_value() || content->empty())
+      try
       {
-        LOG_ERROR("failed to load \"{}\" data: expected \"{}.usx\" file within archive", util::enum_name(id), abbreviation);
+        const auto& [id, abbreviation] = book;
+        const auto content = load_entry(zip_reader, std::format("{}.usx", abbreviation));
+        if(!content.has_value() || content->empty())
+        {
+          LOG_ERROR("failed to load \"{}\" data: expected \"{}.usx\" file within archive", util::enum_name(id), abbreviation);
+          return false;
+        }
+        auto book_result = parse_book_passages(id, *content);
+        result.merge(book_result);
+        return true;
+      }
+      catch(...)
+      {
+        LOG_ERROR("exception while loading book data: {}", util::exception_report());
         return false;
       }
-      auto book_result = parse_book_passages(id, *content);
-      result.merge(book_result);
-      return true;
     }
   );
   if(!success)
@@ -763,7 +766,7 @@ auto load_book_data(const io::zip_file_reader& zip_reader) -> parser_usx::passag
 /// \param zip_reader The zip file reader containing metadata.xml
 /// \return The loaded scripture information, or std::nullopt on failure
 ///
-auto load_info_data(const io::zip_file_reader& zip_reader) -> std::optional<parser_usx::scripture_info>
+auto load_info_data(const io::zip_file_reader& zip_reader) -> std::optional<scripture_usx::info_type>
 {
   SCOPED_TIMER_LOG();
   const auto data = load_entry(zip_reader, "metadata.xml");
@@ -779,10 +782,10 @@ auto load_info_data(const io::zip_file_reader& zip_reader) -> std::optional<pars
     return {};
   }
 
-  return parser_usx::scripture_info{
-    .name = load_name(doc).value_or(parser_usx::unknown_name),
-    .abbreviation = load_abbreviation(doc).value_or(parser_usx::unknown_abbreviation),
-    .language = load_language(doc).value_or(parser_usx::unknown_language),
+  return scripture_usx::info_type{
+    .name = load_name(doc).value_or(scripture_usx::unknown_name),
+    .abbreviation = load_abbreviation(doc).value_or(scripture_usx::unknown_abbreviation),
+    .language = load_language(doc).value_or(scripture_usx::unknown_language),
     .copyright = load_copyright(doc)
   };
 }
@@ -791,46 +794,62 @@ auto load_info_data(const io::zip_file_reader& zip_reader) -> std::optional<pars
 
 ///
 ///
-parser_usx::parser_usx(const io::zip_file_reader& zip_reader)
-  : info_data_{detail::load_info_data(zip_reader)}
+auto scripture_usx::create(const io::zip_file_reader& zip_reader) -> std::unique_ptr<scripture>
 {
-  verse_data_ = detail::load_book_data(zip_reader);
-  if(valid())
+  auto info_data = detail::load_info_data(zip_reader);
+  if(!info_data)
   {
-    LOG_INFO(
-      "loaded scripture: name=\"{}\", abbreviation=\"{}\", language=\"{}\", copyright=\"{}\", verses={}",
-      info_data_->name,
-      info_data_->abbreviation,
-      info_data_->language,
-      info_data_->copyright.value_or("not found"),
-      verse_data_.size()
-    );
+    LOG_ERROR("failed to load scripture information data");
+    return nullptr;
   }
+  auto verse_data = detail::load_book_data(zip_reader);
+  if(verse_data.empty())
+  {
+    LOG_ERROR("failed to load scripture verse data");
+    return nullptr;
+  }
+  LOG_INFO(
+    "loaded scripture: name=\"{}\", abbreviation=\"{}\", language=\"{}\", copyright=\"{}\", verses={}",
+    info_data->name,
+    info_data->abbreviation,
+    info_data->language,
+    info_data->copyright.value_or("not found"),
+    verse_data.size()
+  );
+  return std::make_unique<scripture_usx>(std::move(info_data), std::move(verse_data));
 }
 
 ///
 ///
-parser_usx::~parser_usx() noexcept = default;
-
-///
-///
-auto parser_usx::do_valid() const -> bool
+scripture_usx::scripture_usx(std::optional<info_type> info_data, passage_map_type verse_data)
+  : info_data_{std::move(info_data)}
+  , verse_data_{std::move(verse_data)}
+  , versification_{[&]
+                   {
+                     auto view = verse_data_ | std::views::keys;
+                     const auto v = versification_type{info_data_->name, view | std::ranges::to<std::vector>()};
+                     const auto it = std::ranges::find(versifications_default, v);
+                     return it != std::ranges::cend(versifications_default) ? *it : v;
+                   }()}
 {
-  return !verse_data_.empty() && info_data_.has_value();
 }
 
 ///
 ///
-auto parser_usx::do_info() const -> scripture_info
+scripture_usx::~scripture_usx() noexcept = default;
+
+///
+///
+auto scripture_usx::do_information() const -> info_type
 {
   static const auto unknown_info =
-    scripture_info{.name = unknown_name, .abbreviation = unknown_abbreviation, .language = unknown_language};
+    info_type{.name = unknown_name, .abbreviation = unknown_abbreviation, .language = unknown_language};
   return info_data_.value_or(unknown_info);
 }
 
 ///
 ///
-auto parser_usx::do_passage_html(const reference& ref) const -> std::expected<html_passage, error_code>
+auto scripture_usx::do_passage_html(const reference_type& ref) const -> std::optional<passage_html_type>
 {
   const auto it = verse_data_.find(ref);
   if(it != verse_data_.end())
@@ -838,7 +857,14 @@ auto parser_usx::do_passage_html(const reference& ref) const -> std::expected<ht
     return it->second;
   }
   LOG_ERROR("verse not found: {}", ref);
-  return std::unexpected(error_code::not_found);
+  return std::nullopt;
+}
+
+///
+///
+auto scripture_usx::do_versification() const -> const versification_type&
+{
+  return versification_;
 }
 
 } // namespace bibstd::bible

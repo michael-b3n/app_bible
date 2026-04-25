@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bibstd/bible/reference_range.hpp"
+#include "bibstd/bible/versification.hpp"
 #include "bibstd/math/value_range.hpp"
 #include "bibstd/util/language.hpp"
 
@@ -57,9 +58,12 @@ public: // Modifiers
   /// Parse bible reference from a string view. This function will only parse a reference of a single book.
   /// \param text String view containing bible references
   /// \param index Index where the bible reference shall be
+  /// \param language Language to use for text normalization and character detection
+  /// \param versification Versification to use for validating the parsed references
   /// \return parse result with bible reference ranges and origin text
   ///
-  auto parse(std::string_view text, std::size_t index, util::language language) const -> parse_result;
+  auto parse(std::string_view text, std::size_t index, util::language language, const bible::versification& versification) const
+    -> parse_result;
 
 private: // Typedefs
   using passage_template_value_type = std::variant<std::uint32_t, char>;
@@ -155,10 +159,12 @@ private: // Implementation
   /// Match a passage template section and return the corresponding reference ranges.
   /// \param book Book ID of the bible reference
   /// \param passage_template Passage template with numbers and transition characters
+  /// \param versification Versification to use for validating the parsed references
   /// \return Vector of reference ranges matching the passage template section
   ///
-  auto match_passage_template(bible::book_id book, passage_template_type&& passage_template) const
-    -> std::vector<bible::reference_range>;
+  auto match_passage_template(
+    bible::book_id book, passage_template_type&& passage_template, const bible::versification& versification
+  ) const -> std::vector<bible::reference_range>;
 
   ///
   /// Create a list of chars from the passage template.

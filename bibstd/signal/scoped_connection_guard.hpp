@@ -3,6 +3,7 @@
 
 #include "bibstd/signal/common.hpp"
 #include "bibstd/signal/connection_store.hpp"
+#include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
 
 #include <memory>
@@ -72,13 +73,9 @@ scoped_connection_guard::~scoped_connection_guard() noexcept
   {
     disconnect();
   }
-  catch(const std::exception& e)
-  {
-    LOG_ERROR("scoped connection guard destruction exception: {}", e.what());
-  }
   catch(...)
   {
-    LOG_ERROR("scoped connection guard destruction exception: {}", "unknown exception");
+    LOG_ERROR("scoped connection guard destruction exception: {}", util::exception_report());
   }
 }
 

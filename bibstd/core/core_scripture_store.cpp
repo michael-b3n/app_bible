@@ -1,5 +1,5 @@
 #include "bibstd/core/core_scripture_store.hpp"
-#include "bibstd/bible/parser_usx.hpp"
+#include "bibstd/bible/scripture_usx.hpp"
 #include "bibstd/io/zip_file_reader.hpp"
 #include "bibstd/res/scripture.hpp"
 #include "bibstd/util/log.hpp"
@@ -73,47 +73,9 @@ core_scripture_store::~core_scripture_store() noexcept = default;
 
 ///
 ///
-auto core_scripture_store::scripture_names() const -> std::vector<std::string>
+auto core_scripture_store::scriptures() const -> const scripture_map_type&
 {
-  return scripture_data_ | std::views::keys | std::ranges::to<std::vector>();
-}
-
-///
-///
-auto core_scripture_store::info(const std::string& name) const -> std::optional<scripture_info>
-{
-  return scripture_data_.contains(name) ? scripture_data_.at(name)->info() : std::optional<scripture_info>{};
-}
-
-///
-///
-auto core_scripture_store::passage_html(const std::string& name, const bible::reference& ref) const
-  -> std::optional<html_passage>
-{
-  auto result = std::optional<html_passage>{};
-  if(scripture_data_.contains(name))
-  {
-    decltype(auto) scripture = scripture_data_.at(name);
-    const auto html_passage = scripture->passage_html(ref);
-    if(html_passage.has_value())
-    {
-      result = *html_passage;
-    }
-    else
-    {
-      LOG_WARN(
-        "failed to get passage html: scripture=\"{}\", reference=\"{}\", error_code=\"{}\"",
-        scripture->info().name,
-        ref,
-        util::enum_name(html_passage.error())
-      );
-    }
-  }
-  else
-  {
-    LOG_WARN("scripture not found in store: name=\"{}\"", name);
-  }
-  return result;
+  return scripture_data_;
 }
 
 ///
@@ -125,12 +87,11 @@ auto core_scripture_store::load_usx(const io::zip_file_reader& zip_reader) -> bo
     LOG_ERROR("failed to open zip archive for usx format");
     return false;
   }
-  auto reader = std::make_unique<bible::parser_usx>(zip_reader);
-  const auto loaded = reader->valid();
-  if(loaded)
+  auto reader = bible::scripture_usx::create(zip_reader);
+  if(reader)
   {
     static constexpr auto uint_ending_format = " ({})";
-    auto name = reader->info().name;
+    auto name = reader->information().name;
     if(scripture_data_.contains(name))
     {
       auto found_max_uint_ending = std::uint32_t{0};
@@ -145,7 +106,7 @@ auto core_scripture_store::load_usx(const io::zip_file_reader& zip_reader) -> bo
     }
     scripture_data_.emplace(name, std::move(reader));
   }
-  return loaded;
+  return reader != nullptr;
 }
 
 } // namespace bibstd::core

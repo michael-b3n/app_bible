@@ -2,7 +2,6 @@
 
 #include "bibstd/meta/chrono.hpp"
 #include "bibstd/meta/contains.hpp"
-#include "bibstd/meta/pack.hpp"
 #include "bibstd/util/enum.hpp"
 #include "bibstd/util/ranges.hpp"
 
@@ -10,6 +9,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <filesystem>
 #include <format>
 #include <string>
 #include <vector>
@@ -20,7 +20,7 @@ namespace bibstd::framework
 ///
 /// All valid property_core types in a pack.
 ///
-using basic_property_value_types = meta::pack<
+using basic_property_value_types = std::tuple<
   bool,
   std::int8_t,
   std::uint8_t,

@@ -12,6 +12,6 @@ namespace bibstd::meta
 /// \result true, if T is contained in P, false otherwise
 ///
 template<packaged P, typename T>
-constexpr bool contains_v = type_index_v<P, T> < pack_size_v<P>;
+constexpr bool contains_v = type_index_v<P, T> < pack_info<P>::size;
 
 } // namespace bibstd::meta

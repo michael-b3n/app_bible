@@ -1,5 +1,6 @@
 #include "bibstd/framework/active_worker.hpp"
 #include "bibstd/util/exception.hpp"
+#include "bibstd/util/log.hpp"
 
 namespace bibstd::framework
 {
@@ -20,13 +21,9 @@ active_worker::active_worker()
               worker_queue_->do_task_or_wait();
             }
           }
-          catch(const util::exception& e)
-          {
-            LOG_ERROR("worker queue error: {}", e.what());
-          }
           catch(...)
           {
-            LOG_ERROR("worker queue error: {}", "unknown exception");
+            LOG_ERROR("worker queue error: {}", util::exception_report());
           }
         }
       }

@@ -8,18 +8,18 @@ namespace bibstd::bible
 {
 
 ///
-/// Common structures and definitions for bible parsers.
+/// Common structures and definitions for bible scriptures.
 ///
-struct parser_common final
+struct scripture_common final
 {
   // Typedefs
   ///
   /// Information about a scripture.
   ///
-  struct scripture_info final
+  struct info final
   {
     // Operators
-    auto operator==(const scripture_info&) const -> bool = default;
+    auto operator==(const info&) const -> bool = default;
 
     // Variables
     std::string name;

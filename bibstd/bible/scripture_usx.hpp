@@ -1,12 +1,13 @@
 #pragma once
 
 #include "bibstd/bible/common.hpp"
-#include "bibstd/bible/parser.hpp"
-#include "bibstd/bible/reference.hpp"
+#include "bibstd/bible/scripture.hpp"
 #include "bibstd/util/const_map.hpp"
 #include "bibstd/util/enum.hpp"
 
 #include <map>
+#include <memory>
+#include <optional>
 
 namespace bibstd::io
 {
@@ -17,9 +18,9 @@ namespace bibstd::bible
 {
 
 ///
-/// Scripture parser for USX formatted files.
+/// Scripture scripture for USX formatted files.
 ///
-class parser_usx final : public parser
+class scripture_usx final : public scripture
 {
 public: // Constants
   static constexpr auto unknown_name = "Unknown Scripture";
@@ -97,33 +98,42 @@ public: // Constants
   static_assert(books.size() == util::enum_count<book_id>());
 
 public: // Typedefs
-  using passage_map_type = std::map<reference, html_passage>;
+  using passage_map_type = std::map<reference_type, passage_html_type>;
+
+public: // Creators
+  ///
+  /// Create a scripture_usx instance by loading and parsing USX files from the provided zip reader.
+  /// \param zip_reader The zip file reader to load USX files from
+  /// \return A unique pointer to the created scripture_usx instance, or nullptr on failure
+  ///
+  static auto create(const io::zip_file_reader& zip_reader) -> std::unique_ptr<scripture>;
 
 public: // Constructor
-  parser_usx(const io::zip_file_reader& zip_reader);
-  ~parser_usx() noexcept override;
+  scripture_usx(std::optional<info_type> info_data, passage_map_type verse_data);
+  ~scripture_usx() noexcept override;
 
 private: // Overrides
   ///
-  /// \see parser::valid
+  /// \see scripture::information
   ///
-  auto do_valid() const -> bool override;
+  auto do_information() const -> info_type override;
 
   ///
-  /// \see parser::info
+  /// \see scripture::passage_html
   ///
-  auto do_info() const -> scripture_info override;
+  auto do_passage_html(const reference_type& ref) const -> std::optional<passage_html_type> override;
 
   ///
-  /// \see parser::passage_html
+  /// \see scripture::versification
   ///
-  auto do_passage_html(const reference& ref) const -> std::expected<html_passage, error_code> override;
+  auto do_versification() const -> const versification_type& override;
 
 private: // Implementation
 
 private: // Variables
-  const std::optional<scripture_info> info_data_;
-  passage_map_type verse_data_;
+  const std::optional<info_type> info_data_;
+  const passage_map_type verse_data_;
+  const versification_type versification_;
 };
 
 } // namespace bibstd::bible

@@ -43,7 +43,7 @@ public: // Structors
   );
   ~AbstractListModelPassage() noexcept override;
 
-public: // QAbstractListModel
+public: // Overrides
   auto rowCount(const QModelIndex& parent = QModelIndex()) const -> int override;
   auto data(const QModelIndex& index, int role = Qt::DisplayRole) const -> QVariant override;
   auto roleNames() const -> QHash<int, QByteArray> override;
@@ -70,8 +70,8 @@ public: // Modifiers
   ///
   Q_INVOKABLE void loadNext(int count = 1);
 
-private: // Implementation
-  struct Entry
+private: // Typedefs
+  struct Entry final
   {
     bibstd::bible::reference ref;
     QString verseText;
@@ -82,6 +82,7 @@ private: // Implementation
     bool isChapterHeader;
   };
 
+private: // Implementation
   auto fetchPassage(const bibstd::bible::reference& ref) -> QString;
   auto makeEntry(const bibstd::bible::reference& ref, bool forceBookHeader, bool forceChapterHeader) -> Entry;
 

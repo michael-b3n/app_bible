@@ -1,4 +1,5 @@
 #include "bibstd/framework/main_loop.hpp"
+#include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
 
 #include <cassert>
@@ -21,13 +22,9 @@ auto main_loop::run() -> void
         main_queue_->do_task_or_wait();
       }
     }
-    catch(const std::exception& e)
-    {
-      LOG_ERROR("main_loop queue error: {}", e.what());
-    }
     catch(...)
     {
-      LOG_ERROR("main_loop queue error: {}", "unknown exception");
+      LOG_ERROR("main_loop queue error: {}", util::exception_report());
     }
   }
 }

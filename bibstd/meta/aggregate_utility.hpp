@@ -41,7 +41,7 @@ template<typename T, template<typename...> typename P, typename... Args>
 struct __is_constructable_with<T, P<Args...>> : std::true_type
 {};
 template<typename T, std::size_t N>
-concept __constructable_with = __is_constructable_with<T, pack_n_types_t<pack, __any, N>>::value;
+concept __constructable_with = __is_constructable_with<T, pack_n_types_t<std::tuple, __any, N>>::value;
 
 template<std::size_t N>
 struct size_t_constant final

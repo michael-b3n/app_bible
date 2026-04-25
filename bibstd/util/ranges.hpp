@@ -57,9 +57,10 @@ constexpr auto index_view_to(const std::integral auto end) -> auto
 }
 
 ///
-/// Return an iota view from zero to the specified end index.
-/// \param end End index
-/// \return iota view from zero to the given end index
+/// Return an iota view from first to the specified end index.
+/// \param first Start index
+/// \param second End index
+/// \return iota view from first to the given end index
 ///
 constexpr auto index_view_between(const std::integral auto first, const std::integral auto second) -> auto
 {

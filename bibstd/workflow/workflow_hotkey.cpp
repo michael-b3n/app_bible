@@ -9,8 +9,8 @@ namespace bibstd::workflow
 
 ///
 ///
-workflow_hotkey::hotkey_params::hotkey_params(
-  std::string&& path, const hotkey_type::key_modifier modifier, const hotkey_type::key key
+workflow_hotkey::assign_params_t::assign_params_t(
+  std::string path, const hotkey_type::key_modifier modifier, const hotkey_type::key key
 )
   : path{std::move(path)}
   , modifier{modifier}
@@ -54,19 +54,19 @@ auto workflow_hotkey::register_callback(const path_type& path) -> shared_sig_typ
 
 ///
 ///
-auto workflow_hotkey::assign_hotkey(const hotkey_params& params) -> bool
+auto workflow_hotkey::assign_hotkey(const assign_params& params) -> bool
 {
   const auto lock = std::scoped_lock{mtx_};
-  const auto it = shared_sigs_.find(params.path);
+  const auto it = shared_sigs_.find(params->path);
   if(it == std::cend(shared_sigs_))
   {
     return false;
   }
   auto shared_sig = it->second;
-  system::hotkey::unregister_callback(params.key, params.modifier);
+  system::hotkey::unregister_callback(params->key, params->modifier);
   system::hotkey::register_callback(
-    params.key,
-    params.modifier,
+    params->key,
+    params->modifier,
     [sig = std::weak_ptr{shared_sig}]()
     {
       framework::thread_pool::queue_task(

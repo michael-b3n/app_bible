@@ -18,26 +18,29 @@ namespace bibstd::workflow
 ///
 class workflow_hotkey final : public workflow_base<workflow_hotkey>
 {
-public: // Typedefs
-  using path_type = std::string;
-  using shared_sig_type = std::shared_ptr<signal::signal_type<void()>>;
-
+private: // Typedefs
   ///
   /// Hotkey parameters to assign a registered callback to a specific hotkey.
   ///
-  struct hotkey_params final
+  struct assign_params_t final
   {
     // Typedefs
+    using path_type = std::string;
     using hotkey_type = system::hotkey_common;
 
     // Constructors
-    hotkey_params(path_type&& path, hotkey_type::key_modifier modifier, hotkey_type::key key);
+    assign_params_t(path_type path, hotkey_type::key_modifier modifier, hotkey_type::key key);
 
     // Variables
     path_type path;
     hotkey_type::key_modifier modifier;
     hotkey_type::key key;
   };
+
+public: // Typedefs
+  using path_type = assign_params_t::path_type;
+  using assign_params = framework::process_params<assign_params_t>;
+  using shared_sig_type = std::shared_ptr<signal::signal_type<void()>>;
 
 public: // Structors
   workflow_hotkey();
@@ -56,7 +59,7 @@ public: // Modifiers
   /// \param params Hotkey parameters containing the path, modifier, and key
   /// \return true if the hotkey was successfully assigned, false otherwise
   ///
-  auto assign_hotkey(const hotkey_params& params) -> bool;
+  auto assign_hotkey(const assign_params& params) -> bool;
 
   ///
   /// Register a callback to a specific path.

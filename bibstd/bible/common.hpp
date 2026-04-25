@@ -4,10 +4,12 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <optional>
 
 namespace bibstd::bible
 {
+// Forward declarations
+class reference_range;
+class versification;
 
 ///
 /// Bible books.
@@ -117,26 +119,6 @@ enum class translation
   vxb,
   zb
 };
-
-///
-/// Number of all the verses in the bible.
-///
-constexpr auto total_verse_count = std::uint32_t{31102};
-
-///
-/// Get the count of chapters in a book.
-/// \param book The book to get the chapter count of
-/// \return the chapter count
-///
-auto chapter_count(book_id book) -> std::uint32_t;
-
-///
-/// Get the count of verses in a chapter.
-/// \param book The book to get the chapter count of
-/// \param chapter_number The chapter to get the verse count of
-/// \return the verse count
-///
-auto verse_count(book_id book, std::uint32_t chapter_number) -> std::optional<std::uint32_t>;
 
 } // namespace bibstd::bible
 

@@ -41,6 +41,7 @@ template<>
 class process_params<void> final
 {
 public: // Typedefs
+  using value_type = void;
   using id_type = process_id_type;
 
 public: // Constructor
@@ -65,6 +66,7 @@ template<typename ParamsType>
 class process_params<ParamsType> final
 {
 public: // Typedefs
+  using value_type = ParamsType;
   using id_type = process_id_type;
 
 public: // Constructor

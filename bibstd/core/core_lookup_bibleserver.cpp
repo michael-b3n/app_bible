@@ -1,5 +1,6 @@
 #include "bibstd/core/core_lookup_bibleserver.hpp"
 #include "bibstd/bible/book_name_variants_de.hpp"
+#include "bibstd/bible/versification.hpp"
 #include "bibstd/system/open_browser.hpp"
 #include "bibstd/util/log.hpp"
 
@@ -66,13 +67,22 @@ auto core_lookup_bibleserver::open(const bible::reference_range& range, const st
       {
         const auto verse_begin = [&]
         {
-          if(chapter_value == begin.chapter().value) return begin.verse();
+          if(chapter_value == begin.chapter().value)
+          {
+            return begin.verse();
+          }
           return bible::reference::verse_type{1};
         }();
         const auto verse_end = [&]
         {
-          if(chapter_value == end.chapter().value) return end.verse();
-          return bible::reference::verse_type{bible::verse_count(book, chapter_value).value()};
+          if(chapter_value == end.chapter().value)
+          {
+            return end.verse();
+          }
+          // Bibleserver supports only default numeration of chapters and verses.
+          // Thats why no other versification is needed and initialized.
+          const auto& versification = bible::versification_kjv;
+          return bible::reference::verse_type{versification.verse_count(book, bible::reference::chapter_type{chapter_value})};
         }();
         append_url(begin.book(), chapter_value, verse_begin, verse_end);
       }

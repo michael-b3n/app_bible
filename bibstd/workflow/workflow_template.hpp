@@ -29,15 +29,16 @@ class workflow_template final
   : public workflow_base<workflow_template>
   , public framework::settings_owner<workflow_template_settings>
 {
-public: // Typedefs
-  struct params final
+private: // Typedefs
+  struct params_t final
   {
     int value{0}; /*some type*/
   };
-  using result = float /*some type*/;
+  using result_t = float /*some type*/;
 
-  using process_params = framework::process_params<params>;
-  using process_result = framework::process_result<result>;
+public: // Typedefs
+  using params = framework::process_params<params_t>;
+  using result = framework::process_result<result_t>;
 
 public: // Structors
   workflow_template();
@@ -49,7 +50,7 @@ public: // Modifiers
   /// \param params Process parameters for the workflow
   /// \return result, or an unexpected result in case of failure
   ///
-  auto start(const process_params& params) -> process_result;
+  auto start(const params& params) -> result;
 };
 
 } // namespace bibstd::workflow

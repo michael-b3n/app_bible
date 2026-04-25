@@ -1,5 +1,7 @@
 #include "bibstd/workflow/workflow_bible_ref_lookup.hpp"
 #include "bibstd/core/core_lookup_bibleserver.hpp"
+#include "bibstd/util/exception.hpp"
+#include "bibstd/util/log.hpp"
 
 namespace bibstd::workflow
 {
@@ -27,7 +29,7 @@ workflow_bible_ref_lookup::~workflow_bible_ref_lookup() noexcept = default;
 
 ///
 ///
-auto workflow_bible_ref_lookup::lookup(const process_params& params) -> void
+auto workflow_bible_ref_lookup::lookup(const params& params) -> void
 {
   try
   {
@@ -43,18 +45,18 @@ auto workflow_bible_ref_lookup::lookup(const process_params& params) -> void
           );
           notify(&signals_type::ended, params.process_id());
         }
-        catch(const util::exception& e)
+        catch(...)
         {
-          LOG_ERROR("exception occurred: {}", e);
+          LOG_ERROR("exception occurred: {}", util::exception_report());
           notify(&signals_type::ended, params.process_id());
         }
       },
       strand_id_
     );
   }
-  catch(const util::exception& e)
+  catch(...)
   {
-    LOG_ERROR("exception occurred: {}", e);
+    LOG_ERROR("exception occurred: {}", util::exception_report());
     notify(&signals_type::ended, params.process_id());
   }
 }

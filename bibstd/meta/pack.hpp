@@ -193,26 +193,6 @@ template<template<typename...> typename P, typename T, std::size_t N>
 using pack_n_types_t = typename pack_n_types<P, T, N>::type;
 
 ///
-/// Deduce type in pack like type at index N.
-///
-template<packaged P, std::size_t N>
-struct type_from_pack;
-
-template<template<typename...> typename P, std::size_t N, typename... Args>
-struct type_from_pack<P<Args...>, N>
-{
-  using type = std::tuple_element_t<N, std::tuple<Args...>>;
-};
-
-///
-/// Get the type of an element in pack like type P with index N.
-/// \tparam P pack of types pack<...>
-/// \tparam N index of type in pack as pack<T<0>, T<1>, ... T<N>, ... T<M>>
-///
-template<packaged P, std::size_t N>
-using type_from_pack_t = type_from_pack<P, N>::type;
-
-///
 /// Deduce index of specific type in pack like type.
 ///
 template<packaged P, typename T>
@@ -254,51 +234,41 @@ template<packaged P, typename T>
 constexpr std::size_t type_index_v = type_index<P, T>::index;
 
 ///
-/// Pack of arbitrary template parameters
-/// \tparam ... arbitrary types
-/// \result type of pack<...>
+/// Extract information of a packable type
+/// \tparam P pack like type
 ///
-template<typename... Args>
-struct pack
-{};
+template<typename P>
+struct pack_info;
 
-///
-/// Access general pack info via pack type.
-///
-template<>
-struct pack<>
+template<template<typename...> typename P, typename T>
+struct pack_info<P<T>> final
 {
-  static constexpr std::size_t size = 0;
-  using first_type = void;
-  using last_type = void;
-};
+  // Constants
+  static constexpr std::size_t size = 1;
 
-template<typename T, typename... Args>
-struct pack<T, Args...>
-{
-  static constexpr std::size_t size = sizeof...(Args) + 1;
+  // Templates
+  template<std::size_t N>
+    requires(N == 0)
+  using type_at = T;
+
+  // Typedefs
   using first_type = T;
-  using last_type = type_from_pack_t<std::tuple<T, Args...>, size - 1>;
+  using last_type = T;
 };
 
-///
-/// Get size of a generic pack like type.
-///
-template<packaged P>
-struct pack_size;
-
-template<template<typename...> typename P, typename... Args>
-struct pack_size<P<Args...>>
+template<template<typename...> typename P, typename T, typename... Args>
+struct pack_info<P<T, Args...>> final
 {
-  static constexpr auto value = sizeof...(Args);
-};
+  // Constants
+  static constexpr std::size_t size = sizeof...(Args) + 1;
 
-///
-/// Get sizeof...(Args) of generic pack P<Args...>.
-/// \tparam P pack type containing generic types
-/// \return sizeof...(Args) in pack P<Args...>
-///
-template<packaged P>
-constexpr std::size_t pack_size_v = pack_size<P>::value;
+  // Templates
+  template<std::size_t N>
+  using type_at = std::tuple_element_t<N, std::tuple<T, Args...>>;
+
+  // Typedefs
+  using first_type = T;
+  using last_type = type_at<size - 1>;
+};
 
 } // namespace bibstd::meta

@@ -5,7 +5,6 @@
 #include "bibstd/framework/setting_validator.hpp"
 #include "bibstd/meta/type_traits.hpp"
 #include "bibstd/signal/adapter.hpp"
-#include "bibstd/util/log.hpp"
 #include "bibstd/util/visit_helper.hpp"
 
 #include <memory>
@@ -85,10 +84,6 @@ setting<T>::setting(const std::string& path_, property<value_type>&& value, sett
     validator
   );
   validate();
-  if(value != value_)
-  {
-    LOG_WARN("failed to initialize setting with provided value: path=\"{}\"", path);
-  }
 }
 
 ///

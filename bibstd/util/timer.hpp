@@ -47,4 +47,4 @@ private: // Variables
 /// Scoped timer logging macro.
 ///
 #define SCOPED_TIMER_LOG()                                                                                                     \
-  [[maybe_unused]] const auto BOOST_PP_CAT(__scoped_timer_logger_instance, __COUNTER__) = ::bibstd::util::scoped_timer_logger();
+  [[maybe_unused]] const auto BOOST_PP_CAT(__scoped_timer_logger_instance, __LINE__) = ::bibstd::util::scoped_timer_logger();

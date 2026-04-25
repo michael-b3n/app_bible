@@ -1,4 +1,5 @@
 #include "bibstd/util/scope_guard.hpp"
+#include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
 
 namespace bibstd::util
@@ -55,13 +56,9 @@ auto scope_guard::destruct() -> void
       on_destruction_ = nullptr;
     }
   }
-  catch(const std::exception& e)
-  {
-    LOG_ERROR("scoped guard destruction exception: {}", e.what());
-  }
   catch(...)
   {
-    LOG_ERROR("scoped guard destruction exception: {}", "unknown exception");
+    LOG_ERROR("scoped guard destruction exception: {}", util::exception_report());
   }
 }
 

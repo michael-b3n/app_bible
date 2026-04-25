@@ -23,16 +23,17 @@ namespace bibstd::workflow
 ///
 class workflow_settings final : public workflow_base<workflow_settings>
 {
-public: // Typedefs
+  // Typedefs
   template<framework::underlying_setting_type_erased_type T>
   using setting_type_erased_non_owning_ptr_type = util::non_owning_ptr<framework::setting_type_erased<T>>;
   template<framework::underlying_setting_type_erased_type T>
   using setting_type_erased_uptr_type = std::unique_ptr<framework::setting_type_erased<T>>;
-
-  using setting_type_erased_non_owning_ptr_variant_type =
-    meta::for_each_t<framework::setting_type_erased_variant, setting_type_erased_non_owning_ptr_type>;
   using setting_type_erased_uptr_variant_type =
     meta::for_each_t<framework::setting_type_erased_variant, setting_type_erased_uptr_type>;
+
+public: // Typedefs
+  using setting_type_erased_non_owning_ptr_variant_type =
+    meta::for_each_t<framework::setting_type_erased_variant, setting_type_erased_non_owning_ptr_type>;
 
   template<framework::underlying_setting_type T>
   using setting_non_owning_ptr_type = util::non_owning_ptr<framework::setting<T>>;
@@ -45,20 +46,21 @@ public: // Static interface
   /// Get the default settings file path.
   /// \return settings file path
   ///
-  static auto settings_file_path() -> const std::filesystem::path&;
+  [[nodiscard]] static auto settings_file_path() -> const std::filesystem::path&;
 
   ///
   /// Access all created settings.
   /// \return list of all created settings
   ///
-  static auto type_erased_settings() -> std::vector<setting_type_erased_non_owning_ptr_variant_type>;
+  [[nodiscard]] static auto type_erased_settings() -> std::vector<setting_type_erased_non_owning_ptr_variant_type>;
 
   ///
   /// Access a type erased setting for the specified path.
   /// \param path Setting path
   /// \return type erased setting or nullopt if no setting with the specified path exists
   ///
-  static auto type_erased_setting(const std::string& path) -> std::optional<setting_type_erased_non_owning_ptr_variant_type>;
+  [[nodiscard]] static auto type_erased_setting(const std::string& path)
+    -> std::optional<setting_type_erased_non_owning_ptr_variant_type>;
 
 public: // Structors
   workflow_settings() = default;

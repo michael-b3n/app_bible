@@ -75,7 +75,7 @@ zip_file_reader::zip_file_reader(const std::filesystem::path& zip_path, const st
 {
   int error_code = 0;
   int flags = ZIP_RDONLY;
-#ifdef DEBUG
+#ifdef BIBSTD_DEBUG
   flags |= ZIP_CHECKCONS;
 #endif
   zip_handle_ = zip_open(zip_path.string().c_str(), flags, &error_code);
@@ -124,7 +124,7 @@ zip_file_reader::zip_file_reader(const std::span<const std::byte> data, const st
   }
 
   int flags = ZIP_RDONLY;
-#ifdef DEBUG
+#ifdef BIBSTD_DEBUG
   flags |= ZIP_CHECKCONS;
 #endif
   zip_handle_ = zip_open_from_source(source, flags, &error); // takes ownership of source
