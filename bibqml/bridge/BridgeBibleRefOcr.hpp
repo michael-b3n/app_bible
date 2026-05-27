@@ -1,7 +1,7 @@
 #pragma once
 
 #include <bibstd/framework/process_params.hpp>
-#include <bibstd/signal/scoped_connection_guard.hpp>
+#include <bibstd/signal/synchronized_executor.hpp>
 #include <bibstd/workflow/workflow_hotkey.hpp>
 
 #include <QObject>
@@ -14,11 +14,6 @@ namespace bibstd::workflow
 // Forward declaration
 class workflow_bible_ref_ocr;
 } // namespace bibstd::workflow
-
-namespace bibstd::signal
-{
-class connection_store;
-} // namespace bibstd::signal
 
 namespace bibqml
 {
@@ -55,10 +50,7 @@ public: // Modifiers
   /// Disconnect all signal connections.
   /// This will stop the frontend backend communication.
   ///
-  auto disconnect() -> void;
-
-private: // Implementation
-  auto onFindReference() -> void;
+  void disconnect();
 
 private: // Variables
   bool running_{false};
@@ -67,7 +59,7 @@ private: // Variables
 
   const bibstd::workflow::workflow_hotkey::shared_sig_type findReferenceSig_{};
   bibstd::framework::process_id_type processId_{};
-  std::unique_ptr<bibstd::signal::scoped_connection_guard> connections_;
+  bibstd::signal::synchronized_executor executor_;
 };
 
 } // namespace bibqml

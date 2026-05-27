@@ -31,7 +31,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 # Main Qt Versions
 #
 set(QT_VERSION_NAME Qt6)
-set(QT_VERSION_NUMBER 6.9)
+set(QT_VERSION_NUMBER 6.11)
 
 #
 # Sets compile flag defaults.

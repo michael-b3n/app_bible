@@ -4,18 +4,30 @@
 
 #include <concepts>
 #include <functional>
-#include <type_traits>
 
 namespace bibstd::signal
 {
+namespace detail
+{
+// clang-format off
+struct _any_return_type{};
+struct _any_argument_type{};
+using _any_signal_type = signal_type<_any_return_type(_any_argument_type)>;
+// clang-format on
+} // namespace detail
 
 ///
 /// Concept for executors that can be used with the adapter.
 ///
 template<typename T>
-concept executor_kind = requires(T t, std::move_only_function<void()> task) {
-  { t(std::move(task)) } -> std::same_as<void>;
-  { t.store(scoped_connection_type{}) } -> std::same_as<void>;
+concept executor_kind = requires(
+  T t,
+  detail::_any_signal_type& sig,
+  detail::_any_signal_type::slot_type slot,
+  detail::_any_signal_type::extended_slot_type ext_slot
+) {
+  { t.connect(sig, std::move(slot)) } -> std::same_as<void>;
+  { t.connect_extended(sig, std::move(ext_slot)) } -> std::same_as<void>;
 };
 
 ///
@@ -102,16 +114,7 @@ auto adapter<T>::connect_extended(auto sig_projection, auto&& slot) -> connectio
 template<std::default_initializable T>
 auto adapter<T>::connect_queued(auto sig_projection, auto&& slot, executor_kind auto& executor) -> void
 {
-  using sig_type = std::remove_cvref_t<std::invoke_result_t<decltype(sig_projection), T&>>;
-  using function_type = to_functional<sig_type, std::function>::type;
-  static_assert(std::is_convertible_v<decltype(slot), function_type>);
-
-  function_type func = [slot = std::forward<decltype(slot)>(slot), &executor](auto&&... args)
-  {
-    executor([slot = std::move(slot), args = std::make_tuple(std::forward<decltype(args)>(args)...)]() mutable
-             { std::apply(std::move(slot), std::move(args)); });
-  };
-  executor.store(std::invoke(sig_projection, sigs_).connect(std::move(func)));
+  executor.connect(std::invoke(sig_projection, sigs_), std::forward<decltype(slot)>(slot));
 }
 
 ///
@@ -119,16 +122,7 @@ auto adapter<T>::connect_queued(auto sig_projection, auto&& slot, executor_kind 
 template<std::default_initializable T>
 auto adapter<T>::connect_queued_extended(auto sig_projection, auto&& slot, executor_kind auto& executor) -> void
 {
-  using sig_type = std::remove_cvref_t<std::invoke_result_t<decltype(sig_projection), T&>>;
-  using function_type = to_functional<sig_type, std::function>::type_extended;
-  static_assert(std::is_convertible_v<decltype(slot), function_type>);
-
-  function_type func = [slot = std::forward<decltype(slot)>(slot), &executor](auto&&... args)
-  {
-    executor([slot = std::move(slot), args = std::make_tuple(std::forward<decltype(args)>(args)...)]() mutable
-             { std::apply(std::move(slot), std::move(args)); });
-  };
-  executor.store(std::invoke(sig_projection, sigs_).connect_extended(std::move(func)));
+  executor.connect_extended(std::invoke(sig_projection, sigs_), std::forward<decltype(slot)>(slot));
 }
 
 ///

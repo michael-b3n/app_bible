@@ -61,10 +61,12 @@ qt_add_qml_module(
 #
 target_link_libraries(${PROJECT_NAME}
   PUBLIC bibstd
-  PRIVATE Qt6::Quick
+  PRIVATE Qt6::Quick Qt6::Gui
 )
 
 #
-# Add target include dirs and target sources.
+# Add target include dirs (automatically includes all immediate subdirectories).
 #
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+file(GLOB ${PROJECT_NAME}_SUBDIRS LIST_DIRECTORIES true CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*")
+list(FILTER ${PROJECT_NAME}_SUBDIRS EXCLUDE REGEX "\\.") # Exclude files, only keep directories
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${${PROJECT_NAME}_SUBDIRS})

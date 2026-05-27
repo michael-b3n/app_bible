@@ -9,20 +9,16 @@
 #include <bibstd/system/open_browser.hpp>
 #include <bibstd/system/screen.hpp>
 #include <bibstd/system/tray.hpp>
-#include <bibstd/util/date.hpp>
 #include <bibstd/util/incbin.hpp>
 #include <bibstd/util/log.hpp>
 
 #include <QGuiApplication>
 #include <QMetaObject>
 #include <QQmlApplicationEngine>
-#include <QQmlContext>
-#include <QQuickStyle>
-
+#include <QQuickWindow>
 #include <QtQml/QQmlExtensionPlugin>
-Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
 
-#include <filesystem>
+Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
 
 INC_RESOURCE(icon, "res/icon.ico");
 const auto icon_view = bibstd::util::incbin::to_span<std::byte>(res_icon_data, res_icon_size);
@@ -48,12 +44,18 @@ int main(int argc, char** argv)
   auto backend = aba::construct_backend();
 
   // Initialize Qt application.
+#ifdef _WIN32
+  QQuickWindow::setGraphicsApi(QSGRendererInterface::Direct3D11);
+#endif
+  QQuickWindow::setTextRenderType(QQuickWindow::CurveTextRendering);
   QGuiApplication app(argc, argv);
 
   // Note bridge must be declared before engine so it outlives QML objects
   auto bridge = aba::construct_bridge(app, backend);
+  aba::connect_bridge(bridge);
 
   QQmlApplicationEngine engine;
+
   aba::connect_engine(engine, app, bridge);
 
   // Connect tray signals

@@ -8,16 +8,15 @@ QtObject
   id: root
 
   required property BridgeBibleRefOcr bridgeBibleRefOcr
-  required property AbstractListModelPassage listModelPassage
+  required property ScriptureListModel listModelPassage
 
   // Constants
-  /*no binding*/ readonly property double goldenRatio: 1.618
-  /*no binding*/ readonly property int stepSize: 24
-  /*no binding*/ readonly property int margin: 4
-  /*no binding*/ readonly property int radius : margin * 2
+  /*no binding*/ readonly property real goldenRatio: 1.618
+  /*no binding*/ readonly property int margin: Metrics.spacingSmall
+  /*no binding*/ readonly property int radius : Metrics.radiusLarge
   /*no binding*/ readonly property int opacityDuration: 200
-  /*no binding*/ readonly property int minimalWidth: stepSize * goldenRatio * 3
-  /*no binding*/ readonly property int minimalHeight: stepSize + 2 * margin
+  /*no binding*/ readonly property int minimalWidth: Metrics.controlHeight * goldenRatio * 3
+  /*no binding*/ readonly property int minimalHeight: Metrics.controlHeight + 2 * margin
 
   // Screen geometry
   /*no binding*/ property var screenGeometry: ScreenGeometryHelper.screenGeometryAt({ x: 0, y: 0 })
@@ -31,12 +30,12 @@ QtObject
   /*no binding*/ property int cursorY: 0
 
   // Bubble offset and size
-  /*no binding*/ property int userOffsetToCursorX: -stepSize * goldenRatio
-  /*no binding*/ property int userOffsetToCursorY: -40
-  /*no binding*/ property int offsetToCursorX: -stepSize * goldenRatio
-  /*no binding*/ property int offsetToCursorY: -40
-  /*no binding*/ property int mainWidth: minimalWidth
-  /*no binding*/ property int mainHeight: minimalHeight
+  /*no binding*/ property int userOffsetToCursorX: -Metrics.controlHeight * goldenRatio
+  /*no binding*/ property int userOffsetToCursorY: -100
+  /*no binding*/ property int offsetToCursorX: -Metrics.controlHeight * goldenRatio
+  /*no binding*/ property int offsetToCursorY: -100
+  /*no binding*/ property int mainWidth: minimalWidth * 2
+  /*no binding*/ property int mainHeight: minimalHeight * 10
 
   Universal.theme: Universal.Dark
   Universal.accent: Universal.Violet
@@ -98,11 +97,10 @@ QtObject
     onVisibleChanged: (visible) => { if(visible) { Qt.callLater(function() { main.raise() }) } }
 
     // Children
-    ShapeSpeechBubble
+    SpeechBubbleShape
     {
       id: speechBubble
 
-      anchors.fill: parent
       opacity: 0
       radius: root.radius
       tailPositionX: root.cursorX - background.x
@@ -111,6 +109,8 @@ QtObject
       offsetToTailY: root.offsetToCursorY
       bubbleWidth: root.mainWidth
       bubbleHeight: root.mainHeight
+      strokeColor: Colors.border
+      fillColor: Colors.backgroundTransparent
 
       Behavior on opacity
       {
@@ -183,8 +183,6 @@ QtObject
         bridgeBibleRefOcr: root.bridgeBibleRefOcr
         listModelPassage: root.listModelPassage
 
-        stepSize: root.stepSize
-        margin: root.margin
         anchors.fill: parent
 
         onCloseClicked: () =>

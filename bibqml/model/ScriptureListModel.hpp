@@ -21,7 +21,7 @@ namespace bibqml
 /// List model providing bible passages for a ListView.
 /// Supports dynamic loading of previous/next verses as the user scrolls.
 ///
-class AbstractListModelPassage final : public QAbstractListModel
+class ScriptureListModel final : public QAbstractListModel
 {
   Q_OBJECT
   QML_ELEMENT
@@ -38,10 +38,10 @@ public: // Typedefs
   };
 
 public: // Structors
-  explicit AbstractListModelPassage(
+  explicit ScriptureListModel(
     std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture, QObject* parent = nullptr
   );
-  ~AbstractListModelPassage() noexcept override;
+  ~ScriptureListModel() noexcept override;
 
 public: // Overrides
   auto rowCount(const QModelIndex& parent = QModelIndex()) const -> int override;
@@ -62,13 +62,21 @@ public: // Modifiers
   /// Load more verses before the current first entry.
   /// \param count Number of verses to load
   ///
-  Q_INVOKABLE void loadPrevious(int count = 1);
+  Q_INVOKABLE void loadPrevious(int count);
 
   ///
   /// Load more verses after the current last entry.
   /// \param count Number of verses to load
   ///
-  Q_INVOKABLE void loadNext(int count = 1);
+  Q_INVOKABLE void loadNext(int count);
+
+  ///
+  /// Clear all entries from the model.
+  ///
+  Q_INVOKABLE void clear();
+
+signals:
+  void scrollToIndex(int index);
 
 private: // Typedefs
   struct Entry final
@@ -82,9 +90,12 @@ private: // Typedefs
     bool isChapterHeader;
   };
 
+private: // Constants
+  static constexpr int max_entries_{200};
+
 private: // Implementation
   auto fetchPassage(const bibstd::bible::reference& ref) -> QString;
-  auto makeEntry(const bibstd::bible::reference& ref, bool forceBookHeader, bool forceChapterHeader) -> Entry;
+  auto makeEntry(const bibstd::bible::reference& ref) -> Entry;
 
 private: // Variables
   std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture_;

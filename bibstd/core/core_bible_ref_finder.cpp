@@ -518,7 +518,7 @@ auto core_bible_ref_finder::match_passage_template(
     const auto passage_sections = create_passage_sections(passage_template, down_transition_char);
     auto current_level = passage_level::chapter;
     auto current_chapter = numbers.front();
-    std::ranges::all_of(
+    std::ignore = std::ranges::all_of(
       passage_sections,
       [&](const auto& passage_section)
       {

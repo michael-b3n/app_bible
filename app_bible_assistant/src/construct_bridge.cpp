@@ -5,9 +5,10 @@
 #include <bibstd/workflow/workflow_hotkey.hpp>
 #include <bibstd/workflow/workflow_scripture.hpp>
 
-#include <bibqml/AbstractListModelPassage.hpp>
-#include <bibqml/BridgeBibleRefOcr.hpp>
+#include <bibqml/bridge/BridgeBibleRefOcr.hpp>
+#include <bibqml/model/ScriptureListModel.hpp>
 #include <memory>
+
 
 namespace aba
 {
@@ -29,20 +30,37 @@ auto construct_bridge(QGuiApplication& app, backend_instance& backend) -> bridge
   auto workflow_hotkey = std::static_pointer_cast<bibstd::workflow::workflow_hotkey>(backend.workflow_hotkey);
   auto workflow_scripture = std::static_pointer_cast<bibstd::workflow::workflow_scripture>(backend.workflow_scripture);
   // clang-format on
-  auto bibqml_inst = bridge_instance{
+  return bridge_instance{
     .bridge_bible_ref_ocr{std::make_unique<bibqml::BridgeBibleRefOcr>(workflow_bible_ref_ocr, workflow_hotkey)},
-    .abstract_list_model_passage{std::make_unique<bibqml::AbstractListModelPassage>(workflow_scripture)}
+    .scripture_list_model{std::make_unique<bibqml::ScriptureListModel>(workflow_scripture)}
   };
+}
 
+///
+///
+auto connect_bridge(bridge_instance& instance) -> void
+{
   // Connect bridge signal to passage model
   QObject::connect(
-    bibqml_inst.bridge_bible_ref_ocr.get(),
+    instance.bridge_bible_ref_ocr.get(),
     &bibqml::BridgeBibleRefOcr::referenceFound,
-    bibqml_inst.abstract_list_model_passage.get(),
-    &bibqml::AbstractListModelPassage::resetWithReference
+    instance.scripture_list_model.get(),
+    &bibqml::ScriptureListModel::resetWithReference
   );
 
-  return bibqml_inst;
+  // Clear passage model when OCR starts
+  QObject::connect(
+    instance.bridge_bible_ref_ocr.get(),
+    &bibqml::BridgeBibleRefOcr::runningChanged,
+    instance.scripture_list_model.get(),
+    [model = instance.scripture_list_model.get()](bool running)
+    {
+      if(running)
+      {
+        model->clear();
+      }
+    }
+  );
 }
 
 ///
@@ -51,8 +69,8 @@ auto connect_engine(QQmlApplicationEngine& engine, QGuiApplication& app, bridge_
 {
   // Set initial properties for the QML root component
   engine.setInitialProperties({
-    {"bridgeBibleRefOcr",        QVariant::fromValue(bridge.bridge_bible_ref_ocr.get())},
-    { "listModelPassage", QVariant::fromValue(bridge.abstract_list_model_passage.get())}
+    {"bridgeBibleRefOcr", QVariant::fromValue(bridge.bridge_bible_ref_ocr.get())},
+    { "listModelPassage", QVariant::fromValue(bridge.scripture_list_model.get())}
   });
 
   QObject::connect(

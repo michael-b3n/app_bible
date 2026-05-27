@@ -2,8 +2,8 @@
 
 #include "src/construct_backend.hpp"
 
-#include <bibqml/AbstractListModelPassage.hpp>
-#include <bibqml/BridgeBibleRefOcr.hpp>
+#include <bibqml/bridge/BridgeBibleRefOcr.hpp>
+#include <bibqml/model/ScriptureListModel.hpp>
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -15,7 +15,7 @@ struct bridge_instance final
 {
   // Variables
   std::unique_ptr<bibqml::BridgeBibleRefOcr> bridge_bible_ref_ocr;
-  std::unique_ptr<bibqml::AbstractListModelPassage> abstract_list_model_passage;
+  std::unique_ptr<bibqml::ScriptureListModel> scripture_list_model;
 };
 
 ///
@@ -32,6 +32,12 @@ auto disconnect_bridge(bridge_instance& instance) -> void;
 /// \return bridge instance
 ///
 auto construct_bridge(QGuiApplication& app, backend_instance& backend) -> bridge_instance;
+
+///
+/// Connect internal signals between bridge components.
+/// \param instance The bridge instance to connect
+///
+auto connect_bridge(bridge_instance& instance) -> void;
 
 ///
 /// Connect the QML engine to the bridge instances and load the main QML file.

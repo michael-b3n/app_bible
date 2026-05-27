@@ -1,4 +1,4 @@
-#include "bibqml/BridgeLogger.hpp"
+#include "bibqml/bridge/BridgeLogger.hpp"
 
 #include <bibstd/util/log.hpp>
 
@@ -8,7 +8,7 @@ namespace bibqml
 ///
 ///
 BridgeLogger::BridgeLogger(const bibstd::util::non_owning_ptr<QObject> parent)
-  : QObject(parent)
+  : QObject{parent}
 {
 }
 

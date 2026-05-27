@@ -1,4 +1,4 @@
-#include "bibqml/BridgeSettings.hpp"
+#include "bibqml/bridge/BridgeSettings.hpp"
 
 namespace bibqml
 {
@@ -6,7 +6,7 @@ namespace bibqml
 ///
 ///
 BridgeSettings::BridgeSettings(const bibstd::util::non_owning_ptr<QObject> parent)
-  : QObject(parent)
+  : QObject{parent}
 {
 }
 

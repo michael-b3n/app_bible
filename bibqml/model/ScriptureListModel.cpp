@@ -1,4 +1,4 @@
-#include "bibqml/AbstractListModelPassage.hpp"
+#include "bibqml/model/ScriptureListModel.hpp"
 #include "bibstd/util/ranges.hpp"
 
 #include <bibstd/bible/book_name_variants_de.hpp>
@@ -37,21 +37,21 @@ auto default_scripture(bibstd::workflow::workflow_scripture& workflow_scripture)
 
 ///
 ///
-AbstractListModelPassage::AbstractListModelPassage(
+ScriptureListModel::ScriptureListModel(
   std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture, QObject* parent
 )
-  : QAbstractListModel(parent)
+  : QAbstractListModel{parent}
   , workflow_scripture_{std::move(workflow_scripture)}
 {
 }
 
 ///
 ///
-AbstractListModelPassage::~AbstractListModelPassage() noexcept = default;
+ScriptureListModel::~ScriptureListModel() noexcept = default;
 
 ///
 ///
-auto AbstractListModelPassage::rowCount(const QModelIndex& parent) const -> int
+auto ScriptureListModel::rowCount(const QModelIndex& parent) const -> int
 {
   if(parent.isValid())
   {
@@ -62,7 +62,7 @@ auto AbstractListModelPassage::rowCount(const QModelIndex& parent) const -> int
 
 ///
 ///
-auto AbstractListModelPassage::data(const QModelIndex& index, const int role) const -> QVariant
+auto ScriptureListModel::data(const QModelIndex& index, const int role) const -> QVariant
 {
   if(!index.isValid() || index.row() < 0 || index.row() >= static_cast<int>(entries_.size()))
   {
@@ -83,7 +83,7 @@ auto AbstractListModelPassage::data(const QModelIndex& index, const int role) co
 
 ///
 ///
-auto AbstractListModelPassage::roleNames() const -> QHash<int, QByteArray>
+auto ScriptureListModel::roleNames() const -> QHash<int, QByteArray>
 {
   return {
     {      VerseTextRole,       "verseText"},
@@ -97,7 +97,16 @@ auto AbstractListModelPassage::roleNames() const -> QHash<int, QByteArray>
 
 ///
 ///
-void AbstractListModelPassage::resetWithReference(const QString& bookId, const int chapter, const int verse)
+void ScriptureListModel::clear()
+{
+  beginResetModel();
+  entries_.clear();
+  endResetModel();
+}
+
+///
+///
+void ScriptureListModel::resetWithReference(const QString& bookId, const int chapter, const int verse)
 {
   const auto book = bibstd::util::to_enum<bibstd::bible::book_id>(bookId.toStdString());
   if(!book)
@@ -121,17 +130,21 @@ void AbstractListModelPassage::resetWithReference(const QString& bookId, const i
 
   beginResetModel();
   entries_.clear();
-  entries_.push_back(makeEntry(*ref, false, false));
+  entries_.push_back(makeEntry(*ref));
   endResetModel();
 
+  static constexpr int contextCount = 10;
   // load some context around the initial verse
-  loadPrevious(10);
-  loadNext(10);
+  loadPrevious(contextCount);
+  const auto targetIndex = static_cast<int>(entries_.size()) - 1; // original verse is the last entry after loadPrevious
+  loadNext(contextCount);
+
+  emit scrollToIndex(std::max(0, targetIndex));
 }
 
 ///
 ///
-void AbstractListModelPassage::loadPrevious(const int count)
+void ScriptureListModel::loadPrevious(const int count)
 {
   if(entries_.empty())
   {
@@ -146,6 +159,7 @@ void AbstractListModelPassage::loadPrevious(const int count)
 
   auto ref = entries_.front().ref;
   auto newEntries = std::vector<Entry>{};
+  newEntries.reserve(static_cast<std::size_t>(count));
 
   std::ignore = std::ranges::all_of(
     bibstd::util::ranges::index_view_to(count),
@@ -154,35 +168,32 @@ void AbstractListModelPassage::loadPrevious(const int count)
       prev = versification.prev(ref);
       if(prev)
       {
-        const bool bookChanged = ref.book() != prev->book();
-        const bool chapterChanged = bookChanged || ref.chapter() != prev->chapter();
-        newEntries.push_back(makeEntry(*prev, bookChanged, chapterChanged));
+        newEntries.push_back(makeEntry(*prev));
         ref = *prev;
       }
       return prev.has_value();
     }
   );
-  // Reverse since we collected them backwards
-  std::ranges::reverse(newEntries);
-
-  // Update headers: the first entry in the model after prepend needs header recalculation
-  if(!entries_.empty() && !newEntries.empty())
-  {
-    auto& firstExisting = entries_.front();
-    const auto& lastNew = newEntries.back();
-    firstExisting.isBookHeader = firstExisting.ref.book() != lastNew.ref.book();
-    firstExisting.isChapterHeader = firstExisting.isBookHeader || firstExisting.ref.chapter() != lastNew.ref.chapter();
-  }
 
   const auto insertCount = static_cast<int>(newEntries.size());
   beginInsertRows(QModelIndex(), 0, insertCount - 1);
-  std::ranges::for_each(newEntries | std::views::reverse, [&](auto& entry) { entries_.push_front(std::move(entry)); });
+  std::ranges::for_each(newEntries, [&](auto& entry) { entries_.push_front(std::move(entry)); });
   endInsertRows();
+
+  // Trim excess entries from the back to keep model bounded
+  const auto excess = static_cast<int>(entries_.size()) - max_entries_;
+  if(excess > 0)
+  {
+    const auto startRow = static_cast<int>(entries_.size()) - excess;
+    beginRemoveRows(QModelIndex(), startRow, startRow + excess - 1);
+    entries_.erase(entries_.end() - excess, entries_.end());
+    endRemoveRows();
+  }
 }
 
 ///
 ///
-void AbstractListModelPassage::loadNext(const int count)
+void ScriptureListModel::loadNext(const int count)
 {
   if(entries_.empty())
   {
@@ -197,6 +208,7 @@ void AbstractListModelPassage::loadNext(const int count)
 
   auto ref = entries_.back().ref;
   auto newEntries = std::vector<Entry>{};
+  newEntries.reserve(static_cast<std::size_t>(count));
 
   std::ignore = std::ranges::all_of(
     bibstd::util::ranges::index_view_to(count),
@@ -205,9 +217,7 @@ void AbstractListModelPassage::loadNext(const int count)
       next = versification.next(ref);
       if(next)
       {
-        const bool bookChanged = ref.book() != next->book();
-        const bool chapterChanged = bookChanged || ref.chapter() != next->chapter();
-        newEntries.push_back(makeEntry(*next, bookChanged, chapterChanged));
+        newEntries.push_back(makeEntry(*next));
         ref = *next;
       }
       return next.has_value();
@@ -219,11 +229,20 @@ void AbstractListModelPassage::loadNext(const int count)
   beginInsertRows(QModelIndex(), startRow, startRow + insertCount - 1);
   std::ranges::for_each(newEntries, [&](auto& entry) { entries_.push_back(std::move(entry)); });
   endInsertRows();
+
+  // Trim excess entries from the front to keep model bounded
+  const auto excess = static_cast<int>(entries_.size()) - max_entries_;
+  if(excess > 0)
+  {
+    beginRemoveRows(QModelIndex(), 0, excess - 1);
+    entries_.erase(entries_.begin(), entries_.begin() + excess);
+    endRemoveRows();
+  }
 }
 
 ///
 ///
-auto AbstractListModelPassage::fetchPassage(const bibstd::bible::reference& ref) -> QString
+auto ScriptureListModel::fetchPassage(const bibstd::bible::reference& ref) -> QString
 {
   auto params = bibstd::workflow::workflow_scripture::passage_params::value_type{ref, std::nullopt};
   auto result = workflow_scripture_->passage(params);
@@ -236,9 +255,7 @@ auto AbstractListModelPassage::fetchPassage(const bibstd::bible::reference& ref)
 
 ///
 ///
-auto AbstractListModelPassage::makeEntry(
-  const bibstd::bible::reference& ref, const bool forceBookHeader, const bool forceChapterHeader
-) -> Entry
+auto ScriptureListModel::makeEntry(const bibstd::bible::reference& ref) -> Entry
 {
   const auto& prettyName = bibstd::bible::book_name_variants_de::pretty_names.at(ref.book());
   const auto bookName = QString::fromUtf8(prettyName.data(), static_cast<qsizetype>(prettyName.size()));
@@ -249,8 +266,8 @@ auto AbstractListModelPassage::makeEntry(
     .bookName = bookName,
     .chapter = ref.chapter().value,
     .verse = ref.verse().value,
-    .isBookHeader = forceBookHeader,
-    .isChapterHeader = forceChapterHeader,
+    .isBookHeader = ref.chapter() == decltype(ref.chapter()){1} && ref.verse() == decltype(ref.verse()){1},
+    .isChapterHeader = ref.verse() == decltype(ref.verse()){1},
   };
 }
 

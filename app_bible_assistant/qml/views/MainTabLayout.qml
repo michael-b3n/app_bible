@@ -1,5 +1,3 @@
-pragma ComponentBehavior: Bound
-
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -10,10 +8,7 @@ Item
   id: root
 
   required property BridgeBibleRefOcr bridgeBibleRefOcr
-  required property AbstractListModelPassage listModelPassage
-
-  required property int stepSize
-  required property int margin
+  required property ScriptureListModel listModelPassage
 
   readonly property bool runningState : bridgeBibleRefOcr.running
 
@@ -25,16 +20,16 @@ Item
   ColumnLayout
   {
     anchors.fill: parent
-    anchors.margins: root.margin
-    spacing: root.margin
+    anchors.margins: Metrics.spacingSmall
+    spacing: Metrics.spacingSmall
 
     RowLayout
     {
       // Object properties
       Layout.fillWidth: true
       Layout.fillHeight: false
-      Layout.preferredHeight: root.stepSize
-      spacing: root.margin
+      Layout.preferredHeight: Metrics.controlHeight
+      spacing: Metrics.spacingSmall
 
       TabBar
       {
@@ -45,7 +40,7 @@ Item
         Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
         background: Rectangle { color: "transparent" }
 
-        MainTabButton
+        TabScriptureButton
         {
           id: tab1
           anchors.top: parent.top
@@ -55,12 +50,12 @@ Item
           runningState: root.runningState
         }
 
-        SettingsTabButton
+        TabSettingsButton
         {
           id: tab2
           anchors.top: parent.top
           anchors.left: tab1.right
-          anchors.leftMargin: root.margin
+          anchors.leftMargin: Metrics.spacingSmall
           width: bar.height
           height: bar.height
         }
@@ -72,7 +67,7 @@ Item
 
         Layout.fillHeight: true
         Layout.fillWidth: false
-        Layout.preferredWidth: root.stepSize
+        Layout.preferredWidth: Metrics.controlHeight
         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
         svgSource: "qrc:/qt/qml/ui/qml/res/close.svg"
@@ -86,13 +81,13 @@ Item
       Layout.fillHeight: true
       currentIndex: bar.currentIndex
 
-      MainTabContent
+      TabScriptureContent
       {
         bridgeBibleRefOcr: root.bridgeBibleRefOcr
         listModelPassage: root.listModelPassage
       }
 
-      SettingsTabContent
+      TabSettingsContent
       {
       }
     }

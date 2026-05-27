@@ -118,14 +118,18 @@ qt_generate_deploy_qml_app_script(
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_EXE_NAME})
 
 #
-# Include directories.
+# Include directories (automatically include all qml subdirectories).
 #
+file(GLOB ${PROJECT_NAME}_QML_SUBDIRS LIST_DIRECTORIES true CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/qml/*")
+list(FILTER ${PROJECT_NAME}_QML_SUBDIRS EXCLUDE REGEX "\\.")
+
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(${PROJECT_NAME} PUBLIC ${Qt6_INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/src
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/qml
+  PUBLIC ${${PROJECT_NAME}_QML_SUBDIRS}
   PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
 )
 

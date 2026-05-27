@@ -325,7 +325,7 @@ auto core_bible_ref_ocr::match_choices_to_string(
         auto text_template_found = false;
         auto confidence_value = 0.0;
         auto local_indexed_strings = indexed_strings;
-        std::ranges::any_of(
+        std::ignore = std::ranges::any_of(
           util::ranges::index_view_from(choices_list, choices_list_offset) |
             std::views::filter([&](const auto index) { return choices_filter(choices_list.at(index)); }),
           [&, text_template_position = std::size_t{0}](const auto choices_list_index) mutable
@@ -378,9 +378,11 @@ auto core_bible_ref_ocr::find_chars_begin_match(const tesseract_choices& choices
 auto core_bible_ref_ocr::min_distance_index(const std::vector<character_data>& char_data) const -> std::optional<std::size_t>
 {
   auto result = std::optional<std::size_t>{};
-  if(const auto min_element =
-       std::ranges::min_element(char_data, [](const auto& a, const auto& b) { return a.distance < b.distance; });
-     min_element != std::ranges::cend(char_data))
+  if(
+    const auto min_element =
+      std::ranges::min_element(char_data, [](const auto& a, const auto& b) { return a.distance < b.distance; });
+    min_element != std::ranges::cend(char_data)
+  )
   {
     result = static_cast<std::size_t>(std::ranges::distance(char_data.cbegin(), min_element));
   }

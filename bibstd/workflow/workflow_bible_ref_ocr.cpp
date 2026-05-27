@@ -184,7 +184,7 @@ auto workflow_bible_ref_ocr::parse_recognition(
     if(parse_result.ranges.empty())
     {
       const auto position_data_choices = core_bible_ref_ocr_->find_reference_position_data_from_choices(relative_cursor_pos);
-      std::ranges::any_of(
+      std::ignore = std::ranges::any_of(
         position_data_choices,
         [&](const auto& position_data_choice)
         {

@@ -18,7 +18,8 @@ namespace bibstd::system
 ///
 auto screen::init() -> bool
 {
-  // We set the Dpi awareness explicitly for this process.
+  // Declare per-monitor DPI awareness for proper screen capture at native resolution.
+  // This is also declared in the app manifest. The call here is a no-op if already set.
   SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
   return true;
 }

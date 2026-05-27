@@ -16,10 +16,10 @@ TabButtonBase
 
     RotationAnimator on rotation
     {
-      running: root.runningState
+      running: root.runningState && root.visible
       loops: Animation.Infinite
-      from: 0;
-      to: 360;
+      from: 0
+      to: 360
       duration: 3000
     }
   }

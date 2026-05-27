@@ -1,11 +1,10 @@
-#include "bibqml/BridgeBibleRefOcr.hpp"
+#include "bibqml/bridge/BridgeBibleRefOcr.hpp"
 
 #include <bibstd/bible/book_name_variants_de.hpp>
 
 #include <bibstd/system/screen.hpp>
 #include <bibstd/util/enum.hpp>
 #include <bibstd/util/log.hpp>
-#include <bibstd/util/numeric_cast.hpp>
 #include <bibstd/workflow/workflow_bible_ref_ocr.hpp>
 #include <bibstd/workflow/workflow_hotkey.hpp>
 
@@ -24,11 +23,10 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(
   std::shared_ptr<bibstd::workflow::workflow_hotkey> workflow_hotkey,
   QObject* parent
 )
-  : QObject(parent)
+  : QObject{parent}
   , findReferenceSig_{workflow_hotkey->register_callback(ocr_find_path)}
-  , connections_(std::make_unique<bibstd::signal::scoped_connection_guard>())
 {
-  connections_->connect(
+  executor_.connect(
     *findReferenceSig_,
     [this, workflow_bible_ref_ocr]()
     {
@@ -52,27 +50,10 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(
       );
 
       const auto result = workflow_bible_ref_ocr->find({{cursor_pos}});
-
-      const auto [reference_ranges, first_reference, passage_content] = [&result]
-      {
-        auto passage_content = std::string{"..."};
-        auto reference_ranges = std::vector<bibstd::bible::reference_range>{};
-        auto first_reference = std::optional<bibstd::bible::reference>{};
-        try
-        {
-          if(result && result->passage)
-          {
-            passage_content = result->passage->content;
-            reference_ranges = result->reference_ranges;
-            first_reference = result->first_reference;
-          }
-        }
-        catch(...)
-        {
-          LOG_ERROR("exception occurred while unpacking passage: {}", bibstd::util::exception_report());
-        }
-        return std::tuple{reference_ranges, first_reference, passage_content};
-      }();
+      const auto valid = result.has_value() && result->passage.has_value();
+      auto passage_content = valid ? result->passage->content : std::string{"..."};
+      auto reference_ranges = valid ? result->reference_ranges : std::vector<bibstd::bible::reference_range>{};
+      auto first_reference = valid ? result->first_reference : std::optional<bibstd::bible::reference>{};
 
       QMetaObject::invokeMethod(
         this,
@@ -109,9 +90,9 @@ BridgeBibleRefOcr::~BridgeBibleRefOcr() noexcept = default;
 
 ///
 ///
-auto BridgeBibleRefOcr::disconnect() -> void
+void BridgeBibleRefOcr::disconnect()
 {
-  connections_->disconnect();
+  executor_.disconnect();
 }
 
 } // namespace bibqml
