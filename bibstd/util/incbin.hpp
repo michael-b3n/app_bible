@@ -9,7 +9,6 @@ extern "C"
 #include <cstddef>
 #include <span>
 #include <string_view>
-#include <type_traits>
 
 ///
 /// Usage: INC_RESOURCE(LABEL, FILE)

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "bibstd/core/core_tesseract_common.hpp"
+#include "bibstd/util/const_map.hpp"
+#include "bibstd/util/language.hpp"
 #include "bibstd/util/screen_types.hpp"
 
 #include <optional>
@@ -49,7 +51,7 @@ public: // Typedefs
   };
 
 public: // Structors
-  core_tesseract(const std::filesystem::path& tessdata_path, core_tesseract_common::language language);
+  core_tesseract(const std::filesystem::path& tessdata_path, util::language language);
   ~core_tesseract() noexcept;
 
 public: // Modifiers
@@ -102,10 +104,10 @@ public: // Modifiers
   auto for_each_choices_while(const choices_while_callback_type& do_with_choices) const -> void;
 
 private: // Constants
-  static constexpr auto language_map = util::const_bimap{
-    std::pair{core_tesseract_common::language::de, std::string_view("deu")},
+  static constexpr auto language_map = util::make_const_bimap<util::language, std::string_view>({
+    {util::language::german, "deu"},
     // ...
-  };
+  });
 
 private: // Variables
   const std::unique_ptr<tesseract::TessBaseAPI> tesseract_;

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 4.3)
 
 #
 # Include cmake functions
@@ -37,15 +37,18 @@ if(GIT_SHA1 STREQUAL "")
 endif()
 
 #
-# Configure version files
+# Define project
 #
-configure_file(${CMAKE_CURRENT_LIST_DIR}/res/resource.rc.in ${CMAKE_CURRENT_LIST_DIR}/res/resource.rc @ONLY)
-configure_file(${CMAKE_CURRENT_LIST_DIR}/res/version.hpp.in ${CMAKE_CURRENT_LIST_DIR}/src/version.hpp @ONLY)
-
 project(
   app_bible_assistant
   VERSION ${APP_VERSION}
 )
+
+#
+# Configure version files
+#
+configure_file(${CMAKE_CURRENT_LIST_DIR}/res/resource.rc.in ${CMAKE_CURRENT_BINARY_DIR}/res/resource.rc @ONLY)
+configure_file(${CMAKE_CURRENT_LIST_DIR}/res/version.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/res/version.hpp @ONLY)
 
 #
 # Define target files
@@ -58,10 +61,23 @@ foreach(file ${${PROJECT_NAME}_QML_FILES})
   cmake_path(RELATIVE_PATH file BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
   list(APPEND ${PROJECT_NAME}_QML_FILES_RELATIVE ${file})
 endforeach()
+
 file(GLOB_RECURSE ${PROJECT_NAME}_SVG_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/qml/*.svg")
 foreach(file ${${PROJECT_NAME}_SVG_FILES})
   cmake_path(RELATIVE_PATH file BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
   list(APPEND ${PROJECT_NAME}_SVG_FILES_RELATIVE ${file})
+endforeach()
+
+file(GLOB_RECURSE ${PROJECT_NAME}_QML_CPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/qml/*.cpp")
+foreach(file ${${PROJECT_NAME}_QML_CPP_FILES})
+  cmake_path(RELATIVE_PATH file BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  list(APPEND ${PROJECT_NAME}_QML_CPP_FILES_RELATIVE ${file})
+endforeach()
+
+file(GLOB_RECURSE ${PROJECT_NAME}_QML_HPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/qml/*.hpp")
+foreach(file ${${PROJECT_NAME}_QML_HPP_FILES})
+  cmake_path(RELATIVE_PATH file BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  list(APPEND ${PROJECT_NAME}_QML_HPP_FILES_RELATIVE ${file})
 endforeach()
 
 #
@@ -79,6 +95,9 @@ qt_add_qml_module(
   VERSION ${APP_VERSION}
   QML_FILES
   ${${PROJECT_NAME}_QML_FILES_RELATIVE}
+  SOURCES
+  ${${PROJECT_NAME}_QML_CPP_FILES_RELATIVE}
+  ${${PROJECT_NAME}_QML_HPP_FILES_RELATIVE}
   IMPORTS
   BibQml
   DEPENDENCIES TARGET BibQml
@@ -99,12 +118,18 @@ qt_generate_deploy_qml_app_script(
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_EXE_NAME})
 
 #
-# Include directories.
+# Include directories (automatically include all qml subdirectories).
 #
+file(GLOB ${PROJECT_NAME}_QML_SUBDIRS LIST_DIRECTORIES true CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/qml/*")
+list(FILTER ${PROJECT_NAME}_QML_SUBDIRS EXCLUDE REGEX "\\.")
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(${PROJECT_NAME} PUBLIC ${Qt6_INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}
   PUBLIC ${CMAKE_CURRENT_LIST_DIR}/src
+  PUBLIC ${CMAKE_CURRENT_LIST_DIR}/qml
+  PUBLIC ${${PROJECT_NAME}_QML_SUBDIRS}
   PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
 )
 
@@ -120,7 +145,7 @@ set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <S
 #
 target_sources(${PROJECT_NAME}
   PRIVATE ${app_bible_assistant_CPP_FILES}
-  PRIVATE ${CMAKE_CURRENT_LIST_DIR}/res/resource.rc
+  PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/res/resource.rc
 )
 
 #

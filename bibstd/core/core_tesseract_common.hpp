@@ -1,14 +1,9 @@
 #pragma once
 
-#include "bibstd/data/pixel.hpp"
-#include "bibstd/data/plane.hpp"
-#include "bibstd/math/rect.hpp"
-#include "bibstd/util/const_bimap.hpp"
-#include "bibstd/util/screen_types.hpp"
-
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace bibstd::core
 {
@@ -19,11 +14,6 @@ namespace bibstd::core
 struct core_tesseract_common final
 {
   // Typedefs
-  enum class language
-  {
-    de,
-  };
-
   struct tesseract_choice final
   {
     std::string symbol{""};
@@ -34,6 +24,8 @@ struct core_tesseract_common final
   // Static functions
   ///
   /// Find tessdata folder by searching from executable folder upwards.
+  /// First it looks for `{executable_folder}/share/tessdata`, then it searches recursively
+  /// from the executable folder upwards for a "tessdata" folder.
   /// \return optional path to tessdata folder, std::nullopt if not found
   ///
   [[nodiscard]] static auto tessdata_folder_finder() -> std::optional<std::filesystem::path>;

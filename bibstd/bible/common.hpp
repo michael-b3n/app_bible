@@ -2,19 +2,21 @@
 
 #include "bibstd/util/enum.hpp"
 
+#include <algorithm>
 #include <cstdint>
-#include <optional>
 
 namespace bibstd::bible
 {
+// Forward declarations
+class reference_range;
+class versification;
 
 ///
 /// Bible books.
 ///
 enum class book_id
 {
-  BEGIN = 0,
-  genesis = 0,
+  genesis,
   exodus,
   leviticus,
   numbers,
@@ -79,19 +81,19 @@ enum class book_id
   john2,
   john3,
   jude,
-  revelation,
-  END
+  revelation
 };
+
+static_assert(util::enum_count<book_id>() == 66); // bible has 66 books
+static_assert(std::ranges::none_of(util::enum_names<book_id>(), [](const auto name) { return name.contains('-'); }));
 
 ///
 /// Bible testaments.
 ///
 enum class testament_id
 {
-  BEGIN = 0,
-  ot = 0,
-  nt,
-  END
+  ot,
+  nt
 };
 
 ///
@@ -99,8 +101,7 @@ enum class testament_id
 ///
 enum class translation
 {
-  BEGIN = 0,
-  dbu = 0,
+  dbu,
   elb,
   esv,
   eu,
@@ -116,29 +117,8 @@ enum class translation
   nlb,
   slt,
   vxb,
-  zb,
-  END
+  zb
 };
-
-///
-/// Number of all the verses in the bible.
-///
-constexpr auto total_verse_count = std::uint32_t{31102};
-
-///
-/// Get the count of chapters in a book.
-/// \param book The book to get the chapter count of
-/// \return the chapter count
-///
-auto chapter_count(book_id book) -> std::uint32_t;
-
-///
-/// Get the count of verses in a chapter.
-/// \param book The book to get the chapter count of
-/// \param chapter_number The chapter to get the verse count of
-/// \return the verse count
-///
-auto verse_count(book_id book, std::uint32_t chapter_number) -> std::optional<std::uint32_t>;
 
 } // namespace bibstd::bible
 
@@ -149,6 +129,6 @@ struct std::formatter<bibstd::bible::book_id> : std::formatter<std::string>
 {
   auto format(const bibstd::bible::book_id e, std::format_context& ctx) const
   {
-    return formatter<std::string>::format(std::format("{}", bibstd::util::to_string_view(e)), ctx);
+    return formatter<std::string>::format(std::format("{}", bibstd::util::enum_name(e)), ctx);
   }
 };

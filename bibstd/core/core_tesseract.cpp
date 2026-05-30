@@ -1,10 +1,9 @@
 #include "bibstd/core/core_tesseract.hpp"
 #include "bibstd/data/pix.hpp"
-#include "bibstd/system/filesystem.hpp"
-#include "bibstd/util/boost_numeric_cast.hpp"
-#include "bibstd/util/const_bimap.hpp"
+#include "bibstd/util/const_map.hpp"
 #include "bibstd/util/enum.hpp"
 #include "bibstd/util/log.hpp"
+#include "bibstd/util/numeric_cast.hpp"
 
 #include <leptonica/allheaders.h>
 #include <tesseract/baseapi.h>
@@ -13,23 +12,23 @@ namespace bibstd::core
 {
 
 // Constants
-constexpr auto resolution_map = util::const_bimap{
-  std::pair{core_tesseract::text_resolution::character,   tesseract::RIL_SYMBOL},
-  std::pair{     core_tesseract::text_resolution::word,     tesseract::RIL_WORD},
-  std::pair{     core_tesseract::text_resolution::line, tesseract::RIL_TEXTLINE},
-  std::pair{core_tesseract::text_resolution::paragraph,     tesseract::RIL_PARA},
-};
+constexpr auto resolution_map = util::make_const_bimap<core_tesseract::text_resolution, tesseract::PageIteratorLevel>({
+  {core_tesseract::text_resolution::character,   tesseract::RIL_SYMBOL},
+  {     core_tesseract::text_resolution::word,     tesseract::RIL_WORD},
+  {     core_tesseract::text_resolution::line, tesseract::RIL_TEXTLINE},
+  {core_tesseract::text_resolution::paragraph,     tesseract::RIL_PARA}
+});
 
 ///
 ///
-core_tesseract::core_tesseract(const std::filesystem::path& tessdata_path, const core_tesseract_common::language language)
+core_tesseract::core_tesseract(const std::filesystem::path& tessdata_path, const util::language language)
   : tesseract_{new tesseract::TessBaseAPI()}
   , pix_{std::make_unique<data::pix>()}
 {
   if(!std::filesystem::exists(tessdata_path))
   {
     LOG_ERROR("tessdata path does not exist: \"{}\"", tessdata_path.generic_string());
-    THROW_EXCEPTION("non existent tessdata path");
+    throw util::exception("non existent tessdata path");
   }
   auto tessdata_string = tessdata_path.generic_string();
   tesseract_->Init(tessdata_string.data(), language_map.at(language).data(), tesseract::OEM_LSTM_ONLY);
@@ -67,14 +66,15 @@ auto core_tesseract::recognize(std::optional<screen_rect_type> bounding_box) con
     pix_rect = overlap.value();
     // Each SetRectangle clears the recognition results so multiple rectangles can be recognized with the same image.
     tesseract_->SetRectangle(
-      boost::numeric_cast<int>(pix_rect.origin().x()),
-      boost::numeric_cast<int>(pix_rect.origin().y()),
-      boost::numeric_cast<int>(pix_rect.horizontal_range()),
-      boost::numeric_cast<int>(pix_rect.vertical_range())
+      numeric_cast<int>(pix_rect.origin().x()),
+      numeric_cast<int>(pix_rect.origin().y()),
+      numeric_cast<int>(pix_rect.horizontal_range()),
+      numeric_cast<int>(pix_rect.vertical_range())
     );
     return tesseract_->Recognize(nullptr) == 0;
   }
-  else {
+  else
+  {
     return tesseract_->Recognize(nullptr) == 0;
   }
 }
@@ -96,8 +96,9 @@ auto core_tesseract::bounding_boxes(const text_resolution resolution) const -> s
       {
         result.emplace_back(screen_rect_type(screen_coordinates_type(left, top), right - left, bottom - top));
       }
-      else {
-        LOG_WARN("invalid bounding box in analyze_bounding_boxes: resolution={}", util::to_string_view(resolution));
+      else
+      {
+        LOG_WARN("invalid bounding box in analyze_bounding_boxes: resolution={}", util::enum_name(resolution));
       }
     }
     while(pi->Next(level));
@@ -145,7 +146,8 @@ auto core_tesseract::for_each_while(const text_resolution resolution, const text
           const auto box = screen_rect_type(screen_coordinates_type(left, top), right - left, bottom - top);
           found = do_with_text(std::string_view(txt.get()), box);
         }
-        else {
+        else
+        {
           LOG_WARN("invalid bounding box in for_each_while: txt={}", txt.get());
         }
       }
@@ -213,7 +215,8 @@ auto core_tesseract::for_each_choices_while(const choices_while_callback_type& d
         const auto box = screen_rect_type(screen_coordinates_type(left, top), right - left, bottom - top);
         found = do_with_choices(choices, box);
       }
-      else {
+      else
+      {
         LOG_WARN("invalid bounding box in for_each_choices_while: main_symbol={}", main_symbol);
       }
     }

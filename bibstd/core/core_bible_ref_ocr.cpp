@@ -2,10 +2,11 @@
 #include "bibstd/bible/book_name_variants_de.hpp"
 #include "bibstd/core/core_tesseract.hpp"
 #include "bibstd/system/screen.hpp"
-#include "bibstd/txt/chars.hpp"
-#include "bibstd/util/boost_numeric_cast.hpp"
+#include "bibstd/txt/script_common.hpp"
+#include "bibstd/txt/script_letters.hpp"
 #include "bibstd/util/format.hpp"
 #include "bibstd/util/log.hpp"
+#include "bibstd/util/ranges.hpp"
 #include "bibstd/util/string.hpp"
 #include "bibstd/util/timer.hpp"
 
@@ -64,8 +65,9 @@ auto right(const util::screen_rect_type& rect) -> std::int32_t
 
 ///
 ///
-core_bible_ref_ocr::core_bible_ref_ocr(const std::filesystem::path& tessdata_path, core_tesseract_common::language language)
+core_bible_ref_ocr::core_bible_ref_ocr(const std::filesystem::path& tessdata_path, util::language language)
   : core_tesseract_{std::make_unique<core::core_tesseract>(tessdata_path, language)}
+  , language_{language}
 {
 }
 
@@ -228,8 +230,14 @@ auto core_bible_ref_ocr::find_reference_position_data_from_choices(const screen_
     choices_list,
     [&](const auto& choices)
     {
-      return txt::chars::is_char(choices.front().symbol, 0, txt::chars::category::letter) ||
-             txt::chars::is_char(choices.front().symbol, 0, txt::chars::category::digit);
+      return txt::script_letters::visit(
+        language_,
+        [&](const auto& letters)
+        {
+          return txt::script_common::is_char(letters, choices.front().symbol, 0, txt::script_common::category::letter) ||
+                 txt::script_common::is_char(letters, choices.front().symbol, 0, txt::script_common::category::digit);
+        }
+      );
     }
   );
   assert(choices_list.size() == choices_char_data.size());
@@ -311,14 +319,14 @@ auto core_bible_ref_ocr::match_choices_to_string(
     }();
 
     std::ranges::for_each(
-      std::views::iota(decltype(choices_list.size()){0}, choices_list.size()),
+      util::ranges::index_view(choices_list),
       [&](const auto choices_list_offset) mutable
       {
         auto text_template_found = false;
         auto confidence_value = 0.0;
         auto local_indexed_strings = indexed_strings;
-        std::ranges::any_of(
-          std::views::iota(choices_list_offset, choices_list.size()) |
+        std::ignore = std::ranges::any_of(
+          util::ranges::index_view_from(choices_list, choices_list_offset) |
             std::views::filter([&](const auto index) { return choices_filter(choices_list.at(index)); }),
           [&, text_template_position = std::size_t{0}](const auto choices_list_index) mutable
           {
@@ -355,7 +363,7 @@ auto core_bible_ref_ocr::find_chars_begin_match(const tesseract_choices& choices
     choices,
     [&](const auto& choice)
     {
-      auto match_found = util::starts_with(chars, choice.symbol);
+      auto match_found = util::string::starts_with(chars, choice.symbol);
       if(match_found)
       {
         result = choice;
@@ -370,9 +378,11 @@ auto core_bible_ref_ocr::find_chars_begin_match(const tesseract_choices& choices
 auto core_bible_ref_ocr::min_distance_index(const std::vector<character_data>& char_data) const -> std::optional<std::size_t>
 {
   auto result = std::optional<std::size_t>{};
-  if(const auto min_element =
-       std::ranges::min_element(char_data, [](const auto& a, const auto& b) { return a.distance < b.distance; });
-     min_element != std::ranges::cend(char_data))
+  if(
+    const auto min_element =
+      std::ranges::min_element(char_data, [](const auto& a, const auto& b) { return a.distance < b.distance; });
+    min_element != std::ranges::cend(char_data)
+  )
   {
     result = static_cast<std::size_t>(std::ranges::distance(char_data.cbegin(), min_element));
   }

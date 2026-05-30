@@ -6,7 +6,7 @@
 
 #include <string_view>
 
-namespace bible_assistant
+namespace aba
 {
 
 ///
@@ -21,4 +21,4 @@ struct version final
   static constexpr auto commit_date = std::string_view("@GIT_DATE@");
 };
 
-} // namespace bible_assistant
+} // namespace aba

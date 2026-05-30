@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bibstd/system/hotkey_common.hpp"
-#include "bibstd/util/scoped_guard.hpp"
+#include "bibstd/util/scope_guard.hpp"
 
 #include <functional>
 
@@ -19,10 +19,11 @@ public: // Typedefs
 
 public: // Static modifiers
   ///
-  /// Initialize hotkey registration.
+  /// Initialize hotkey registration. Multiple calls to this function are allowed and will be bound to existing
+  /// shared scope guard. The returned guard will uninitialize the hotkey registration on destruction.
   /// \return guard to uninitialize hotkey registration on destruction
   ///
-  static auto init() -> util::scoped_guard;
+  static auto init() -> util::shared_scope_guard;
 
   ///
   /// Register global callback to specified key and key modifier.

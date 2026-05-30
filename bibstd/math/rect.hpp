@@ -4,8 +4,8 @@
 #include "bibstd/math/coordinates.hpp"
 #include "bibstd/math/value_range.hpp"
 #include "bibstd/meta/type_traits.hpp"
-#include "bibstd/util/boost_numeric_cast.hpp"
 #include "bibstd/util/enum.hpp"
+#include "bibstd/util/numeric_cast.hpp"
 
 #include <cassert>
 #include <optional>
@@ -177,7 +177,7 @@ constexpr rect<ValueType>::rect(const coordinates_type origin, const value_type 
     arithmetic::multiply(value_range<value_type>::size(horizontal_range_), value_range<value_type>::size(vertical_range_));
   if(!area.has_value() || !math::is_equal(area.value(), math::arithmetic::multiply(width, height)))
   {
-    THROW_EXCEPTION(std::format("invalid rect size: {}", util::to_string_view(area.error())));
+    throw util::exception(std::format("invalid rect size: {}", util::enum_name(area.error())));
   }
 }
 
@@ -192,7 +192,7 @@ constexpr rect<ValueType>::rect(const coordinates_type first, const coordinates_
         const auto max_x = arithmetic::add(std::max(first.x(), second.x()), value_type{1});
         if(!max_x.has_value())
         {
-          THROW_EXCEPTION(std::format("invalid max width: {}", util::to_string_view(max_x.error())));
+          throw util::exception(std::format("invalid max width: {}", util::enum_name(max_x.error())));
         }
         return value_range<value_type>(min_x, max_x.value());
       }()}
@@ -203,7 +203,7 @@ constexpr rect<ValueType>::rect(const coordinates_type first, const coordinates_
         const auto max_y = arithmetic::add(std::max(first.y(), second.y()), value_type{1});
         if(!max_y.has_value())
         {
-          THROW_EXCEPTION(std::format("invalid max height: {}", util::to_string_view(max_y.error())));
+          throw util::exception(std::format("invalid max height: {}", util::enum_name(max_y.error())));
         }
         return value_range<value_type>(min_y, max_y.value());
       }()
@@ -249,9 +249,9 @@ template<arithmetic_type ValueType>
 constexpr auto rect<ValueType>::center() const -> coordinates_type
 {
   const auto horizontal_size = value_range<value_type>::size(horizontal_range_);
-  const auto horizontal_offset = boost::numeric_cast<value_type>(horizontal_size / decltype(horizontal_size){2});
+  const auto horizontal_offset = numeric_cast<value_type>(horizontal_size / decltype(horizontal_size){2});
   const auto vertical_size = value_range<value_type>::size(vertical_range_);
-  const auto vertical_offset = boost::numeric_cast<value_type>(vertical_size / decltype(vertical_size){2});
+  const auto vertical_offset = numeric_cast<value_type>(vertical_size / decltype(vertical_size){2});
   return coordinates_type{horizontal_range_.begin + horizontal_offset, vertical_range_.begin + vertical_offset};
 }
 

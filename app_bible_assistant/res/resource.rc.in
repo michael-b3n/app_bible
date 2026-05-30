@@ -27,5 +27,5 @@ BEGIN
   END
 END
 
-1 24 "app_bible_assistant.exe.manifest"
-IDI_ICON1	ICON	"icon.ico"
+1 24 "@CMAKE_CURRENT_LIST_DIR@/res/app_bible_assistant.exe.manifest"
+IDI_ICON1	ICON	"@CMAKE_CURRENT_LIST_DIR@/res/icon.ico"

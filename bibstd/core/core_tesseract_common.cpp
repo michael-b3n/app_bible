@@ -1,6 +1,7 @@
 #include "bibstd/core/core_tesseract_common.hpp"
 #include "bibstd/system/filesystem.hpp"
 
+#include <ranges>
 #include <string_view>
 
 namespace bibstd::core

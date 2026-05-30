@@ -1,17 +1,21 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 4.3)
+
+include(GenerateIncbin)
 
 project(bibstd)
-add_library(bibstd OBJECT)
+add_library(${PROJECT_NAME} OBJECT)
 
 #
-# Define an options
+# Configure incbin files
 #
-# noting yet
+file(GLOB BIBSTD_DATA_FILES "${CMAKE_CURRENT_LIST_DIR}/res/scripture/*.zip")
+generate_incbin(LABEL "scripture" FILES "${BIBSTD_DATA_FILES}")
+configure_file(${CMAKE_CURRENT_LIST_DIR}/res/scripture.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/res/scripture.hpp @ONLY)
 
 #
 # Define target sources
 #
-file(GLOB BIBSTD_STD_SRC_FILES
+file(GLOB BIBSTD_SRC_FILES
   "${CMAKE_CURRENT_LIST_DIR}/*/*.cpp"
 
   # Include OS specific sources
@@ -19,7 +23,7 @@ file(GLOB BIBSTD_STD_SRC_FILES
   "${CMAKE_CURRENT_LIST_DIR}/*/windows/*.cpp"
   ENDIF()
 )
-file(GLOB BIBSTD_STD_INC_FILES
+file(GLOB BIBSTD_INC_FILES
   "${CMAKE_CURRENT_LIST_DIR}/*/*.hpp"
 
   # Include OS specific headers
@@ -28,49 +32,60 @@ file(GLOB BIBSTD_STD_INC_FILES
   ENDIF()
 )
 
-target_sources(bibstd
-  PRIVATE ${BIBSTD_STD_SRC_FILES}
-  PUBLIC ${BIBSTD_STD_INC_FILES}
+target_sources(${PROJECT_NAME}
+  PRIVATE ${BIBSTD_SRC_FILES}
+  PUBLIC ${BIBSTD_INC_FILES}
 )
 
 find_package(Boost REQUIRED)
-find_package(Boost REQUIRED COMPONENTS filesystem)
-target_include_directories(bibstd PUBLIC ${Boost_INCLUDE_DIRS})
+find_package(Boost REQUIRED COMPONENTS filesystem url)
+target_include_directories(${PROJECT_NAME} PUBLIC ${Boost_INCLUDE_DIRS})
 find_package(spdlog REQUIRED)
-target_include_directories(bibstd INTERFACE ${spdlog_INCLUDE_DIRS})
-find_package(fmt REQUIRED)
-target_include_directories(bibstd PUBLIC ${fmt_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} INTERFACE ${spdlog_INCLUDE_DIRS})
+find_package(pugixml REQUIRED)
+target_include_directories(${PROJECT_NAME} PUBLIC ${pugixml_INCLUDE_DIRS})
+find_package(libzip REQUIRED)
+target_include_directories(${PROJECT_NAME} PUBLIC ${libzip_INCLUDE_DIRS})
 
 find_package(PkgConfig REQUIRED)
 pkg_search_module(TESSERACT REQUIRED tesseract)
+target_include_directories(${PROJECT_NAME} PUBLIC ${TESSERACT_INCLUDE_DIRS})
 pkg_search_module(LEPTONICA REQUIRED lept)
-target_include_directories(bibstd PUBLIC ${TESSERACT_INCLUDE_DIRS})
-target_include_directories(bibstd PUBLIC ${LEPTONICA_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PUBLIC ${LEPTONICA_INCLUDE_DIRS})
+pkg_search_module(LIBCURL REQUIRED libcurl)
+target_include_directories(${PROJECT_NAME} PUBLIC ${LIBCURL_INCLUDE_DIRS})
 
 #
 # Link libraries.
 #
-target_link_libraries(bibstd
+target_link_libraries(${PROJECT_NAME}
   PUBLIC ${Boost_LIBRARIES}
   PUBLIC spdlog::spdlog
-  PUBLIC libs_external::all
+  PUBLIC pugixml
+  PUBLIC libzip
   ${TESSERACT_LIBRARIES}
   ${LEPTONICA_LIBRARIES}
+  ${LIBCURL_LIBRARIES}
+  PUBLIC libs_external::all
+  PUBLIC stdc++exp
 )
 
 IF(WIN32)
-  target_link_libraries(bibstd PUBLIC mswsock)
+  target_link_libraries(${PROJECT_NAME} PUBLIC mswsock)
 ENDIF()
 
 #
 # Target compile definitions.
 #
+target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:BIBSTD_DEBUG>)
+
 IF(WIN32)
-  target_compile_definitions(bibstd PUBLIC NOMINMAX)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC NOMINMAX)
 ENDIF()
 
 #
 # Add target include dirs and target sources.
 #
-cmake_path(GET CMAKE_CURRENT_SOURCE_DIR PARENT_PATH CMAKE_CURRENT_LIST_DIR_PARENT_PATH)
-target_include_directories(bibstd PUBLIC ${CMAKE_CURRENT_LIST_DIR_PARENT_PATH})
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR})
+cmake_path(GET CMAKE_CURRENT_SOURCE_DIR PARENT_PATH BIBSTD_INCLUDE_DIR)
+target_include_directories(${PROJECT_NAME} PUBLIC ${BIBSTD_INCLUDE_DIR})

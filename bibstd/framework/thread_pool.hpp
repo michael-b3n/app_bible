@@ -3,7 +3,7 @@
 #include "bibstd/framework/active_worker.hpp"
 #include "bibstd/framework/task_queue.hpp"
 #include "bibstd/util/non_owning_ptr.hpp"
-#include "bibstd/util/scoped_guard.hpp"
+#include "bibstd/util/scope_guard.hpp"
 #include "bibstd/util/uid.hpp"
 
 #include <atomic>
@@ -39,7 +39,7 @@ public: // Init
   /// Init thread pool.
   /// \return scoped guard to clean up the object on destruction
   ///
-  static auto init() -> util::scoped_guard;
+  static auto init() -> util::shared_scope_guard;
 
 public: // Modifiers
   ///
@@ -85,16 +85,18 @@ private: // Typedefs
     strand_id_type strand_id{};
   };
 
+  using pool_type = std::vector<std::unique_ptr<pool_element>>;
+
 private: // Implementation
   static auto queue_task_index(task_data&& data, std::size_t index) -> void;
   static auto queue_task_auto(task_data&& data) -> void;
   static auto create_task_wrapper(task_data&& data, util::non_owning_ptr<pool_element> element) -> task_type;
-  static auto remove_abandoned_workers() -> void;
+  static auto extract_abandoned_workers() -> pool_type;
 
 private: // Variables
   inline static std::atomic_bool initialized_{false};
   inline static std::mutex mtx_{};
-  inline static std::vector<std::unique_ptr<pool_element>> pool_{};
+  inline static pool_type pool_{};
 };
 
 } // namespace bibstd::framework

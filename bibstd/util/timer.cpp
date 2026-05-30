@@ -2,8 +2,6 @@
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/source_location_helpers.hpp"
 
-#include <format>
-
 namespace bibstd::util
 {
 
@@ -34,7 +32,7 @@ scoped_timer_logger::scoped_timer_logger(std::source_location&& source_location)
 scoped_timer_logger::~scoped_timer_logger()
 {
   const auto duration = timer_.current_duration();
-  LOG_INFO("measured scoped time duration: {} ms | {}", duration.count(), util::filter_function_name(source_location_));
+  LOG_DEBUG("measured scoped time duration: {} ms | {}", duration.count(), util::filter_function_name(source_location_));
 }
 
 } // namespace bibstd::util

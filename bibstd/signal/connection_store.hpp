@@ -1,0 +1,37 @@
+#pragma once
+
+#include "bibstd/signal/common.hpp"
+
+#include <mutex>
+#include <vector>
+
+namespace bibstd::signal
+{
+
+///
+/// Connection store that stores connections to signals and disconnects them when destroyed.
+///
+class connection_store final
+{
+public: // Constructor
+  connection_store() = default;
+  ~connection_store() noexcept;
+
+public: // Modifiers
+  ///
+  /// Add connection to connection store.
+  /// \param con Connection that shall be added
+  ///
+  auto store(scoped_connection_type&& con) -> void;
+
+  ///
+  /// Clear connection store and disconnect all connections.
+  ///
+  auto clear() -> void;
+
+private: // Variables
+  mutable std::mutex mtx_;
+  std::vector<scoped_connection_type> connections_;
+};
+
+} // namespace bibstd::signal

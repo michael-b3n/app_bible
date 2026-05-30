@@ -2,12 +2,13 @@
 
 #include "bibstd/framework/active_worker.hpp"
 #include "bibstd/system/hotkey_common.hpp"
-#include "bibstd/util/scoped_guard.hpp"
+#include "bibstd/util/scope_guard.hpp"
 
 #include <atomic>
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 
 namespace bibstd::system
 {
@@ -21,7 +22,7 @@ public: // Static modifiers
   ///
   /// \see hotkey::init
   ///
-  static auto init() -> util::scoped_guard;
+  static auto init() -> util::shared_scope_guard;
 
   ///
   /// \see hotkey::register_callback

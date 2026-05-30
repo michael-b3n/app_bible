@@ -1,13 +1,13 @@
 #include "bibstd/system/screen.hpp"
 #include "bibstd/system/windows/win.hpp"
-#include "bibstd/util/boost_numeric_cast.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
+#include "bibstd/util/numeric_cast.hpp"
+#include "bibstd/util/ranges.hpp"
 
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
-#include <expected>
 #include <mutex>
 #include <ranges>
 
@@ -18,8 +18,10 @@ namespace bibstd::system
 ///
 auto screen::init() -> bool
 {
-  // We set the Dpi awareness explicitly for this process.
-  return SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+  // Declare per-monitor DPI awareness for proper screen capture at native resolution.
+  // This is also declared in the app manifest. The call here is a no-op if already set.
+  SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+  return true;
 }
 
 ///
@@ -42,7 +44,7 @@ auto screen::cursor_position() -> screen_coordinates_type
   SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
   if(!GetCursorPos(&point))
   {
-    THROW_EXCEPTION("failed to get cursor position");
+    throw util::exception("failed to get cursor position");
   }
   return screen_coordinates_type(point.x, point.y);
 }
@@ -114,8 +116,8 @@ auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) -> bool
   // the highest row is the lowest row in the coordinate system of tesseract,
   // where the origin is on the bottom left.
   const auto byte_count = info.bmiHeader.biBitCount / 8;
-  const auto height = boost::numeric_cast<std::uint32_t>(info.bmiHeader.biHeight);
-  const auto width = boost::numeric_cast<std::uint32_t>(info.bmiHeader.biWidth);
+  const auto height = numeric_cast<std::uint32_t>(info.bmiHeader.biHeight);
+  const auto width = numeric_cast<std::uint32_t>(info.bmiHeader.biWidth);
   pix.width = width;
   pix.height = height;
   if(pix.data.size() < height * width)
@@ -123,11 +125,11 @@ auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) -> bool
     pix.data.resize(height * width);
   }
   std::ranges::for_each(
-    std::views::iota(std::size_t{0}, height) | std::views::reverse,
+    util::ranges::index_view_to(height) | std::views::reverse,
     [&, counter = 0u](const auto row_idx) mutable
     {
       std::ranges::for_each(
-        std::views::iota(width * row_idx, width * (row_idx + 1)),
+        util::ranges::index_view_between(width * row_idx, width * (row_idx + 1)),
         [&](const auto index)
         {
           const auto i = counter++ * byte_count;

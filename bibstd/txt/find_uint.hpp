@@ -35,7 +35,7 @@ struct find_uint_t final
 ///
 /// \see find_uint_t::operator()()
 ///
-constexpr find_uint_t find_uint;
+inline constexpr find_uint_t find_uint;
 
 ///
 ///

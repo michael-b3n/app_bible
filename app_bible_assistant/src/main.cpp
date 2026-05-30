@@ -1,32 +1,24 @@
 ///
 /// Main file.
 ///
-#include "version.hpp"
+#include "res/version.hpp"
+#include "src/construct_backend.hpp"
+#include "src/construct_bridge.hpp"
 
-#include <bibstd/framework/thread_pool.hpp>
 #include <bibstd/system/filesystem.hpp>
-#include <bibstd/system/hotkey.hpp>
 #include <bibstd/system/open_browser.hpp>
 #include <bibstd/system/screen.hpp>
 #include <bibstd/system/tray.hpp>
-#include <bibstd/util/date.hpp>
 #include <bibstd/util/incbin.hpp>
 #include <bibstd/util/log.hpp>
-
-#include <bibstd/presenter/presenter_bible_ref_ocr.hpp>
-
-#include <bibqml/BridgeBibleRefOcr.hpp>
 
 #include <QGuiApplication>
 #include <QMetaObject>
 #include <QQmlApplicationEngine>
-#include <QQmlContext>
-#include <QQuickStyle>
-
+#include <QQuickWindow>
 #include <QtQml/QQmlExtensionPlugin>
-Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
 
-#include <filesystem>
+Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
 
 INC_RESOURCE(icon, "res/icon.ico");
 const auto icon_view = bibstd::util::incbin::to_span<std::byte>(res_icon_data, res_icon_size);
@@ -38,63 +30,40 @@ int main(int argc, char** argv)
 {
   const auto logger = bibstd::util::logger();
   LOG_INFO("executable: {}", bibstd::system::filesystem::executable_location().string());
-  LOG_INFO("version: {}", bible_assistant::version::version_string);
-  LOG_INFO("commit_hash: {}", bible_assistant::version::commit_hash);
-  LOG_INFO("commit_date: {}", bible_assistant::version::commit_date);
+  LOG_INFO("version: {}", aba::version::version_string);
+  LOG_INFO("commit_hash: {}", aba::version::commit_hash);
+  LOG_INFO("commit_date: {}", aba::version::commit_date);
 
-  if(bibstd::system::screen::init())
+  if(!bibstd::system::screen::init())
   {
     LOG_ERROR("failed to initialize screen settings");
     return EXIT_FAILURE;
   }
 
-  // Init backend
-  auto presenter_bible_ref_ocr = bibstd::presenter::presenter_bible_ref_ocr();
-
-  // Init thread pool
-  const auto pool_guard = bibstd::framework::thread_pool::init();
-
-  // Init hotkey system
-  const auto hotkey_guard = bibstd::system::hotkey::init();
-  // Register hotkeys. Currently no hotkey change is supported.
-  bibstd::system::hotkey::register_callback(
-    presenter_bible_ref_ocr.settings->hotkey->value(),
-    presenter_bible_ref_ocr.settings->hotkey_modifier->value(),
-    [&presenter_bible_ref_ocr, stop_source = std::stop_source()]() mutable
-    {
-      stop_source.request_stop();
-      const auto cursor_pos = bibstd::system::screen::cursor_position();
-      stop_source = presenter_bible_ref_ocr.start(cursor_pos);
-    }
-  );
+  // Init backend components.
+  auto backend = aba::construct_backend();
 
   // Initialize Qt application.
+#ifdef _WIN32
+  QQuickWindow::setGraphicsApi(QSGRendererInterface::Direct3D11);
+#endif
+  QQuickWindow::setTextRenderType(QQuickWindow::CurveTextRendering);
   QGuiApplication app(argc, argv);
+
+  // Note bridge must be declared before engine so it outlives QML objects
+  auto bridge = aba::construct_bridge(app, backend);
+  aba::connect_bridge(bridge);
+
   QQmlApplicationEngine engine;
 
-  // Create OCR bridge and pass ownership to QML engine
-  auto bridge_bible_ref_ocr = bibqml::BridgeBibleRefOcr(presenter_bible_ref_ocr);
-
-  // Set initial properties for the QML root component
-  engine.setInitialProperties({
-    {"bridge", QVariant::fromValue(&bridge_bible_ref_ocr)}
-  });
-
-  QObject::connect(
-    &engine,
-    &QQmlApplicationEngine::objectCreationFailed,
-    &app,
-    [](const QUrl& url)
-    {
-      LOG_INFO("qml object creation failed: url: \"{}\"", url.toString().toStdString());
-      QCoreApplication::exit(EXIT_FAILURE);
-    },
-    Qt::QueuedConnection
-  );
-  engine.load(QUrl(QStringLiteral("qrc:/qt/qml/ui/qml/Main.qml")));
+  aba::connect_engine(engine, app, bridge);
 
   // Connect tray signals
-  const auto do_on_exit = [&]() { QMetaObject::invokeMethod(&app, [&app] { app.quit(); }, Qt::QueuedConnection); };
+  const auto do_on_exit = [&]()
+  {
+    aba::disconnect_bridge(bridge);
+    QMetaObject::invokeMethod(&app, [&app] { app.quit(); }, Qt::QueuedConnection);
+  };
   const auto open_github = []() { bibstd::system::open_browser::open("https://github.com/michael-b3n/app_bible"); };
   // Start system tray.
   const auto tray_guard = bibstd::system::tray::init(

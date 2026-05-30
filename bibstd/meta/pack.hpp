@@ -1,7 +1,5 @@
 #pragma once
 
-#include "bibstd/meta/type_traits.hpp"
-
 #include <type_traits>
 #include <utility>
 
@@ -22,7 +20,7 @@ struct index_t
 } // namespace detail
 
 ///
-/// packable trait.
+/// packaged trait.
 ///
 template<typename T>
 struct is_packable : std::false_type
@@ -34,12 +32,12 @@ template<typename T>
 constexpr bool is_pack_v = is_packable<T>::value;
 
 template<typename T>
-concept packable = is_pack_v<T>;
+concept packaged = is_pack_v<T>;
 
 ///
 /// Unpack all types in pack like type P into template T.
 ///
-template<template<typename...> typename T, packable P>
+template<template<typename...> typename T, packaged P>
 struct unpack;
 
 template<template<typename...> typename T, template<typename...> typename P, typename... Args>
@@ -60,7 +58,7 @@ using unpack_t = typename unpack<T, P>::type;
 ///
 /// Add type to pack like type from the left side.
 ///
-template<typename T, packable P>
+template<typename T, packaged P>
 struct add_to_pack;
 
 template<typename T, template<typename...> typename P, typename... Args>
@@ -79,9 +77,29 @@ template<typename T, typename P>
 using add_to_pack_t = typename add_to_pack<T, P>::type;
 
 ///
+/// Remove first type from pack.
+///
+template<packaged P>
+struct remove_from_pack;
+
+template<template<typename...> typename P, typename T, typename... Args>
+struct remove_from_pack<P<T, Args...>>
+{
+  using type = P<Args...>;
+};
+
+///
+/// Remove from pack method to remove T from a pack P from the left side.
+/// \tparam P pack of types as pack<P<0>, P<1>, ... P<n>>
+/// \result type of pack<P<1>, ... P<n>>
+///
+template<typename P>
+using remove_from_pack_t = typename remove_from_pack<P>::type;
+
+///
 /// Combine two pack types to one pack type. Pack type type is of first type.
 ///
-template<packable T, packable P>
+template<packaged T, packaged P>
 struct combine_pack;
 
 template<template<typename...> typename P1, template<typename...> typename P2, typename... Ts, typename... Args>
@@ -100,24 +118,47 @@ template<typename T, typename P>
 using combine_pack_t = typename combine_pack<T, P>::type;
 
 ///
-/// Remove first type from pack.
+/// Split a pack like type P into two pack like types.
 ///
-template<packable P>
-struct remove_from_pack;
+template<packaged P, std::size_t N>
+struct split_pack;
 
-template<template<typename...> typename P, typename T, typename... Args>
-struct remove_from_pack<P<T, Args...>>
+template<template<typename...> typename P, typename... Args>
+struct split_pack<P<Args...>, 0>
 {
-  using type = P<Args...>;
+  using first_type = P<>;
+  using second_type = P<Args...>;
 };
 
-///
-/// Remove from pack method to remove T from a pack P from the left side.
-/// \tparam P pack of types as pack<P<0>, P<1>, ... P<n>>
-/// \result type of pack<P<1>, ... P<n>>
-///
-template<typename P>
-using remove_from_pack_t = typename remove_from_pack<P>::type;
+template<template<typename...> typename P, typename... Args>
+struct split_pack<P<Args...>, sizeof...(Args)>
+{
+  using first_type = P<Args...>;
+  using second_type = P<>;
+};
+
+template<template<typename...> typename P, typename... Args, std::size_t N>
+  requires(N < sizeof...(Args) && N > 0)
+struct split_pack<P<Args...>, N>
+{
+private:
+  using tuple_type = std::tuple<Args...>;
+
+  template<template<typename...> typename P_, typename SequenceFirst_, typename SequenceSecond_>
+  struct split_pack_helper;
+
+  template<template<typename...> typename P_, std::size_t... FI_, std::size_t... SI_>
+  struct split_pack_helper<P_, std::index_sequence<FI_...>, std::index_sequence<SI_...>>
+  {
+    using first_type = P_<std::tuple_element_t<FI_, tuple_type>...>;
+    using second_type = P_<std::tuple_element_t<SI_ + N, tuple_type>...>;
+  };
+  using helper_type = split_pack_helper<P, std::make_index_sequence<N>, std::make_index_sequence<sizeof...(Args) - N>>;
+
+public:
+  using first_type = typename helper_type::first_type;
+  using second_type = typename helper_type::second_type;
+};
 
 ///
 /// Pack types into pack like type N times.
@@ -126,13 +167,13 @@ template<template<typename...> typename P, typename T, std::size_t N>
 struct pack_n_types
 {
 private:
-  template<packable P_, typename T_, std::size_t N_>
+  template<packaged P_, typename T_, std::size_t N_>
   struct pack_n_types_helper
   {
     using type = typename pack_n_types_helper<add_to_pack_t<T_, P_>, T_, N_ - 1>::type;
   };
 
-  template<packable P_, typename T_>
+  template<packaged P_, typename T_>
   struct pack_n_types_helper<P_, T_, 0>
   {
     using type = P_;
@@ -152,29 +193,9 @@ template<template<typename...> typename P, typename T, std::size_t N>
 using pack_n_types_t = typename pack_n_types<P, T, N>::type;
 
 ///
-/// Deduce type in pack like type at index N.
-///
-template<packable P, std::size_t N>
-struct type_from_pack;
-
-template<template<typename...> typename P, std::size_t N, typename... Args>
-struct type_from_pack<P<Args...>, N>
-{
-  using type = std::tuple_element_t<N, std::tuple<Args...>>;
-};
-
-///
-/// Get the type of an element in pack like type P with index N.
-/// \tparam P pack of types pack<...>
-/// \tparam N index of type in pack as pack<T<0>, T<1>, ... T<N>, ... T<M>>
-///
-template<packable P, std::size_t N>
-using type_from_pack_t = type_from_pack<P, N>::type;
-
-///
 /// Deduce index of specific type in pack like type.
 ///
-template<packable P, typename T>
+template<packaged P, typename T>
 struct type_index;
 
 template<template<typename...> typename P, typename... Args, typename T>
@@ -209,55 +230,45 @@ public:
 /// \tparam T type to be searched in pack P
 /// \return index of T in pack, if P does not contain T, index is equal to the size of pack
 ///
-template<packable P, typename T>
+template<packaged P, typename T>
 constexpr std::size_t type_index_v = type_index<P, T>::index;
 
 ///
-/// Pack of arbitrary template parameters
-/// \tparam ... arbitrary types
-/// \result type of pack<...>
+/// Extract information of a packable type
+/// \tparam P pack like type
 ///
-template<typename... Args>
-struct pack
-{};
+template<typename P>
+struct pack_info;
 
-///
-/// Access general pack info via pack type.
-///
-template<>
-struct pack<>
+template<template<typename...> typename P, typename T>
+struct pack_info<P<T>> final
 {
-  static constexpr std::size_t size = 0;
-  using first_type = void;
-  using last_type = void;
-};
+  // Constants
+  static constexpr std::size_t size = 1;
 
-template<typename T, typename... Args>
-struct pack<T, Args...>
-{
-  static constexpr std::size_t size = sizeof...(Args) + 1;
+  // Templates
+  template<std::size_t N>
+    requires(N == 0)
+  using type_at = T;
+
+  // Typedefs
   using first_type = T;
-  using last_type = type_from_pack_t<std::tuple<T, Args...>, size - 1>;
+  using last_type = T;
 };
 
-///
-/// Get size of a generic pack like type.
-///
-template<packable P>
-struct pack_size;
-
-template<template<typename...> typename P, typename... Args>
-struct pack_size<P<Args...>>
+template<template<typename...> typename P, typename T, typename... Args>
+struct pack_info<P<T, Args...>> final
 {
-  static constexpr auto value = sizeof...(Args);
-};
+  // Constants
+  static constexpr std::size_t size = sizeof...(Args) + 1;
 
-///
-/// Get sizeof...(Args) of generic pack P<Args...>.
-/// \tparam P pack type containing generic types
-/// \return sizeof...(Args) in pack P<Args...>
-///
-template<packable P>
-constexpr std::size_t pack_size_v = pack_size<P>::value;
+  // Templates
+  template<std::size_t N>
+  using type_at = std::tuple_element_t<N, std::tuple<T, Args...>>;
+
+  // Typedefs
+  using first_type = T;
+  using last_type = type_at<size - 1>;
+};
 
 } // namespace bibstd::meta

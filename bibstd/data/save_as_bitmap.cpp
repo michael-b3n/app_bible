@@ -1,9 +1,9 @@
 #include "bibstd/data/save_as_bitmap.hpp"
 #include "bibstd/util/log.hpp"
+#include "bibstd/util/ranges.hpp"
 
 #include <algorithm>
 #include <fstream>
-#include <ranges>
 
 namespace bibstd::data
 {
@@ -94,11 +94,11 @@ auto save_as_bitmap(const plane<pixel>& data, const std::filesystem::path& path)
   // Write each row and column of Pixels into the image file -- we write
   // the rows upside-down to satisfy the easiest BMP format.
   std::ranges::for_each(
-    std::views::iota(std::uint32_t{0}, height) | std::views::reverse,
+    util::ranges::index_view_to(height) | std::views::reverse,
     [&](const auto row_idx)
     {
       std::ranges::for_each(
-        std::views::iota(width * row_idx, width * (row_idx + 1)),
+        util::ranges::index_view_between(width * row_idx, width * (row_idx + 1)),
         [&](const auto index)
         {
           const auto& p = data.data.at(index);

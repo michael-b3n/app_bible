@@ -1,9 +1,9 @@
 #pragma once
 
 #include "bibstd/math/arithmetic.hpp"
+
 #include <magic_enum/magic_enum.hpp>
 
-#include <concepts>
 #include <string>
 #include <type_traits>
 
@@ -35,9 +35,42 @@ constexpr auto to_integral(const E e) -> std::underlying_type_t<E>
 /// \return string_view name corresponding to enum value
 ///
 template<enum_type E>
-constexpr auto to_string_view(const E e) -> std::string_view
+constexpr auto enum_name(const E e) -> std::string_view
 {
   return magic_enum::enum_name(e);
+}
+
+///
+/// Get the count of enum values for a given enum type.
+/// \tparam E enum type
+/// \return count of enum values
+///
+template<enum_type E>
+consteval auto enum_count() -> std::size_t
+{
+  return magic_enum::enum_count<E>();
+}
+
+///
+/// Get all the enum names for a given enum type.
+/// \tparam E enum type
+/// \return array of enum value names
+///
+template<enum_type E>
+consteval auto enum_names() -> std::array<std::string_view, enum_count<E>()>
+{
+  return magic_enum::enum_names<E>();
+}
+
+///
+/// Get all the enum values for a given enum type.
+/// \tparam E enum type
+/// \return array of enum values
+///
+template<enum_type E>
+consteval auto enum_values() -> std::array<E, enum_count<E>()>
+{
+  return magic_enum::enum_values<E>();
 }
 
 ///
@@ -77,9 +110,22 @@ constexpr auto next(const E e) -> E
   const auto value = math::arithmetic::add(to_integral(e), std::underlying_type_t<E>(1));
   if(!value.has_value())
   {
-    THROW_EXCEPTION("invalid next enum value");
+    throw util::exception("invalid next enum value");
   }
   return to_enum<E>(*value);
+}
+
+///
+/// Checks if next enum value exists.
+/// \tparam E enum type
+/// \param e enum value
+/// \return flag indicating if next enum value exists
+///
+template<enum_type E>
+constexpr auto has_next(const E e) -> bool
+{
+  const auto value = math::arithmetic::add(to_integral(e), std::underlying_type_t<E>(1));
+  return value.has_value() && magic_enum::enum_cast<E>(*value).has_value();
 }
 
 ///
@@ -94,9 +140,22 @@ constexpr auto prev(const E e) -> E
   const auto value = math::arithmetic::subtract(to_integral(e), std::underlying_type_t<E>(1));
   if(!value.has_value())
   {
-    THROW_EXCEPTION("invalid previous enum value");
+    throw util::exception("invalid previous enum value");
   }
   return to_enum<E>(*value);
+}
+
+///
+/// Checks if previous enum value exists.
+/// \tparam E enum type
+/// \param e enum value
+/// \return flag indicating if previous enum value exists
+///
+template<enum_type E>
+constexpr auto has_prev(const E e) -> bool
+{
+  const auto value = math::arithmetic::subtract(to_integral(e), std::underlying_type_t<E>(1));
+  return value.has_value() && magic_enum::enum_cast<E>(*value).has_value();
 }
 
 ///

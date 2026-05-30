@@ -1,9 +1,6 @@
 #include "bibstd/txt/indexed_strings.hpp"
-#include "bibstd/util/log.hpp"
-#include "bibstd/util/string.hpp"
 
 #include <algorithm>
-#include <ranges>
 
 namespace bibstd::txt
 {

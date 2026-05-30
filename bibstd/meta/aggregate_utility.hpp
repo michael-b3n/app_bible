@@ -1,7 +1,6 @@
 #pragma once
 
 #include "bibstd/meta/pack.hpp"
-#include "bibstd/meta/type_traits.hpp"
 
 #include <tuple>
 #include <type_traits>
@@ -34,7 +33,7 @@ struct __any final
 ///
 template<typename T, typename... Args>
 concept __constructable_with_helper = requires { std::decay_t<T>{Args{}...}; };
-template<typename T, packable P>
+template<typename T, packaged P>
 struct __is_constructable_with : std::false_type
 {};
 template<typename T, template<typename...> typename P, typename... Args>
@@ -42,7 +41,7 @@ template<typename T, template<typename...> typename P, typename... Args>
 struct __is_constructable_with<T, P<Args...>> : std::true_type
 {};
 template<typename T, std::size_t N>
-concept __constructable_with = __is_constructable_with<T, pack_n_types_t<pack, __any, N>>::value;
+concept __constructable_with = __is_constructable_with<T, pack_n_types_t<std::tuple, __any, N>>::value;
 
 template<std::size_t N>
 struct size_t_constant final

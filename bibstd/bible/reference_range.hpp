@@ -15,34 +15,59 @@ public: // Typedefs
   using verse_type = reference::verse_type;
 
 public: // Constructor
-  explicit reference_range(reference first_and_last);
-  reference_range(reference first, reference second);
+  constexpr explicit reference_range(reference first_and_last);
+  constexpr reference_range(reference first, reference second);
 
 public: // Operators
-  auto operator==(const reference_range&) const -> bool = default;
+  constexpr auto operator==(const reference_range&) const -> bool = default;
 
 public: // Accessors
-  ///
-  /// Get the size of all references in the range.
-  ///
-  auto size() const -> std::uint32_t;
-
   ///
   /// Get the first reference in the range.
   /// \return the first reference.
   ///
-  auto begin() const -> reference;
+  constexpr auto begin() const -> reference;
 
   ///
   /// Get the last reference in the range.
   /// \return the last reference.
   ///
-  auto end() const -> reference;
+  constexpr auto end() const -> reference;
 
 private: // Variables
   reference from_;
   reference to_;
 };
+
+///
+///
+constexpr reference_range::reference_range(reference first_and_last)
+  : from_(first_and_last)
+  , to_(first_and_last)
+{
+}
+
+///
+///
+constexpr reference_range::reference_range(reference first, reference second)
+  : from_(std::min(first, second))
+  , to_(std::max(first, second))
+{
+}
+
+///
+///
+constexpr auto reference_range::begin() const -> reference
+{
+  return from_;
+}
+
+///
+///
+constexpr auto reference_range::end() const -> reference
+{
+  return to_;
+}
 
 } // namespace bibstd::bible
 
@@ -51,7 +76,7 @@ private: // Variables
 template<>
 struct std::formatter<bibstd::bible::reference_range> : std::formatter<bibstd::bible::reference>
 {
-  auto format(const bibstd::bible::reference_range e, std::format_context& ctx) const
+  constexpr auto format(const bibstd::bible::reference_range e, std::format_context& ctx) const
   {
     return formatter<std::string>::format(std::format("{} - {}", e.begin(), e.end()), ctx);
   }
