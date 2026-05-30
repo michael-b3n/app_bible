@@ -158,9 +158,7 @@ auto core_bible_ref_finder::parse(
   return parse_result{
     .ranges = match_passage_template(
       book->book_id,
-      create_passage_template(
-        text.substr(book->index_range_numbers.begin, index_range_type::size(book->index_range_numbers)), language
-      ),
+      create_passage_template(text.substr(book->index_range_numbers.begin, math::size(book->index_range_numbers)), language),
       versification
     ),
     .index_range_origin = index_range_type{book->index_range_book.begin, book->index_range_numbers.end},
@@ -248,7 +246,7 @@ auto core_bible_ref_finder::find_book(const std::string_view text, const std::si
             const auto index_numbers_begin = raw_index_ranges.at(pos_abs + name_variant.size()).begin;
             const auto index_numbers_end = raw_index_ranges.at(pos_abs + name_variant.size() + number_end - 1).end;
 
-            if(math::value_range<std::size_t>::contains(index_range_type{index_book_begin, index_numbers_end}, index))
+            if(math::contains(index_range_type{index_book_begin, index_numbers_end}, index))
             {
               found_book = find_book_result{
                 .book_id = book_id,

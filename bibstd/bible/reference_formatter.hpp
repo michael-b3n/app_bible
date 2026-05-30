@@ -1,9 +1,7 @@
 #pragma once
 
 #include "bibstd/bible/reference_range.hpp"
-#include "bibstd/util/exception.hpp"
 
-#include <optional>
 #include <string>
 
 namespace bibstd::bible

@@ -8,7 +8,6 @@
 #include <functional>
 #include <map>
 #include <memory>
-#include <mutex>
 
 namespace bibstd::system
 {

@@ -1,9 +1,8 @@
 #pragma once
 
-#include "bibstd/util/numeric_cast.hpp"
-
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <format>
 #include <type_traits>
@@ -78,12 +77,24 @@ template<typename... T>
 coordinates(T...) -> coordinates<std::common_type_t<T...>, sizeof...(T)>;
 
 ///
+/// 2D coordinates type definition.
+///
+template<typename T>
+using coordinates_2d = coordinates<T, 2>;
+
+///
+/// 3D coordinates type definition.
+///
+template<typename T>
+using coordinates_3d = coordinates<T, 3>;
+
+///
 ///
 template<typename ValueType, std::size_t D>
 constexpr auto coordinates<ValueType, D>::distance(const coordinates& first, const coordinates& second) -> double
 {
   const auto create_distances = [&]<std::size_t... I>([[maybe_unused]] std::index_sequence<I...>)
-  { return std::array{numeric_cast<double>(first.axis_value(I)) - numeric_cast<double>(second.axis_value(I))...}; };
+  { return std::array{static_cast<double>(first.axis_value(I)) - static_cast<double>(second.axis_value(I))...}; };
   const auto distances = create_distances(std::make_index_sequence<D>());
   const auto distance_squared =
     std::ranges::fold_left(distances, 0.0, [](const double first, const double second) { return first + std::pow(second, 2); });
@@ -95,7 +106,7 @@ constexpr auto coordinates<ValueType, D>::distance(const coordinates& first, con
 template<typename ValueType, std::size_t D>
 template<typename... T>
 constexpr coordinates<ValueType, D>::coordinates(T... coords)
-  : coordinates_{std::array{numeric_cast<value_type>(coords)...}}
+  : coordinates_{std::array{static_cast<value_type>(coords)...}}
 {
 }
 

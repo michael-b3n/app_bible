@@ -20,6 +20,13 @@ template<typename T>
 concept arithmetic_type = std::is_arithmetic_v<T>;
 
 ///
+/// Concept checking if the value types are both integrals or floating points.
+///
+template<typename... T>
+concept similar_arithmetic_types =
+  (... && arithmetic_type<T>) && ((... && std::integral<T>) || (... && std::floating_point<T>));
+
+///
 /// Integer and floating point arithmetics guard for save math operations guaranteeing over- and underflow protection.
 ///
 struct arithmetic final
@@ -414,9 +421,9 @@ constexpr auto arithmetic_operation<T>::multiply(T first, T second) -> arithmeti
   // `constexpr std::abs` wrapper, since std::abs(long long) of the standard library is not `constexpr`.
   constexpr auto abs = [](auto value) -> auto
   {
-    if constexpr(std::is_same_v<decltype(value), long> || std::is_same_v<decltype(value), long long>)
+    if consteval
     {
-      if(std::is_constant_evaluated())
+      if constexpr(std::integral<decltype(value)>)
       {
         assert(value != std::numeric_limits<decltype(value)>::min());
         return value < 0 ? -value : value;

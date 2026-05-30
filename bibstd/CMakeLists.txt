@@ -71,7 +71,9 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 IF(WIN32)
-  target_link_libraries(${PROJECT_NAME} PUBLIC mswsock)
+  target_link_libraries(${PROJECT_NAME} PRIVATE mswsock)
+  # Windows OCR support via C++/WinRT
+  target_link_libraries(${PROJECT_NAME} PRIVATE runtimeobject)
 ENDIF()
 
 #

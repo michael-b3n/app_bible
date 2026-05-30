@@ -1,9 +1,10 @@
 #include "bibstd/system/screen.hpp"
-#include "bibstd/system/windows/win.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/numeric_cast.hpp"
 #include "bibstd/util/ranges.hpp"
+
+#include "bibstd/system/windows/win.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -33,7 +34,7 @@ auto screen::metrics() -> screen_rect_type
   const auto y = GetSystemMetrics(SM_YVIRTUALSCREEN);
   const auto width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
   const auto height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-  return screen_rect_type(screen_rect_type::coordinates_type(x, y), width, height);
+  return screen_rect_type(math::coordinates{x, y}, static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height));
 }
 
 ///
@@ -60,7 +61,10 @@ auto screen::window_at(const screen_coordinates_type coordinates) -> std::option
     RECT rect;
     if(GetWindowRect(hwnd, &rect))
     {
-      return screen_rect_type({rect.left, rect.bottom}, {rect.right, rect.top});
+      return screen_rect_type(
+        math::coordinates{numeric_cast<std::int32_t>(rect.left), numeric_cast<std::int32_t>(rect.bottom)},
+        math::coordinates{numeric_cast<std::int32_t>(rect.right), numeric_cast<std::int32_t>(rect.top)}
+      );
     }
   }
   return std::nullopt;
@@ -78,11 +82,14 @@ auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) -> bool
   HDC hdc = GetDC(nullptr);
   HBITMAP bitmap = [&]
   {
+    const auto hr = numeric_cast<int>(math::size(rect.horizontal_range()));
+    const auto vr = numeric_cast<int>(math::size(rect.vertical_range()));
+
     HDC sdc = CreateCompatibleDC(hdc);
-    auto hbitmap = CreateCompatibleBitmap(hdc, rect.horizontal_range(), rect.vertical_range());
+    auto hbitmap = CreateCompatibleBitmap(hdc, hr, vr);
     HGDIOBJ hOld = SelectObject(sdc, hbitmap);
     const auto origin = rect.origin();
-    BitBlt(sdc, 0, 0, rect.horizontal_range(), rect.vertical_range(), hdc, origin.x(), origin.y(), SRCCOPY | CAPTUREBLT);
+    BitBlt(sdc, 0, 0, hr, vr, hdc, origin.x(), origin.y(), SRCCOPY | CAPTUREBLT);
     SelectObject(sdc, hOld);
     DeleteDC(sdc);
     return hbitmap;
@@ -118,12 +125,8 @@ auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) -> bool
   const auto byte_count = info.bmiHeader.biBitCount / 8;
   const auto height = numeric_cast<std::uint32_t>(info.bmiHeader.biHeight);
   const auto width = numeric_cast<std::uint32_t>(info.bmiHeader.biWidth);
-  pix.width = width;
-  pix.height = height;
-  if(pix.data.size() < height * width)
-  {
-    pix.data.resize(height * width);
-  }
+
+  pix = pixel_plane_type(width, height);
   std::ranges::for_each(
     util::ranges::index_view_to(height) | std::views::reverse,
     [&, counter = 0u](const auto row_idx) mutable
@@ -133,7 +136,7 @@ auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) -> bool
         [&](const auto index)
         {
           const auto i = counter++ * byte_count;
-          auto& p = pix.data.at(index);
+          auto& p = pix.at(index);
           p.blue = static_cast<std::uint8_t>(pixels_bytes[i + 0]);
           p.green = static_cast<std::uint8_t>(pixels_bytes[i + 1]);
           p.red = static_cast<std::uint8_t>(pixels_bytes[i + 2]);
