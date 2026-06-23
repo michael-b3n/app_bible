@@ -35,8 +35,6 @@ struct value_range final
   /// \throws util::exception if the provided values would create an overflow
   /// \tparam T1 Type that is lossless convertible to ValueType
   /// \tparam T2 Type that is lossless convertible to unsigned type of ValueType
-  /// \param begin Begin value
-  /// \param size Size of range
   /// \return value range
   ///
   template<meta::lossless_convertible<ValueType> T1, meta::lossless_convertible<meta::conditional_unsigned_t<ValueType>> T2>
@@ -157,7 +155,6 @@ constexpr auto value_range<ValueType>::operator==(const value_range& other) cons
 
 ///
 /// Check if the `value_range` is empty (`begin == end`).
-/// \param range Range object
 /// \return true if `value_range` is empty, false otherwise
 ///
 template<arithmetic_type T>
@@ -168,7 +165,6 @@ constexpr auto empty(const value_range<T>& range) -> bool
 
 ///
 /// Get the size (defined as `size = end - begin` where `end > begin`) of a `value_range`.
-/// \param range Range object
 /// \return size of `value_range` (type std::size_t for integer types, type double for floating point types)
 ///
 template<arithmetic_type T>
@@ -186,8 +182,6 @@ constexpr auto size(const value_range<T>& range) -> auto
 
 ///
 /// Checks if `subrange` is fully contained in `range`.
-/// \param range Range that might contain `subrange`
-/// \param subrange Subrange that might be contained in `range`
 /// \return true, if `subrange` is fully contained in `range`
 ///
 template<arithmetic_type T1, arithmetic_type T2>
@@ -208,8 +202,6 @@ constexpr auto contains(const value_range<T1>& range, const value_range<T2>& sub
 
 ///
 /// Checks if `value` is fully contained in `range`.
-/// \param range Range that might contain `subrange`
-/// \param value Value that might be contained in `range`
 /// \return true, if `value` is fully contained in `range`
 ///
 template<arithmetic_type T1, arithmetic_type T2>
@@ -232,8 +224,6 @@ constexpr auto contains(const value_range<T1>& range, T2 value) -> bool
 ///
 /// Checks if two ranges overlap.
 /// Empty integer ranges will never overlap with another range.
-/// \param first First range
-/// \param second Second range
 /// \return true, if two ranges overlap, false otherwise
 ///
 template<arithmetic_type T1, arithmetic_type T2>
@@ -262,8 +252,6 @@ constexpr auto overlaps(const value_range<T1>& first, const value_range<T2>& sec
 
 ///
 /// Get the range identifying an overlap between two ranges.
-/// \param first First range
-/// \param second Second range
 /// \return optional range describing overlap of `first` and `second`, std::nullopt if no overlap is present
 ///
 template<arithmetic_type T1, arithmetic_type T2>
@@ -284,8 +272,6 @@ constexpr auto overlap(const value_range<T1>& first, const value_range<T2>& seco
 ///
 /// Checks if two ranges are adjacent end another.
 /// Empty integer ranges will never be adjacent to another range.
-/// \param first First range
-/// \param second Second range
 /// \return true if adjacent, false otherwise
 ///
 template<arithmetic_type T1, arithmetic_type T2>
@@ -314,8 +300,6 @@ constexpr auto adjacent(const value_range<T1>& first, const value_range<T2>& sec
 
 ///
 /// Clamp value to be contained within range.
-/// \param range Range that shall clamp the value
-/// \param value Value that shall be clamped
 /// \return clamped value
 ///
 template<arithmetic_type T>

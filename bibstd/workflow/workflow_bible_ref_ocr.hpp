@@ -53,7 +53,8 @@ class workflow_bible_ref_ocr final
   // Typedefs
   struct params_t final
   {
-    util::screen_coordinates_type cursor_position{0, 0};
+    util::pixel_plane_view_type image;
+    util::screen_coordinates_type position{0, 0};
   };
 
   ///
@@ -66,16 +67,6 @@ class workflow_bible_ref_ocr final
     std::vector<bible::reference_range> reference_ranges;
     std::optional<bible::reference> first_reference;
     std::optional<bible::scripture::passage_html_type> passage;
-  };
-
-  ///
-  /// Result of capturing a screen area.
-  /// This contains the relative cursor position and the captured pixel plane.
-  ///
-  struct capture_screen_result_t final
-  {
-    util::screen_coordinates_type relative_cursor_pos;
-    util::pixel_plane_type image;
   };
 
   ///
@@ -105,18 +96,15 @@ public: // Structors
 
 public: // Modifiers
   ///
-  /// Search bible references on a screen area using OCR around the cursor position.
-  /// \param params Process parameters containing the cursor position
+  /// Search bible references on an image using OCR around the specified position.
   /// \return list of found bible reference ranges, or an unexpected result in case of failure
   ///
   [[nodiscard]] auto find(const params& params) -> result;
 
 private: // Implementation
   auto init() -> void;
-  [[nodiscard]] auto capture_screen(const util::screen_coordinates_type& cursor_position) const
-    -> std::optional<capture_screen_result_t>;
   [[nodiscard]] auto versification() const -> decltype(settings_t::versification);
-  [[nodiscard]] auto find_references(auto&& image_data, const settings_t& settings)
+  [[nodiscard]] auto find_references(const auto& params, const settings_t& settings)
     -> framework::process_result<std::vector<bible::reference_range>>;
 
 private: // Variables

@@ -1,5 +1,5 @@
 #include "bibstd/core/core_bible_ref_finder.hpp"
-#include "bibstd/bible/book_name_variants_de.hpp"
+#include "bibstd/bible/ocr_book_variants_de.hpp"
 #include "bibstd/bible/common.hpp"
 #include "bibstd/bible/reference.hpp"
 #include "bibstd/bible/versification.hpp"
@@ -215,7 +215,7 @@ auto core_bible_ref_finder::find_book(const std::string_view text, const std::si
   // 1. The common searches match more with the latter book names.
   // 2. For John and X_John the first match would be taken even if it should be the second one.
   std::ranges::for_each(
-    bible::book_name_variants_de::name_variants_list | std::views::reverse |
+    bible::ocr_book_variants_de::name_variants_list | std::views::reverse |
       std::views::take_while([&]([[maybe_unused]] auto&) { return !found_book.has_value(); }),
     [&](const auto& element)
     {
@@ -318,7 +318,7 @@ auto core_bible_ref_finder::try_validate_numbers_range(
       {
         const auto text_from_last_number = text_after_name.substr(numbers_end - 1);
         const auto belongs_to_book_name = std::ranges::any_of(
-          bible::book_name_variants_de::name_variants_list,
+          bible::ocr_book_variants_de::name_variants_list,
           [&](const auto& element)
           {
             const auto& [_, name_variant] = element;

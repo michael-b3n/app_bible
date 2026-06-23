@@ -3,13 +3,11 @@
 #include "bibstd/bible/reference_range.hpp"
 #include "bibstd/core/core_bible_ref_finder.hpp"
 #include "bibstd/system/ocr.hpp"
-#include "bibstd/system/screen.hpp"
 #include "bibstd/txt/ocr_engine.hpp"
 #include "bibstd/txt/ocr_engine_tesseract.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/format.hpp"
 #include "bibstd/util/log.hpp"
-#include "bibstd/util/timer.hpp"
 #include "bibstd/util/visit_helper.hpp"
 #include "bibstd/workflow/workflow_scripture.hpp"
 #include "bibstd/workflow/workflow_settings.hpp"
@@ -80,24 +78,19 @@ auto workflow_bible_ref_ocr::find(const params& params) -> result
       LOG_WARN("failed to start bible reference ocr search: no ocr engines initialized");
       return return_failure;
     }
-    // Capture screen directly on call of this function to ensure the cursor position is up-to-date.
-    // This is usually called from the main thread and takes only a few milliseconds.
-    // This also ensures that no displayed windows are blocking the screen capture.
-    auto image_data = capture_screen(params->cursor_position);
-    if(!image_data)
-    {
-      LOG_WARN("capture screen failed: cursor_position={}", params->cursor_position);
-      return return_failure;
-    }
     const auto local_settings = settings_t{
       .character_recognition_ocr_engine = *character_recognition_ocr_engine,
       .layout_recognition_ocr_engine = settings->layout_recognition_ocr_engine->value(),
       .language = settings->language->value(),
       .versification = versification()
     };
-    LOG_INFO("find references: cursor_position={}", params->cursor_position);
-
-    const auto references = find_references(std::move(*image_data), local_settings);
+    LOG_INFO(
+      "find references: image=[width={}, height={}], position=[{}]",
+      params->image.width(),
+      params->image.height(),
+      params->position
+    );
+    const auto references = find_references(params, local_settings);
     LOG_INFO("reference search finished: references=[{}]", util::format::join(references.value_or({}), ", "));
 
     if(references.has_value())
@@ -191,26 +184,6 @@ auto workflow_bible_ref_ocr::init() -> void
 
 ///
 ///
-auto workflow_bible_ref_ocr::capture_screen(const util::screen_coordinates_type& cursor_position) const
-  -> std::optional<capture_screen_result_t>
-{
-  SCOPED_TIMER_LOG();
-  const auto window_rect = system::screen::window_at(cursor_position);
-  if(!window_rect)
-  {
-    return std::nullopt;
-  }
-  auto pixel_plane = util::pixel_plane_type{};
-  auto success = system::screen::capture(*window_rect, pixel_plane);
-  if(!success)
-  {
-    return std::nullopt;
-  }
-  return capture_screen_result_t{cursor_position - window_rect->origin(), std::move(pixel_plane)};
-}
-
-///
-///
 auto workflow_bible_ref_ocr::versification() const -> decltype(settings_t::versification)
 {
   const auto scripture_result = workflow_scripture_->scripture(workflow_scripture::scripture_params::value_type{});
@@ -229,15 +202,13 @@ auto workflow_bible_ref_ocr::versification() const -> decltype(settings_t::versi
 
 ///
 ///
-auto workflow_bible_ref_ocr::find_references(auto&& image_data, const settings_t& settings)
+auto workflow_bible_ref_ocr::find_references(const auto& params, const settings_t& settings)
   -> framework::process_result<std::vector<bible::reference_range>>
 {
-  const auto relative_cursor_pos = image_data.relative_cursor_pos;
-
   const auto position_data = bible::reference_ocr::run(
     ocr_engines_,
-    image_data.image,
-    relative_cursor_pos,
+    params->image,
+    params->position,
     bible::reference_ocr::algorithm_data{
       .algorithm = bible::reference_ocr::algorithm_type::recognize_with_paragraph_recognition,
       .engine_name_character_recognition = settings.character_recognition_ocr_engine,

@@ -1,10 +1,11 @@
 #include "bibqml/bridge/BridgeBibleRefOcr.hpp"
 
-#include <bibstd/bible/book_name_variants_de.hpp>
+#include <bibstd/bible/ocr_book_variants_de.hpp>
 
 #include <bibstd/system/screen.hpp>
 #include <bibstd/util/enum.hpp>
 #include <bibstd/util/log.hpp>
+#include <bibstd/util/timer.hpp>
 #include <bibstd/workflow/workflow_bible_ref_ocr.hpp>
 #include <bibstd/workflow/workflow_hotkey.hpp>
 
@@ -13,6 +14,43 @@
 
 namespace bibqml
 {
+namespace detail
+{
+
+///
+/// Result of capturing a screen area.
+/// This contains the relative cursor position and the captured pixel plane.
+///
+struct capture_screen_result_t final
+{
+  bibstd::util::pixel_plane_type image;
+  bibstd::util::screen_coordinates_type relative_cursor_pos;
+};
+
+///
+/// Capture screen area of the underlying window.
+/// \return pixel plane as image and the relative cursor postion in the image
+///
+[[nodiscard]] auto capture_screen(const bibstd::util::screen_coordinates_type& cursor_position)
+  -> std::optional<capture_screen_result_t>
+{
+  SCOPED_TIMER_LOG();
+  const auto window_rect = bibstd::system::screen::window_at(cursor_position);
+  if(!window_rect)
+  {
+    return std::nullopt;
+  }
+  auto pixel_plane = bibstd::util::pixel_plane_type{};
+  auto success = bibstd::system::screen::capture(*window_rect, pixel_plane);
+  if(!success)
+  {
+    return std::nullopt;
+  }
+  return capture_screen_result_t{std::move(pixel_plane), cursor_position - window_rect->origin()};
+}
+
+} // namespace detail
+
 // Constants
 constexpr auto ocr_find_path = "ocr";
 
@@ -33,6 +71,16 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(
       const auto cursor_pos = bibstd::system::screen::cursor_position();
       const auto process_id = bibstd::framework::process_id_type{};
 
+      // Capture screen directly on call of this function to ensure the cursor position is up-to-date.
+      // This is usually called from the main thread and takes only a few milliseconds.
+      // This also ensures that no displayed windows are blocking the screen capture.
+      auto image_data = detail::capture_screen(cursor_pos);
+      if(!image_data)
+      {
+        LOG_WARN("capture screen failed: cursor_position={}", cursor_pos);
+        return;
+      }
+
       QMetaObject::invokeMethod(
         this,
         [this, process_id]()
@@ -49,7 +97,9 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(
         Qt::QueuedConnection
       );
 
-      const auto result = workflow_bible_ref_ocr->find({{cursor_pos}});
+      const auto result = workflow_bible_ref_ocr->find({
+        {image_data->image, image_data->relative_cursor_pos}
+      });
       const auto valid = result.has_value() && result->passage.has_value();
       auto passage_content = valid ? result->passage->content : std::string{"..."};
       auto reference_ranges = valid ? result->reference_ranges : std::vector<bibstd::bible::reference_range>{};

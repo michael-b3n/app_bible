@@ -156,9 +156,18 @@ constexpr auto rect<ValueType>::center() const -> coordinates_type
 }
 
 ///
+/// Check if rect is empty. A rectangle is empty if
+/// either the horizontal or the vertical range is empty.
+/// \return true if empty, false otherwise
+///
+template<arithmetic_type T>
+constexpr auto empty(const rect<T>& rectangle) -> bool
+{
+  return empty(rectangle.horizontal_range()) || empty(rectangle.vertical_range());
+}
+
+///
 /// Get the overlap of two rectangles.
-/// \param first First rectangle
-/// \param second Second rectangle
 /// \return the overlap of two rectangles as a rectangle
 ///
 template<arithmetic_type T1, arithmetic_type T2>
@@ -179,8 +188,6 @@ constexpr auto overlap(const rect<T1>& first, const rect<T2>& second)
 
 ///
 /// Check if subrectangle is contained by another rectangle.
-/// \param rectangle Rectangle
-/// \param subrectangle Subrectangle
 /// \return true if subrectangle is contained in rectangle, false otherwise
 ///
 template<arithmetic_type T1, arithmetic_type T2>
@@ -194,8 +201,6 @@ constexpr auto contains(const rect<T1>& rectangle, const rect<T2>& subrectangle)
 
 ///
 /// Check if coordinates are contained by another rectangle.
-/// \param rectangle Rectangle
-/// \param coordinates Coordinates that shall be checked
 /// \return true if coordinates are contained in rectangle, false otherwise
 ///
 template<arithmetic_type T1, arithmetic_type T2>
@@ -211,8 +216,6 @@ constexpr auto contains(const rect<T1>& rectangle, const coordinates_2d<T2>& coo
 /// Get a rectangle that surrounds all given rectangles.
 /// If all rectangles have integral value types and are empty, an empty rectangle
 /// with its origin at (0,0) is returned.
-/// \tparam RectTypes Types of rectangles that shall be surrounded
-/// \param rects Rectangles that shall be surrounded
 /// \return rectangle that surrounds all given rectangles
 ///
 template<arithmetic_type... T>

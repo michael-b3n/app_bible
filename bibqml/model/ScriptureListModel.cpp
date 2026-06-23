@@ -1,8 +1,8 @@
 #include "bibqml/model/ScriptureListModel.hpp"
-#include "bibstd/util/ranges.hpp"
 
-#include <bibstd/bible/book_name_variants_de.hpp>
+#include "bibstd/util/ranges.hpp"
 #include <bibstd/bible/common.hpp>
+#include <bibstd/bible/reference_formatter_de.hpp>
 #include <bibstd/util/enum.hpp>
 #include <bibstd/util/log.hpp>
 #include <bibstd/workflow/workflow_scripture.hpp>
@@ -257,7 +257,7 @@ auto ScriptureListModel::fetchPassage(const bibstd::bible::reference& ref) -> QS
 ///
 auto ScriptureListModel::makeEntry(const bibstd::bible::reference& ref) -> Entry
 {
-  const auto& prettyName = bibstd::bible::book_name_variants_de::pretty_names.at(ref.book());
+  const auto& prettyName = bibstd::bible::reference_formatter_de::pretty_names.at(ref.book());
   const auto bookName = QString::fromUtf8(prettyName.data(), static_cast<qsizetype>(prettyName.size()));
 
   return Entry{

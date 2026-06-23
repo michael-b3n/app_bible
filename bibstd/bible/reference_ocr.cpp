@@ -5,9 +5,12 @@
 #include "bibstd/util/numeric_cast.hpp"
 #include "bibstd/util/ranges.hpp"
 #include "bibstd/util/screen_types.hpp"
-#include "bibstd/util/string.hpp"
 #include "bibstd/util/timer.hpp"
 #include "bibstd/util/visit_helper.hpp"
+
+#ifdef BIBSTD_DEBUG_DATA
+  #include "bibstd/io/save_as_bitmap.hpp"
+#endif
 
 #include <algorithm>
 #include <cstddef>
@@ -207,6 +210,15 @@ auto find_index(const auto& recognition_data, const reference_ocr::position_type
     const auto recognition_data_view = character_bounding_boxes | std::views::transform(to_distance);
     const auto it = std::ranges::min_element(recognition_data_view, std::less{});
     const auto distance = std::ranges::distance(std::ranges::cbegin(recognition_data_view), it);
+    if(!text.empty())
+    {
+      LOG_DEBUG(
+        "returns reference position data: text=\"{}[{}]{}\"",
+        text.subview(0, distance),
+        text.at(distance),
+        text.subview(std::min(static_cast<std::size_t>(distance + 1), text.size() - 1), distance)
+      );
+    }
     return reference_ocr::reference_position_data{text, static_cast<std::size_t>(distance)};
   }
   else
@@ -308,7 +320,20 @@ auto run_paragraph_recognition(
               next = next_line.line_bounding_box;
             }
           }
-          return math::surrounding_rect(prev, main, next);
+
+          const auto surrounding_rect = math::surrounding_rect(prev, main, next);
+
+          // Add padding to make the recognition area a bit larger. This
+          // helps OCR engines to recognize character positions better.
+          const auto padding_size = math::size(relevant_line.line_bounding_box.vertical_range()) / 2;
+          return decltype(surrounding_rect){
+            math::coordinates(
+              surrounding_rect.origin().x() - numeric_cast<decltype(surrounding_rect)::value_type>(padding_size),
+              surrounding_rect.origin().y() - numeric_cast<decltype(surrounding_rect)::value_type>(padding_size)
+            ),
+            math::size(surrounding_rect.horizontal_range()) + 2 * padding_size,
+            math::size(surrounding_rect.vertical_range()) + 2 * padding_size
+          };
         }
         else
         {
@@ -340,8 +365,14 @@ auto recognize_with_paragraph_recognition(
   if(const auto& engine_ref = get_character_recognition_engine(engines, ad))
   {
     const auto& engine = engine_ref->get();
+#ifdef BIBSTD_DEBUG_DATA
+    io::save_as_bitmap(image, std::nullopt, "dd_image_full.bmp");
+#endif
     if(const auto area = run_paragraph_recognition(engines, image, position, ad))
     {
+#ifdef BIBSTD_DEBUG_DATA
+      io::save_as_bitmap(image, *area, "dd_image_paragraph_recognized.bmp");
+#endif
       const auto relative_position = position - area->origin();
       return util::visit_lambdas(
         engine,

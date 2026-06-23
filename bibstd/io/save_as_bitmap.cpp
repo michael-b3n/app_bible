@@ -1,4 +1,6 @@
 #include "bibstd/io/save_as_bitmap.hpp"
+#include "bibstd/math/coordinates.hpp"
+#include "bibstd/math/value_range.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/ranges.hpp"
 
@@ -9,7 +11,7 @@ namespace bibstd::io
 {
 
 ///
-/// Windows BMP-specific format data
+/// BMP-specific format data
 ///
 struct bmp_file_magic final
 {
@@ -17,6 +19,9 @@ struct bmp_file_magic final
   unsigned char magic[size];
 };
 
+///
+/// BMP file header
+///
 struct bmp_file_header final
 {
   std::uint32_t file_size;
@@ -25,6 +30,9 @@ struct bmp_file_header final
   std::uint32_t bmp_offset;
 };
 
+///
+/// BMP DIB info data
+///
 struct bmp_file_dib_info final
 {
   std::uint32_t header_size;
@@ -42,7 +50,11 @@ struct bmp_file_dib_info final
 
 ///
 ///
-auto save_as_bitmap(const data::plane_view<data::pixel>& data, const std::filesystem::path& path) -> bool
+auto save_as_bitmap(
+  const data::plane_view<const data::pixel>& data,
+  const std::optional<data::plane_view<const data::pixel>::area_type> subarea,
+  const std::filesystem::path& path
+) -> bool
 {
   if(path.extension() != std::string_view(".bmp"))
   {
@@ -55,14 +67,32 @@ auto save_as_bitmap(const data::plane_view<data::pixel>& data, const std::filesy
     LOG_ERROR("file could not be opened for editing: {}", path.string());
     return false;
   }
-  if(data.empty())
+
+  const auto rect = [&]
+  {
+    if(subarea)
+    {
+      const auto img = decltype(subarea)::value_type(math::coordinates{0, 0}, data.width(), data.height());
+      const auto overlap = math::overlap(*subarea, img);
+      if(overlap)
+      {
+        return *overlap;
+      }
+      return decltype(overlap)::value_type{math::coordinates(0, 0), 0u, 0u};
+    }
+    else
+    {
+      return decltype(subarea)::value_type{math::coordinates(0, 0), data.width(), data.height()};
+    }
+  }();
+
+  if(math::empty(rect))
   {
     LOG_INFO("empty pixels not be saved to {}", path.string());
     return true;
   }
-
-  const auto width = data.width();
-  const auto height = data.height();
+  const auto width = math::size(rect.horizontal_range());
+  const auto height = math::size(rect.vertical_range());
   // Calculate row and pixels size
   const std::uint32_t row_size =
     width * 3 + width % 4; // The size of each row is rounded up to a multiple of 4 bytes by padding.
@@ -91,16 +121,23 @@ auto save_as_bitmap(const data::plane_view<data::pixel>& data, const std::filesy
   dib_info.num_important_colors = 0;
   file.write((char*)(&dib_info), sizeof(dib_info));
 
+  const auto full_image_width = data.width();
+  const auto full_image_height = data.height();
   // Write each row and column of Pixels into the image file -- we write
   // the rows upside-down to satisfy the easiest BMP format.
+
+  const auto contains_row_index = [&](const auto row_idx) { return math::contains(rect.vertical_range(), row_idx); };
   std::ranges::for_each(
-    util::ranges::index_view_to(height) | std::views::reverse,
+    util::ranges::index_view_to(full_image_height) | std::views::reverse | std::views::filter(contains_row_index),
     [&](const auto row_idx)
     {
+      const auto contains_coord = [&](const auto column_idx)
+      { return math::contains(rect, math::coordinates{column_idx, row_idx}); };
       std::ranges::for_each(
-        util::ranges::index_view_between(width * row_idx, width * (row_idx + 1)),
-        [&](const auto index)
+        util::ranges::index_view_to(full_image_width) | std::views::filter(contains_coord),
+        [&](const auto column_idx)
         {
+          const auto index = full_image_width * row_idx + column_idx;
           const auto& p = data.at(index);
           file.put(static_cast<unsigned char>(p.blue));
           file.put(static_cast<unsigned char>(p.green));
