@@ -157,6 +157,7 @@ auto ocr_engine_tesseract::initialize(
   const pixel_plane_view_type image, const std::optional<pixel_plane_view_type::area_type> subarea
 ) -> void
 {
+  image_data_.clear();
   if(subarea)
   {
     image_data_.resize(image.data_view_size(*subarea));

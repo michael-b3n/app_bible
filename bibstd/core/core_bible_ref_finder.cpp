@@ -1,6 +1,6 @@
 #include "bibstd/core/core_bible_ref_finder.hpp"
-#include "bibstd/bible/ocr_book_variants_de.hpp"
 #include "bibstd/bible/common.hpp"
+#include "bibstd/bible/ocr_book_variants_de.hpp"
 #include "bibstd/bible/reference.hpp"
 #include "bibstd/bible/versification.hpp"
 #include "bibstd/math/value_range.hpp"
@@ -150,6 +150,10 @@ auto core_bible_ref_finder::parse(
   const std::string_view text, const std::size_t index, const util::language language, const bible::versification& versification
 ) const -> parse_result
 {
+  if(text.empty() || index >= text.size())
+  {
+    return parse_result{};
+  }
   auto book = find_book(text, index, language);
   if(!book)
   {

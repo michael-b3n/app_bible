@@ -90,25 +90,38 @@ auto workflow_bible_ref_ocr::find(const params& params) -> result
       params->image.height(),
       params->position
     );
-    const auto references = find_references(params, local_settings);
-    LOG_INFO("reference search finished: references=[{}]", util::format::join(references.value_or({}), ", "));
 
-    if(references.has_value())
+    const auto construct_result = [&](const auto& refs)
     {
       auto retval = result{};
-      if(!references->empty())
+      if(!refs.empty())
       {
         const auto reference =
-          std::ranges::min_element(*references, [](const auto& a, const auto& b) { return a.begin() < b.begin(); })->begin();
+          std::ranges::min_element(refs, [](const auto& a, const auto& b) { return a.begin() < b.begin(); })->begin();
         const auto passage_params = workflow_scripture::passage_params::value_type{reference, std::nullopt};
         if(const auto passage_result = workflow_scripture_->passage(passage_params))
         {
           retval = result::value_type{
-            .reference_ranges = *references, .first_reference = reference, .passage = passage_result.value().passage
+            .reference_ranges = refs, .first_reference = reference, .passage = passage_result.value().passage
           };
         }
       }
       return retval;
+    };
+
+    using atype = bible::reference_ocr::algorithm_type;
+    if(
+      const auto references = find_references(params, local_settings, atype::recognize_with_paragraph_recognition);
+      references && !references->empty()
+    )
+    {
+      LOG_INFO("reference search finished: references=[{}]", util::format::join(references.value_or({}), ", "));
+      return construct_result(*references);
+    }
+    else if(const auto references = find_references(params, local_settings, atype::recognize_just_with_line_recognition))
+    {
+      LOG_INFO("reference search finished: references=[{}]", util::format::join(references.value_or({}), ", "));
+      return construct_result(*references);
     }
     else
     {
@@ -202,7 +215,7 @@ auto workflow_bible_ref_ocr::versification() const -> decltype(settings_t::versi
 
 ///
 ///
-auto workflow_bible_ref_ocr::find_references(const auto& params, const settings_t& settings)
+auto workflow_bible_ref_ocr::find_references(const auto& params, const settings_t& settings, const auto algorithm)
   -> framework::process_result<std::vector<bible::reference_range>>
 {
   const auto position_data = bible::reference_ocr::run(
@@ -210,7 +223,7 @@ auto workflow_bible_ref_ocr::find_references(const auto& params, const settings_
     params->image,
     params->position,
     bible::reference_ocr::algorithm_data{
-      .algorithm = bible::reference_ocr::algorithm_type::recognize_with_paragraph_recognition,
+      .algorithm = algorithm,
       .engine_name_character_recognition = settings.character_recognition_ocr_engine,
       .engine_name_layout_recognition = settings.layout_recognition_ocr_engine
     }

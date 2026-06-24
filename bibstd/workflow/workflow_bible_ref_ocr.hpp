@@ -104,7 +104,7 @@ public: // Modifiers
 private: // Implementation
   auto init() -> void;
   [[nodiscard]] auto versification() const -> decltype(settings_t::versification);
-  [[nodiscard]] auto find_references(const auto& params, const settings_t& settings)
+  [[nodiscard]] auto find_references(const auto& params, const settings_t& settings, auto algorithm)
     -> framework::process_result<std::vector<bible::reference_range>>;
 
 private: // Variables

@@ -8,7 +8,7 @@ add_library(${PROJECT_NAME} OBJECT)
 #
 # Debugging setting: if TRUE exports debug data during runtime.
 #
-set(BIBSTD_DEBUG_DATA TRUE)
+set(BIBSTD_DEBUG_DATA FALSE)
 
 #
 # Configure incbin files

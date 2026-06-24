@@ -1,4 +1,5 @@
 #include "bibstd/bible/reference_ocr.hpp"
+#include "bibstd/math/coordinates.hpp"
 #include "bibstd/math/rect.hpp"
 #include "bibstd/txt/ocr_engine.hpp"
 #include "bibstd/util/log.hpp"
@@ -7,10 +8,6 @@
 #include "bibstd/util/screen_types.hpp"
 #include "bibstd/util/timer.hpp"
 #include "bibstd/util/visit_helper.hpp"
-
-#ifdef BIBSTD_DEBUG_DATA
-  #include "bibstd/io/save_as_bitmap.hpp"
-#endif
 
 #include <algorithm>
 #include <cstddef>
@@ -148,7 +145,7 @@ auto find_index(const auto& recognition_data, const reference_ocr::position_type
   if(recognition_data.empty())
   {
     LOG_DEBUG("returns empty: recognition_data is empty");
-    return std::unexpected{reference_ocr::unexpected_ocr_result::empty};
+    return reference_ocr::reference_position_data{};
   }
 
   const auto data_ref = [&]() -> std::optional<std::reference_wrapper<const recognition_data_value_type>>
@@ -224,7 +221,7 @@ auto find_index(const auto& recognition_data, const reference_ocr::position_type
   else
   {
     LOG_DEBUG("returns empty: position is not contained in any word bounding box");
-    return std::unexpected{reference_ocr::unexpected_ocr_result::empty};
+    return reference_ocr::reference_position_data{};
   }
 }
 
@@ -342,8 +339,8 @@ auto run_paragraph_recognition(
       }
       else
       {
-        LOG_DEBUG("paragraph recognition returns without a result");
-        return std::unexpected{reference_ocr::unexpected_ocr_result::empty};
+        LOG_DEBUG("paragraph recognition returns with emtpy rect");
+        return util::screen_rect_type{math::coordinates(0, 0), 0u, 0u};
       }
     }
   );
@@ -365,32 +362,34 @@ auto recognize_with_paragraph_recognition(
   if(const auto& engine_ref = get_character_recognition_engine(engines, ad))
   {
     const auto& engine = engine_ref->get();
-#ifdef BIBSTD_DEBUG_DATA
-    io::save_as_bitmap(image, std::nullopt, "dd_image_full.bmp");
-#endif
     if(const auto area = run_paragraph_recognition(engines, image, position, ad))
     {
-#ifdef BIBSTD_DEBUG_DATA
-      io::save_as_bitmap(image, *area, "dd_image_paragraph_recognized.bmp");
-#endif
-      const auto relative_position = position - area->origin();
-      return util::visit_lambdas(
-        engine,
-        []([[maybe_unused]] const std::monostate&) -> return_type
-        { return std::unexpected{reference_ocr::unexpected_ocr_result::empty}; },
-        [&](const txt::ocr_engine<txt::ocr_engine_tag_plain>::uptr_type& e) -> return_type
-        {
-          SCOPED_TIMER_LOG();
-          e->initialize(image, *area);
-          return find_index(e->recognize(), relative_position);
-        },
-        [&](const txt::ocr_engine<txt::ocr_engine_tag_layout_analysis>::uptr_type& e) -> return_type
-        {
-          SCOPED_TIMER_LOG();
-          e->initialize(image, *area);
-          return find_index(e->recognize(), relative_position);
-        }
-      );
+      if(!math::empty(*area))
+      {
+        const auto relative_position = position - area->origin();
+        return util::visit_lambdas(
+          engine,
+          []([[maybe_unused]] const std::monostate&) -> return_type
+          { return std::unexpected{reference_ocr::unexpected_ocr_result::error}; },
+          [&](const txt::ocr_engine<txt::ocr_engine_tag_plain>::uptr_type& e) -> return_type
+          {
+            SCOPED_TIMER_LOG();
+            e->initialize(image, *area);
+            return find_index(e->recognize(), relative_position);
+          },
+          [&](const txt::ocr_engine<txt::ocr_engine_tag_layout_analysis>::uptr_type& e) -> return_type
+          {
+            SCOPED_TIMER_LOG();
+            e->initialize(image, *area);
+            return find_index(e->recognize(), relative_position);
+          }
+        );
+      }
+      else
+      {
+        // empty position data
+        return reference_ocr::reference_position_data{};
+      }
     }
     else
     {
@@ -404,7 +403,8 @@ auto recognize_with_paragraph_recognition(
 }
 
 ///
-/// TODO
+/// Recognize text in image using no analysis analysis and directly the character recognition OCR engine.
+/// This method yields imprecise results but might detect more hidden text fields.
 /// \return text with character index corresponding to the specified position
 ///
 ///
@@ -422,7 +422,7 @@ auto recognize_just_with_line_recognition(
     return util::visit_lambdas(
       engine,
       []([[maybe_unused]] const std::monostate&) -> return_type
-      { return std::unexpected{reference_ocr::unexpected_ocr_result::empty}; },
+      { return std::unexpected{reference_ocr::unexpected_ocr_result::error}; },
       [&](const txt::ocr_engine<txt::ocr_engine_tag_plain>::uptr_type& e) -> return_type
       {
         e->initialize(image, std::nullopt);

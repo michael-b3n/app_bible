@@ -243,24 +243,6 @@ auto ocr_engine_windows::create_bitmap(
   {
     std::ranges::for_each(image | std::views::enumerate, for_each_pixel);
   }
-  /*
-  for(std::uint32_t row = 0; row < height; ++row)
-  {
-    // The pixel_plane is stored top-down (row 0 = top of image), same as SoftwareBitmap.
-    const auto* src_ptr = &image.at(static_cast<std::size_t>(row) * width);
-    auto* dst_ptr = dst_data + static_cast<std::size_t>(row) * width * 4;
-    for(std::uint32_t col = 0; col < width; ++col)
-    {
-      const auto& pixel = src_ptr[col];
-      // pixel is RGBA, SoftwareBitmap expects BGRA. Alpha is set to 255 (opaque)
-      // because screen captures do not set the alpha channel.
-      dst_ptr[col * 4 + 0] = pixel.blue;
-      dst_ptr[col * 4 + 1] = pixel.green;
-      dst_ptr[col * 4 + 2] = pixel.red;
-      dst_ptr[col * 4 + 3] = 255;
-    }
-  }
-  */
   reference.Close();
   buffer.Close();
 }

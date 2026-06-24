@@ -26,8 +26,8 @@ struct reference_ocr final
   ///
   struct reference_position_data final
   {
-    std::string text;
-    std::size_t cursor_character_index;
+    std::string text{""};
+    std::size_t cursor_character_index{0};
   };
 
   ///
@@ -35,7 +35,6 @@ struct reference_ocr final
   ///
   enum class unexpected_ocr_result
   {
-    empty,
     error,
     unsupported
   };
