@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <optional>
 #include <type_traits>
 
@@ -53,5 +54,24 @@ struct are_same<T1, T2, T...>
 };
 template<typename... T>
 inline constexpr bool are_same_v = are_same<T...>::value;
+
+///
+/// Type trait to make an arithmetic value type unsigned, leaves floating point types untouched.
+/// Allows compilation with floating point types. Indicators like const, volatile and references are removed.
+///
+template<typename T>
+struct conditional_unsigned;
+template<std::integral T>
+struct conditional_unsigned<T> final
+{
+  using type = std::make_unsigned_t<std::remove_cvref_t<T>>;
+};
+template<std::floating_point T>
+struct conditional_unsigned<T> final
+{
+  using type = std::remove_cvref_t<T>;
+};
+template<typename T>
+using conditional_unsigned_t = typename conditional_unsigned<T>::type;
 
 } // namespace bibstd::meta

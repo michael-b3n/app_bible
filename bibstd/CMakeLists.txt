@@ -6,6 +6,11 @@ project(bibstd)
 add_library(${PROJECT_NAME} OBJECT)
 
 #
+# Debugging setting: if TRUE exports debug data during runtime.
+#
+set(BIBSTD_DEBUG_DATA FALSE)
+
+#
 # Configure incbin files
 #
 file(GLOB BIBSTD_DATA_FILES "${CMAKE_CURRENT_LIST_DIR}/res/scripture/*.zip")
@@ -71,13 +76,20 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 IF(WIN32)
-  target_link_libraries(${PROJECT_NAME} PUBLIC mswsock)
+  target_link_libraries(${PROJECT_NAME} PRIVATE mswsock)
+
+  # Windows OCR support via C++/WinRT
+  target_link_libraries(${PROJECT_NAME} PRIVATE runtimeobject)
 ENDIF()
 
 #
 # Target compile definitions.
 #
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:BIBSTD_DEBUG>)
+
+IF(${BIBSTD_DEBUG_DATA})
+  target_compile_definitions(${PROJECT_NAME} PRIVATE BIBSTD_DEBUG_DATA)
+ENDIF()
 
 IF(WIN32)
   target_compile_definitions(${PROJECT_NAME} PUBLIC NOMINMAX)

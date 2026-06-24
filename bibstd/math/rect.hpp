@@ -3,12 +3,12 @@
 #include "bibstd/math/arithmetic.hpp"
 #include "bibstd/math/coordinates.hpp"
 #include "bibstd/math/value_range.hpp"
+#include "bibstd/meta/lossless_conversion.hpp"
 #include "bibstd/meta/type_traits.hpp"
-#include "bibstd/util/enum.hpp"
-#include "bibstd/util/numeric_cast.hpp"
 
 #include <cassert>
 #include <optional>
+#include <type_traits>
 
 namespace bibstd::math
 {
@@ -21,49 +21,25 @@ namespace bibstd::math
 template<arithmetic_type ValueType>
 class rect final
 {
+  static_assert(!std::is_same_v<bool, std::remove_cvref_t<ValueType>>);
+
 public: // Typedefs
   using value_type = ValueType;
   using coordinates_type = coordinates<value_type, 2>;
 
-public: // Static functions
-  ///
-  /// Get the overlap of two rectangles.
-  /// \param first First rectangle
-  /// \param second Second rectangle
-  /// \return the overlap of two rectangles as a rectangle
-  ///
-  static constexpr auto overlap(const rect<value_type>& first, const rect<value_type>& second)
-    -> std::optional<rect<value_type>>;
-
-  ///
-  /// Check if subrectangle is contained by another rectangle.
-  /// \param rectangle Rectangle
-  /// \param subrectangle Subrectangle
-  /// \return true if subrectangle is contained in rectangle, false otherwise
-  ///
-  static constexpr auto contains(const rect<value_type>& rectangle, const rect<value_type>& subrectangle) -> bool;
-
-  ///
-  /// Check if coordinates are contained by another rectangle.
-  /// \param rectangle Rectangle
-  /// \param coordinates Coordinates that shall be checked
-  /// \return true if coordinates are contained in rectangle, false otherwise
-  ///
-  static constexpr auto contains(const rect<value_type>& rectangle, const coordinates_type& coordinates) -> bool;
-
-  ///
-  /// Get a rectangle that surrounds all given rectangles.
-  /// \tparam RectTypes Types of rectangles that shall be surrounded
-  /// \param rects Rectangles that shall be surrounded
-  /// \return rectangle that surrounds all given rectangles
-  ///
-  template<typename... RectTypes>
-  static constexpr auto surrounding_rect(const RectTypes&... rects) -> rect<value_type>
-    requires(meta::are_same_v<rect<value_type>, RectTypes...>);
-
 public: // Constructors
-  constexpr rect(coordinates_type origin, value_type width, value_type height);
-  constexpr rect(coordinates_type first, coordinates_type second);
+  template<
+    meta::lossless_convertible<ValueType> T1,
+    meta::lossless_convertible<meta::conditional_unsigned_t<ValueType>> T2,
+    meta::lossless_convertible<meta::conditional_unsigned_t<ValueType>> T3>
+  constexpr rect(coordinates_2d<T1> origin, T2 width, T3 height)
+    requires(math::similar_arithmetic_types<T1, T2, T3>);
+
+  template<meta::lossless_convertible<ValueType> T1, meta::lossless_convertible<ValueType> T2>
+  constexpr rect(coordinates_2d<T1> first, coordinates_2d<T2> second);
+
+  template<meta::lossless_convertible<ValueType> T>
+  constexpr rect(const rect<T>& other);
 
 public: // Operators
   constexpr auto operator==(const rect&) const -> bool = default;
@@ -73,19 +49,13 @@ public: // Accessors
   /// Get the span from left to right of the rectangle.
   /// \return the horizontal span of the rect
   ///
-  constexpr auto horizontal_range() const -> value_type;
+  constexpr auto horizontal_range() const -> value_range<value_type>;
 
   ///
   /// Get the span from lower to upper of the rectangle.
   /// \return the vertical span of the rect
   ///
-  constexpr auto vertical_range() const -> value_type;
-
-  ///
-  /// Get the area of the rectangle.
-  /// \return the area of the rect
-  ///
-  constexpr auto area() const -> value_type;
+  constexpr auto vertical_range() const -> value_range<value_type>;
 
   ///
   /// Get the lower left coordinates of the rectangle.
@@ -108,131 +78,61 @@ private: // Variables
 ///
 ///
 template<arithmetic_type ValueType>
-constexpr auto rect<ValueType>::overlap(const rect<value_type>& first, const rect<value_type>& second)
-  -> std::optional<rect<value_type>>
-{
-  const auto x_overlap = value_range<value_type>::overlap(first.horizontal_range_, second.horizontal_range_);
-  const auto y_overlap = value_range<value_type>::overlap(first.vertical_range_, second.vertical_range_);
-  if(x_overlap && y_overlap)
-  {
-    return rect<value_type>(
-      coordinates_type(x_overlap->begin, y_overlap->begin),
-      value_range<value_type>::size(*x_overlap),
-      value_range<value_type>::size(*y_overlap)
-    );
-  }
-  return std::nullopt;
-}
-
-///
-///
-template<arithmetic_type ValueType>
-constexpr auto rect<ValueType>::contains(const rect<value_type>& rectangle, const rect<value_type>& subrectangle) -> bool
-{
-  const auto x_contains = value_range<value_type>::contains(rectangle.horizontal_range_, subrectangle.horizontal_range_);
-  const auto y_contains = value_range<value_type>::contains(rectangle.vertical_range_, subrectangle.vertical_range_);
-  return x_contains && y_contains;
-}
-
-///
-///
-template<arithmetic_type ValueType>
-constexpr auto rect<ValueType>::contains(const rect<value_type>& rectangle, const coordinates_type& coordinates) -> bool
-{
-  const auto x_contains = value_range<value_type>::contains(rectangle.horizontal_range_, coordinates.x());
-  const auto y_contains = value_range<value_type>::contains(rectangle.vertical_range_, coordinates.y());
-  return x_contains && y_contains;
-}
-
-///
-///
-template<arithmetic_type ValueType>
-template<typename... RectTypes>
-constexpr auto rect<ValueType>::surrounding_rect(const RectTypes&... rects) -> rect<value_type>
-  requires(meta::are_same_v<rect<value_type>, RectTypes...>)
-{
-  static_assert(sizeof...(rects) > 0);
-
-  auto min_x = std::numeric_limits<value_type>::max();
-  ([&](const auto& r) { min_x = std::min(min_x, r.origin().x()); }(rects), ...);
-  auto min_y = std::numeric_limits<value_type>::max();
-  ([&](const auto& r) { min_y = std::min(min_y, r.origin().y()); }(rects), ...);
-
-  auto max_x = std::numeric_limits<value_type>::lowest();
-  ([&](const auto& r) { max_x = std::max(max_x, r.origin().x() + r.horizontal_range()); }(rects), ...);
-  auto max_y = std::numeric_limits<value_type>::lowest();
-  ([&](const auto& r) { max_y = std::max(max_y, r.origin().y() + r.vertical_range()); }(rects), ...);
-
-  return rect<value_type>(coordinates_type(min_x, min_y), coordinates_type(max_x, max_y));
-}
-
-///
-///
-template<arithmetic_type ValueType>
-constexpr rect<ValueType>::rect(const coordinates_type origin, const value_type width, const value_type height)
-  : horizontal_range_{origin.x(), arithmetic::add(origin.x(), width).value_or(0)}
-  , vertical_range_{origin.y(), arithmetic::add(origin.y(), height).value_or(0)}
-{
-  const auto area =
-    arithmetic::multiply(value_range<value_type>::size(horizontal_range_), value_range<value_type>::size(vertical_range_));
-  if(!area.has_value() || !math::is_equal(area.value(), math::arithmetic::multiply(width, height)))
-  {
-    throw util::exception(std::format("invalid rect size: {}", util::enum_name(area.error())));
-  }
-}
-
-///
-///
-template<arithmetic_type ValueType>
-constexpr rect<ValueType>::rect(const coordinates_type first, const coordinates_type second)
-  : horizontal_range_{ // clang-format off
-      [&]
-      {
-        const auto min_x = std::min(first.x(), second.x());
-        const auto max_x = arithmetic::add(std::max(first.x(), second.x()), value_type{1});
-        if(!max_x.has_value())
-        {
-          throw util::exception(std::format("invalid max width: {}", util::enum_name(max_x.error())));
-        }
-        return value_range<value_type>(min_x, max_x.value());
-      }()}
-  , vertical_range_{
-      [&]
-      {
-        const auto min_y = std::min(first.y(), second.y());
-        const auto max_y = arithmetic::add(std::max(first.y(), second.y()), value_type{1});
-        if(!max_y.has_value())
-        {
-          throw util::exception(std::format("invalid max height: {}", util::enum_name(max_y.error())));
-        }
-        return value_range<value_type>(min_y, max_y.value());
-      }()
-    } // clang-format on
+template<
+  meta::lossless_convertible<ValueType> T1,
+  meta::lossless_convertible<meta::conditional_unsigned_t<ValueType>> T2,
+  meta::lossless_convertible<meta::conditional_unsigned_t<ValueType>> T3>
+constexpr rect<ValueType>::rect(const coordinates_2d<T1> origin, const T2 width, const T3 height)
+  requires(math::similar_arithmetic_types<T1, T2, T3>)
+  : horizontal_range_{value_range<value_type>::create_from_begin_and_size(origin.x(), width)}
+  , vertical_range_{value_range<value_type>::create_from_begin_and_size(origin.y(), height)}
 {
 }
 
 ///
 ///
 template<arithmetic_type ValueType>
-constexpr auto rect<ValueType>::horizontal_range() const -> value_type
+template<meta::lossless_convertible<ValueType> T1, meta::lossless_convertible<ValueType> T2>
+constexpr rect<ValueType>::rect(const coordinates_2d<T1> first, const coordinates_2d<T2> second)
+  : horizontal_range_{[&]
+                      {
+                        const auto min_x = std::min(static_cast<value_type>(first.x()), static_cast<value_type>(second.x()));
+                        const auto max_x = std::max(static_cast<value_type>(first.x()), static_cast<value_type>(second.x()));
+                        return value_range<value_type>{min_x, max_x};
+                      }()}
+  , vertical_range_{[&]
+                    {
+                      const auto min_y = std::min(static_cast<value_type>(first.y()), static_cast<value_type>(second.y()));
+                      const auto max_y = std::max(static_cast<value_type>(first.y()), static_cast<value_type>(second.y()));
+                      return value_range<value_type>{min_y, max_y};
+                    }()}
 {
-  return value_range<value_type>::size(horizontal_range_);
 }
 
 ///
 ///
 template<arithmetic_type ValueType>
-constexpr auto rect<ValueType>::vertical_range() const -> value_type
+template<meta::lossless_convertible<ValueType> T>
+constexpr rect<ValueType>::rect(const rect<T>& other)
+  : horizontal_range_{other.horizontal_range()}
+  , vertical_range_{other.vertical_range()}
 {
-  return value_range<value_type>::size(vertical_range_);
 }
 
 ///
 ///
 template<arithmetic_type ValueType>
-constexpr auto rect<ValueType>::area() const -> value_type
+constexpr auto rect<ValueType>::horizontal_range() const -> value_range<value_type>
 {
-  return vertical_range() * horizontal_range();
+  return horizontal_range_;
+}
+
+///
+///
+template<arithmetic_type ValueType>
+constexpr auto rect<ValueType>::vertical_range() const -> value_range<value_type>
+{
+  return vertical_range_;
 }
 
 ///
@@ -248,11 +148,113 @@ constexpr auto rect<ValueType>::origin() const -> coordinates_type
 template<arithmetic_type ValueType>
 constexpr auto rect<ValueType>::center() const -> coordinates_type
 {
-  const auto horizontal_size = value_range<value_type>::size(horizontal_range_);
-  const auto horizontal_offset = numeric_cast<value_type>(horizontal_size / decltype(horizontal_size){2});
-  const auto vertical_size = value_range<value_type>::size(vertical_range_);
-  const auto vertical_offset = numeric_cast<value_type>(vertical_size / decltype(vertical_size){2});
+  const auto horizontal_size = math::size(horizontal_range_);
+  const auto horizontal_offset = static_cast<value_type>(horizontal_size / decltype(horizontal_size){2});
+  const auto vertical_size = math::size(vertical_range_);
+  const auto vertical_offset = static_cast<value_type>(vertical_size / decltype(vertical_size){2});
   return coordinates_type{horizontal_range_.begin + horizontal_offset, vertical_range_.begin + vertical_offset};
+}
+
+///
+/// Check if rect is empty. A rectangle is empty if
+/// either the horizontal or the vertical range is empty.
+/// \return true if empty, false otherwise
+///
+template<arithmetic_type T>
+constexpr auto empty(const rect<T>& rectangle) -> bool
+{
+  return empty(rectangle.horizontal_range()) || empty(rectangle.vertical_range());
+}
+
+///
+/// Get the overlap of two rectangles.
+/// \return the overlap of two rectangles as a rectangle
+///
+template<arithmetic_type T1, arithmetic_type T2>
+constexpr auto overlap(const rect<T1>& first, const rect<T2>& second)
+  -> std::optional<rect<meta::lossless_common_type_t<T1, T2>>>
+  requires(similar_arithmetic_types<T1, T2> && meta::has_lossless_common_type<T1, T2>)
+{
+  const auto x_overlap = overlap(first.horizontal_range(), second.horizontal_range());
+  const auto y_overlap = overlap(first.vertical_range(), second.vertical_range());
+  if(x_overlap && y_overlap)
+  {
+    return rect<meta::lossless_common_type_t<T1, T2>>(
+      coordinates{x_overlap->begin, y_overlap->begin}, size(*x_overlap), size(*y_overlap)
+    );
+  }
+  return std::nullopt;
+}
+
+///
+/// Check if subrectangle is contained by another rectangle.
+/// \return true if subrectangle is contained in rectangle, false otherwise
+///
+template<arithmetic_type T1, arithmetic_type T2>
+constexpr auto contains(const rect<T1>& rectangle, const rect<T2>& subrectangle) -> bool
+  requires(similar_arithmetic_types<T1, T2> && meta::has_lossless_common_type<T1, T2>)
+{
+  const auto x_contains = contains(rectangle.horizontal_range(), subrectangle.horizontal_range());
+  const auto y_contains = contains(rectangle.vertical_range(), subrectangle.vertical_range());
+  return x_contains && y_contains;
+}
+
+///
+/// Check if coordinates are contained by another rectangle.
+/// \return true if coordinates are contained in rectangle, false otherwise
+///
+template<arithmetic_type T1, arithmetic_type T2>
+constexpr auto contains(const rect<T1>& rectangle, const coordinates_2d<T2>& coordinates) -> bool
+  requires(similar_arithmetic_types<T1, T2> && meta::has_lossless_common_type<T1, T2>)
+{
+  const auto x_contains = contains(rectangle.horizontal_range(), coordinates.x());
+  const auto y_contains = contains(rectangle.vertical_range(), coordinates.y());
+  return x_contains && y_contains;
+}
+
+///
+/// Get a rectangle that surrounds all given rectangles.
+/// If all rectangles have integral value types and are empty, an empty rectangle
+/// with its origin at (0,0) is returned.
+/// \return rectangle that surrounds all given rectangles
+///
+template<arithmetic_type... T>
+constexpr auto surrounding_rect(const rect<T>&... rects) -> rect<meta::lossless_common_type_t<T...>>
+  requires(similar_arithmetic_types<T...> && meta::has_lossless_common_type<T...>)
+{
+  static_assert(sizeof...(rects) > 0);
+  using type = meta::lossless_common_type_t<T...>;
+
+  auto non_empty_range_found = false;
+  auto min_x = std::numeric_limits<type>::max();
+  auto min_y = std::numeric_limits<type>::max();
+  auto max_x = std::numeric_limits<type>::lowest();
+  auto max_y = std::numeric_limits<type>::lowest();
+  const auto adjust_minmax = [&](const auto& range)
+  {
+    if constexpr(std::integral<typename std::remove_cvref_t<decltype(range)>::value_type>)
+    {
+      // skip empty integral ranges
+      if(math::empty(range.horizontal_range()) || math::empty(range.vertical_range()))
+      {
+        return;
+      }
+    }
+    non_empty_range_found = true;
+    min_x = std::min(min_x, static_cast<type>(range.horizontal_range().begin));
+    min_y = std::min(min_y, static_cast<type>(range.vertical_range().begin));
+    max_x = std::max(max_x, static_cast<type>(range.horizontal_range().end));
+    max_y = std::max(max_y, static_cast<type>(range.vertical_range().end));
+  };
+  (adjust_minmax(rects), ...);
+  if(non_empty_range_found)
+  {
+    return rect<type>(coordinates{min_x, min_y}, coordinates{max_x, max_y});
+  }
+  else
+  {
+    return rect<type>(coordinates{type{0}, type{0}}, coordinates{type{0}, type{0}});
+  }
 }
 
 } // namespace bibstd::math
@@ -264,8 +266,6 @@ struct std::formatter<bibstd::math::rect<ValueType>> : std::formatter<std::strin
 {
   auto format(const bibstd::math::rect<ValueType>& e, std::format_context& ctx) const
   {
-    return formatter<std::string>::format(
-      std::format("[origin={}, width={}, height={}]", e.origin(), e.horizontal_range(), e.vertical_range()), ctx
-    );
+    return formatter<std::string>::format(std::format("[{} {}x{}]", e.origin(), e.horizontal_range(), e.vertical_range()), ctx);
   }
 };

@@ -2,10 +2,12 @@
 #include "bibstd/bible/common.hpp"
 #include "bibstd/bible/reference.hpp"
 #include "bibstd/bible/versification_common.hpp"
-#include "bibstd/util/log.hpp"
+#ifdef BIBSTD_DEBUG_DATA
+  #include "bibstd/util/log.hpp"
+#endif
 
 #include <algorithm>
-#ifdef BIBSTD_DEBUG
+#ifdef BIBSTD_DEBUG_DATA
   #include <fstream>
 #endif
 #include <ranges>
@@ -46,7 +48,7 @@ versification::versification(const std::string_view name, const std::vector<refe
   {
     throw util::exception{"invalid versification data: all book start indices must be smaller than the size of the data"};
   }
-#ifdef BIBSTD_DEBUG
+#ifdef BIBSTD_DEBUG_DATA
   const auto versification_found = [&]()
   {
     using info_t = meta::pack_info<all_defaults_variant>;
@@ -60,7 +62,7 @@ versification::versification(const std::string_view name, const std::vector<refe
     return;
   }
   static constexpr auto nl = "\n";
-  std::ofstream versification_out(std::format("versification_{}.hpp", name), std::ios::out | std::ios::trunc);
+  std::ofstream versification_out(std::format("dd_versification_{}.hpp", name), std::ios::out | std::ios::trunc);
   // clang-format off
   versification_out
     << "#pragma once" << nl

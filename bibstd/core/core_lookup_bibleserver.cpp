@@ -1,5 +1,5 @@
 #include "bibstd/core/core_lookup_bibleserver.hpp"
-#include "bibstd/bible/book_name_variants_de.hpp"
+#include "bibstd/bible/reference_formatter_de.hpp"
 #include "bibstd/bible/versification.hpp"
 #include "bibstd/system/open_browser.hpp"
 #include "bibstd/util/log.hpp"
@@ -43,7 +43,7 @@ auto core_lookup_bibleserver::open(const bible::reference_range& range, const st
       std::format(
         "https://www.bibleserver.com/{}/{}{}%2C{}-{}",
         translation_str,
-        bible::book_name_variants_de::pretty_names.at(book),
+        bible::reference_formatter_de::pretty_names.at(book),
         chapter,
         verse_begin,
         verse_end

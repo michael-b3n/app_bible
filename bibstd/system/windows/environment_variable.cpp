@@ -1,6 +1,7 @@
 #include "bibstd/system/environment_variable.hpp"
-#include "bibstd/system/windows/win.hpp"
 #include "bibstd/util/log.hpp"
+
+#include "bibstd/system/windows/win.hpp"
 
 namespace bibstd::system
 {

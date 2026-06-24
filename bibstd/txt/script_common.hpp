@@ -95,7 +95,7 @@ public: // Constants
     std::string_view("\xEF\xBC\x8D"), // fullwidth hyphen-minus
   };
 
-public: // Static methods
+public: // Static
   ///
   /// Checks if char in string at given index is of provided chars category.
   /// \param letters List of string views that defines the available letters

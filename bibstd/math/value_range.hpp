@@ -2,9 +2,17 @@
 
 #include "bibstd/math/arithmetic.hpp"
 #include "bibstd/math/is_equal.hpp"
+#include "bibstd/math/sign.hpp"
+#include "bibstd/meta/lossless_conversion.hpp"
+#include "bibstd/meta/type_traits.hpp"
+#include "bibstd/util/exception.hpp"
 
 #include <algorithm>
+#include <concepts>
+#include <expected>
+#include <limits>
 #include <optional>
+#include <type_traits>
 
 namespace bibstd::math
 {
@@ -17,73 +25,20 @@ namespace bibstd::math
 template<arithmetic_type ValueType>
 struct value_range final
 {
+  static_assert(!std::is_same_v<bool, std::remove_cvref_t<ValueType>>);
+
   // Typedefs
   using value_type = ValueType;
 
-  // Static functions
   ///
-  /// Check if the `value_range` is empty (`begin == end`).
-  /// \param range Range object
-  /// \return true if `value_range` is empty, false otherwise
+  /// Range creator taking begin and size values.
+  /// \throws util::exception if the provided values would create an overflow
+  /// \tparam T1 Type that is lossless convertible to ValueType
+  /// \tparam T2 Type that is lossless convertible to unsigned type of ValueType
+  /// \return value range
   ///
-  static constexpr auto empty(const value_range& range) -> bool;
-
-  ///
-  /// Get the size (defined as `size = end - begin` where `end > begin`) of a `value_range`.
-  /// \param range Range object
-  /// \return size of `value_range` (type std::size_t for integer types, type double for floating point types)
-  ///
-  static constexpr auto size(const value_range& range) -> auto;
-
-  ///
-  /// Checks if `subrange` is fully contained in `range`.
-  /// \param range Range that might contain `subrange`
-  /// \param subrange Subrange that might be contained in `range`
-  /// \return true, if `subrange` is fully contained in `range`
-  ///
-  static constexpr auto contains(const value_range& range, const value_range& subrange) -> bool;
-
-  ///
-  /// Checks if `value` is fully contained in `range`.
-  /// \param range Range that might contain `subrange`
-  /// \param value Value that might be contained in `range`
-  /// \return true, if `value` is fully contained in `range`
-  ///
-  static constexpr auto contains(const value_range& range, value_type value) -> bool;
-
-  ///
-  /// Checks if two ranges overlap.
-  /// Empty integer ranges will never overlap with another range.
-  /// \param first First range
-  /// \param second Second range
-  /// \return true, if two ranges overlap, false otherwise
-  ///
-  static constexpr auto overlaps(const value_range& first, const value_range& second) -> bool;
-
-  ///
-  /// Get the range identifying an overlap between two ranges.
-  /// \param first First range
-  /// \param second Second range
-  /// \return optional range describing overlap of `first` and `second`, std::nullopt if no overlap is present
-  ///
-  static constexpr auto overlap(const value_range& first, const value_range& second) -> std::optional<value_range>;
-
-  ///
-  /// Checks if two ranges are adjacent end another.
-  /// Empty integer ranges will never be adjacent to another range.
-  /// \param first First range
-  /// \param second Second range
-  /// \return true if adjacent, false otherwise
-  ///
-  static constexpr auto adjacent(const value_range& first, const value_range& second) -> bool;
-
-  ///
-  /// Clamp value to be contained within range.
-  /// \param range Range that shall clamp the value
-  /// \param value Value that shall be clamped
-  /// \return clamped value
-  ///
-  static constexpr auto clamp(const value_range& range, value_type value) -> value_type;
+  template<meta::lossless_convertible<ValueType> T1, meta::lossless_convertible<meta::conditional_unsigned_t<ValueType>> T2>
+  static constexpr auto create_from_begin_and_size(T1 begin, T2 size) -> value_range<ValueType>;
 
   // Constructor
   ///
@@ -91,7 +46,14 @@ struct value_range final
   /// Range definition for integer types: `[begin, end)`
   /// Range definition for floating point: `[begin, end]`
   ///
-  constexpr value_range(value_type begin, value_type end);
+  template<meta::lossless_convertible<ValueType> T1, meta::lossless_convertible<ValueType> T2>
+  constexpr value_range(T1 begin, T2 end);
+
+  ///
+  /// Copy constructor accepting value ranges that are lossless convertible to this range.
+  ///
+  template<meta::lossless_convertible<ValueType> T1>
+  constexpr value_range(const value_range<T1>& other);
 
   // Operators
   constexpr auto operator==(const value_range& other) const -> bool;
@@ -104,129 +66,68 @@ struct value_range final
 ///
 ///
 template<arithmetic_type ValueType>
-constexpr auto value_range<ValueType>::empty(const value_range& range) -> bool
+template<meta::lossless_convertible<ValueType> T1, meta::lossless_convertible<meta::conditional_unsigned_t<ValueType>> T2>
+constexpr auto value_range<ValueType>::create_from_begin_and_size(T1 begin, T2 size) -> value_range<ValueType>
 {
-  return range.begin == range.end;
-}
-
-///
-///
-template<arithmetic_type ValueType>
-constexpr auto value_range<ValueType>::size(const value_range& range) -> auto
-{
+  const auto b = static_cast<value_type>(begin);
+  auto e = arithmetic::expected_type<value_type>{std::unexpected{arithmetic::error_code::overflow}};
   if constexpr(std::integral<value_type>)
   {
-    return static_cast<std::size_t>(range.end - range.begin);
-  }
-  else
-  {
-    return static_cast<double>(range.end - range.begin);
-  }
-}
-
-///
-///
-template<arithmetic_type ValueType>
-constexpr auto value_range<ValueType>::contains(const value_range& range, const value_range& subrange) -> bool
-{
-  if constexpr(std::integral<value_type>)
-  {
-    const auto empty_found = empty(range) || empty(subrange);
-    return !empty_found && range.begin <= subrange.begin && range.end >= subrange.end;
-  }
-  else
-  {
-    return range.begin <= subrange.begin && range.end >= subrange.end;
-  }
-}
-
-///
-///
-template<arithmetic_type ValueType>
-constexpr auto value_range<ValueType>::contains(const value_range& range, const value_type value) -> bool
-{
-  if constexpr(std::integral<value_type>)
-  {
-    return !empty(range) && range.begin <= value && range.end > value;
-  }
-  else
-  {
-    return range.begin <= value && range.end >= value;
-  }
-}
-
-///
-///
-template<arithmetic_type ValueType>
-constexpr auto value_range<ValueType>::overlaps(const value_range& first, const value_range& second) -> bool
-{
-  if constexpr(std::integral<value_type>)
-  {
-    const auto empty_found = empty(first) || empty(second);
-    return !empty_found && first.end > second.begin && second.end > first.begin;
-  }
-  else
-  {
-    return first.begin <= second.end && second.begin <= first.end;
-  }
-}
-
-///
-///
-template<arithmetic_type ValueType>
-constexpr auto value_range<ValueType>::overlap(const value_range& first, const value_range& second)
-  -> std::optional<value_range>
-{
-  if(overlaps(first, second))
-  {
-    const auto begin = std::max(second.begin, first.begin);
-    const auto end = std::min(second.end, first.end);
-    return value_range{begin, end};
-  }
-  return std::nullopt;
-}
-
-///
-///
-template<arithmetic_type ValueType>
-constexpr auto value_range<ValueType>::adjacent(const value_range& first, const value_range& second) -> bool
-{
-  if constexpr(std::integral<value_type>)
-  {
-    const auto empty_found = empty(first) || empty(second);
-    return !empty_found && (is_equal(first.begin, second.end) || is_equal(second.begin, first.end));
-  }
-  else
-  {
-    return is_equal(first.begin, second.end) || is_equal(second.begin, first.end);
-  }
-}
-
-///
-///
-template<arithmetic_type ValueType>
-constexpr auto value_range<ValueType>::clamp(const value_range& range, const value_type value) -> value_type
-{
-  if constexpr(std::integral<value_type>)
-  {
-    if(empty(range))
+    if constexpr(std::is_unsigned_v<value_type>)
     {
-      throw util::exception("cannot clamp to empty value_range");
+      e = arithmetic::add(b, static_cast<value_type>(size));
     }
-    return std::clamp(value, range.begin, range.end - 1);
+    else
+    {
+      using unsigned_type = std::make_unsigned_t<value_type>;
+      static constexpr auto max_value_utype = static_cast<unsigned_type>(std::numeric_limits<value_type>::max());
+      const auto s = static_cast<unsigned_type>(size);
+      if(s <= max_value_utype)
+      {
+        e = arithmetic::add(b, static_cast<value_type>(s));
+      }
+      else if(math::sign(b) == math::sign_value::negative)
+      {
+        if(b == std::numeric_limits<value_type>::lowest())
+        {
+          static constexpr auto abs_lowest = max_value_utype + 1;
+          assert(s >= abs_lowest);
+          // no check needed since this is always in range of value_type
+          e = static_cast<value_type>(s - abs_lowest);
+        }
+        else
+        {
+          const auto abs_begin = static_cast<unsigned_type>(std::abs(b));
+          assert(s > abs_begin);
+          const auto s_positive = s - abs_begin;
+          if(s_positive <= max_value_utype)
+          {
+            e = static_cast<value_type>(s_positive);
+          }
+          // else it overflows
+        }
+      }
+      // else it overflows
+    }
   }
-  else
+  else // floating point type
   {
-    return std::clamp(value, range.begin, range.end);
+    e = arithmetic::add(b, static_cast<value_type>(size));
   }
+  if(!e.has_value())
+  {
+    throw util::exception{"value range overflow"};
+  }
+  return value_range<value_type>{b, *e};
 }
 
 ///
 ///
 template<arithmetic_type ValueType>
-constexpr value_range<ValueType>::value_range(value_type begin_, value_type to_)
-  : begin{std::min(begin_, to_)}
-  , end{std::max(begin_, to_)}
+template<meta::lossless_convertible<ValueType> T1, meta::lossless_convertible<ValueType> T2>
+constexpr value_range<ValueType>::value_range(T1 begin_, T2 to_)
+  : begin{std::min(static_cast<value_type>(begin_), static_cast<value_type>(to_))}
+  , end{std::max(static_cast<value_type>(begin_), static_cast<value_type>(to_))}
 {
   if(!arithmetic::subtract(end, begin).has_value() || !arithmetic::add(begin, static_cast<value_type>(1)).has_value())
   {
@@ -237,9 +138,185 @@ constexpr value_range<ValueType>::value_range(value_type begin_, value_type to_)
 ///
 ///
 template<arithmetic_type ValueType>
+template<meta::lossless_convertible<ValueType> T1>
+constexpr value_range<ValueType>::value_range(const value_range<T1>& other)
+  : begin{static_cast<value_type>(other.begin)}
+  , end{static_cast<value_type>(other.end)}
+{
+}
+
+///
+///
+template<arithmetic_type ValueType>
 constexpr auto value_range<ValueType>::operator==(const value_range& other) const -> bool
 {
   return is_equal(begin, other.begin) && is_equal(end, other.end);
+}
+
+///
+/// Check if the `value_range` is empty (`begin == end`).
+/// \return true if `value_range` is empty, false otherwise
+///
+template<arithmetic_type T>
+constexpr auto empty(const value_range<T>& range) -> bool
+{
+  return range.begin == range.end;
+}
+
+///
+/// Get the size (defined as `size = end - begin` where `end > begin`) of a `value_range`.
+/// \return size of `value_range` (type std::size_t for integer types, type double for floating point types)
+///
+template<arithmetic_type T>
+constexpr auto size(const value_range<T>& range) -> auto
+{
+  if constexpr(std::integral<T>)
+  {
+    return static_cast<std::make_unsigned_t<T>>(range.end - range.begin);
+  }
+  else
+  {
+    return static_cast<double>(range.end - range.begin);
+  }
+}
+
+///
+/// Checks if `subrange` is fully contained in `range`.
+/// \return true, if `subrange` is fully contained in `range`
+///
+template<arithmetic_type T1, arithmetic_type T2>
+constexpr auto contains(const value_range<T1>& range, const value_range<T2>& subrange) -> bool
+  requires(similar_arithmetic_types<T1, T2> && meta::has_lossless_common_type<T1, T2>)
+{
+  using type = meta::lossless_common_type_t<T1, T2>;
+  if constexpr(std::integral<T1> || std::integral<T2>)
+  {
+    if((std::integral<T1> && empty(range)) || (std::integral<T2> && empty(subrange)))
+    {
+      return false;
+    }
+  }
+  return static_cast<type>(range.begin) <= static_cast<type>(subrange.begin) &&
+         static_cast<type>(range.end) >= static_cast<type>(subrange.end);
+}
+
+///
+/// Checks if `value` is fully contained in `range`.
+/// \return true, if `value` is fully contained in `range`
+///
+template<arithmetic_type T1, arithmetic_type T2>
+constexpr auto contains(const value_range<T1>& range, T2 value) -> bool
+  requires(similar_arithmetic_types<T1, T2> && meta::has_lossless_common_type<T1, T2>)
+{
+  using type = meta::lossless_common_type_t<T1, T2>;
+  if constexpr(std::integral<type>)
+  {
+    return !empty(range) && static_cast<type>(range.begin) <= static_cast<type>(value) &&
+           static_cast<type>(range.end) > static_cast<type>(value);
+  }
+  else
+  {
+    return static_cast<type>(range.begin) <= static_cast<type>(value) &&
+           static_cast<type>(range.end) >= static_cast<type>(value);
+  }
+}
+
+///
+/// Checks if two ranges overlap.
+/// Empty integer ranges will never overlap with another range.
+/// \return true, if two ranges overlap, false otherwise
+///
+template<arithmetic_type T1, arithmetic_type T2>
+constexpr auto overlaps(const value_range<T1>& first, const value_range<T2>& second) -> bool
+  requires(similar_arithmetic_types<T1, T2> && meta::has_lossless_common_type<T1, T2>)
+{
+  using type = meta::lossless_common_type_t<T1, T2>;
+  if constexpr(std::integral<T1> || std::integral<T2>)
+  {
+    if(empty(first) || empty(second))
+    {
+      return false;
+    }
+    else
+    {
+      return static_cast<type>(first.end) > static_cast<type>(second.begin) &&
+             static_cast<type>(second.end) > static_cast<type>(first.begin);
+    }
+  }
+  else
+  {
+    return static_cast<type>(first.begin) <= static_cast<type>(second.end) &&
+           static_cast<type>(second.begin) <= static_cast<type>(first.end);
+  }
+}
+
+///
+/// Get the range identifying an overlap between two ranges.
+/// \return optional range describing overlap of `first` and `second`, std::nullopt if no overlap is present
+///
+template<arithmetic_type T1, arithmetic_type T2>
+constexpr auto overlap(const value_range<T1>& first, const value_range<T2>& second)
+  -> std::optional<value_range<meta::lossless_common_type_t<T1, T2>>>
+  requires(similar_arithmetic_types<T1, T2> && meta::has_lossless_common_type<T1, T2>)
+{
+  using type = meta::lossless_common_type_t<T1, T2>;
+  if(overlaps(first, second))
+  {
+    const auto begin = std::max(static_cast<type>(second.begin), static_cast<type>(first.begin));
+    const auto end = std::min(static_cast<type>(second.end), static_cast<type>(first.end));
+    return value_range<type>{begin, end};
+  }
+  return std::nullopt;
+}
+
+///
+/// Checks if two ranges are adjacent end another.
+/// Empty integer ranges will never be adjacent to another range.
+/// \return true if adjacent, false otherwise
+///
+template<arithmetic_type T1, arithmetic_type T2>
+constexpr auto adjacent(const value_range<T1>& first, const value_range<T2>& second) -> bool
+  requires(similar_arithmetic_types<T1, T2> && meta::has_lossless_common_type<T1, T2>)
+{
+  using type = meta::lossless_common_type_t<T1, T2>;
+  if constexpr(std::integral<T1> || std::integral<T2>)
+  {
+    if(empty(first) || empty(second))
+    {
+      return false;
+    }
+    else
+    {
+      return is_equal(static_cast<type>(first.begin), static_cast<type>(second.end)) ||
+             is_equal(static_cast<type>(second.begin), static_cast<type>(first.end));
+    }
+  }
+  else
+  {
+    return is_equal(static_cast<type>(first.begin), static_cast<type>(second.end)) ||
+           is_equal(static_cast<type>(second.begin), static_cast<type>(first.end));
+  }
+}
+
+///
+/// Clamp value to be contained within range.
+/// \return clamped value
+///
+template<arithmetic_type T>
+constexpr auto clamp(const value_range<T>& range, T value) -> T
+{
+  if constexpr(std::integral<T>)
+  {
+    if(empty(range))
+    {
+      throw util::exception{"cannot clamp to empty value_range"};
+    }
+    return std::clamp(value, range.begin, range.end - 1);
+  }
+  else
+  {
+    return std::clamp(value, range.begin, range.end);
+  }
 }
 
 } // namespace bibstd::math

@@ -48,25 +48,36 @@ public: // Overrides
   auto data(const QModelIndex& index, int role = Qt::DisplayRole) const -> QVariant override;
   auto roleNames() const -> QHash<int, QByteArray> override;
 
+public: // Accessors
+  ///
+  /// Access the name of a book of the element at a specific index.
+  ///
+  Q_INVOKABLE QString bookName(int index);
+
+  ///
+  /// Access the chapter number of the element at a specific index.
+  ///
+  Q_INVOKABLE int chapterNumber(int index);
+
+  ///
+  /// Access the verse number of the element at a specific index.
+  ///
+  Q_INVOKABLE int verseNumber(int index);
+
 public: // Modifiers
   ///
   /// Reset the model with a new starting reference.
   /// Clears all existing entries and loads the initial verse.
-  /// \param bookId Book identifier
-  /// \param chapter Chapter number
-  /// \param verse Verse number
   ///
   Q_INVOKABLE void resetWithReference(const QString& bookId, int chapter, int verse);
 
   ///
   /// Load more verses before the current first entry.
-  /// \param count Number of verses to load
   ///
   Q_INVOKABLE void loadPrevious(int count);
 
   ///
   /// Load more verses after the current last entry.
-  /// \param count Number of verses to load
   ///
   Q_INVOKABLE void loadNext(int count);
 
@@ -76,7 +87,7 @@ public: // Modifiers
   Q_INVOKABLE void clear();
 
 signals:
-  void scrollToIndex(int index);
+  void refreshed();
 
 private: // Typedefs
   struct Entry final
