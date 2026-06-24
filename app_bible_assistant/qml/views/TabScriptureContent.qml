@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import BibQml
@@ -70,32 +72,20 @@ Item
         currentChapter = 0
         return
       }
-      let idx = indexAt(contentX, contentY)
-      if(idx < 0)
+      let idx = indexAt(0, contentY + 1)
+      if(idx >= 0)
       {
-        return
-      }
-      let item = itemAtIndex(idx)
-      if(item)
-      {
-        currentBook = item.bookName
-        currentChapter = item.chapter
+        currentBook = model.bookName(idx)
+        currentChapter = model.chapterNumber(idx)
       }
     }
 
-    Connections
-    {
-      target: root.listModelPassage
-      function onScrollToIndex(index) { listView.positionViewAtIndex(index, ListView.Top) }
-    }
-
-    // Dynamic loading on scroll
-    onAtYBeginningChanged:
+    function loadPrevious(count)
     {
       if(atYBeginning && model && model.rowCount() > 0)
       {
         let prevCount = model.rowCount()
-        model.loadPrevious(10)
+        model.loadPrevious(count)
         // Maintain scroll position after prepending
         let addedCount = model.rowCount() - prevCount
         if(addedCount > 0)
@@ -103,6 +93,18 @@ Item
           positionViewAtIndex(addedCount, ListView.Beginning)
         }
       }
+    }
+
+    Connections
+    {
+      target: root.listModelPassage
+      function onRefreshed() { Qt.callLater(function() { listView.loadPrevious(1) }) }
+    }
+
+    // Dynamic loading on scroll
+    onAtYBeginningChanged:
+    {
+      loadPrevious(10)
     }
 
     onAtYEndChanged:

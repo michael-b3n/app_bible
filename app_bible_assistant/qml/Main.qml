@@ -30,8 +30,8 @@ QtObject
   /*no binding*/ property int cursorY: 0
 
   // Bubble offset and size
-  /*no binding*/ property int userOffsetToCursorX: -Metrics.controlHeight * goldenRatio
-  /*no binding*/ property int userOffsetToCursorY: -100
+  /*no binding*/ property int userOffsetToCursorX: -minimalWidth / goldenRatio
+  /*no binding*/ property int userOffsetToCursorY: -(minimalHeight * 10 + Metrics.spacingLarge)
   /*no binding*/ property int offsetToCursorX: -Metrics.controlHeight * goldenRatio
   /*no binding*/ property int offsetToCursorY: -100
   /*no binding*/ property int mainWidth: minimalWidth * 2

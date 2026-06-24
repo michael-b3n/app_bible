@@ -6,9 +6,9 @@ project(bibstd)
 add_library(${PROJECT_NAME} OBJECT)
 
 #
-# Debugging setting: if ON exports debug data during runtime.
+# Debugging setting: if TRUE exports debug data during runtime.
 #
-option(BIBSTD_DEBUG_DATA OFF)
+set(BIBSTD_DEBUG_DATA TRUE)
 
 #
 # Configure incbin files
@@ -86,7 +86,10 @@ ENDIF()
 # Target compile definitions.
 #
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:BIBSTD_DEBUG>)
-target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<BOOL:${BIBSTD_DEBUG_DATA}>:BIBSTD_DEBUG_DATA>)
+
+IF(${BIBSTD_DEBUG_DATA})
+  target_compile_definitions(${PROJECT_NAME} PRIVATE BIBSTD_DEBUG_DATA)
+ENDIF()
 
 IF(WIN32)
   target_compile_definitions(${PROJECT_NAME} PUBLIC NOMINMAX)

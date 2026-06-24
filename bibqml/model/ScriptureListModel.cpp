@@ -5,6 +5,7 @@
 #include <bibstd/bible/reference_formatter_de.hpp>
 #include <bibstd/util/enum.hpp>
 #include <bibstd/util/log.hpp>
+#include <bibstd/util/numeric_cast.hpp>
 #include <bibstd/workflow/workflow_scripture.hpp>
 
 #include <algorithm>
@@ -17,7 +18,6 @@ namespace detail
 
 ///
 /// Get the default scripture from the workflow scripture.
-/// \param workflow_scripture Workflow scripture reference
 /// \return default scripture, or std::nullopt if no scripture could be obtained
 ///
 auto default_scripture(bibstd::workflow::workflow_scripture& workflow_scripture)
@@ -97,11 +97,35 @@ auto ScriptureListModel::roleNames() const -> QHash<int, QByteArray>
 
 ///
 ///
-void ScriptureListModel::clear()
+QString ScriptureListModel::bookName(const int index)
 {
-  beginResetModel();
-  entries_.clear();
-  endResetModel();
+  if(index < entries_.size())
+  {
+    return entries_.at(index).bookName;
+  }
+  return QString{""};
+}
+
+///
+///
+int ScriptureListModel::chapterNumber(const int index)
+{
+  if(index < entries_.size())
+  {
+    return numeric_cast<int>(entries_.at(index).chapter);
+  }
+  return 0;
+}
+
+///
+///
+int ScriptureListModel::verseNumber(const int index)
+{
+  if(index < entries_.size())
+  {
+    return numeric_cast<int>(entries_.at(index).verse);
+  }
+  return 0;
 }
 
 ///
@@ -132,14 +156,9 @@ void ScriptureListModel::resetWithReference(const QString& bookId, const int cha
   entries_.clear();
   entries_.push_back(makeEntry(*ref));
   endResetModel();
-
-  static constexpr int contextCount = 10;
   // load some context around the initial verse
-  loadPrevious(contextCount);
-  const auto targetIndex = static_cast<int>(entries_.size()) - 1; // original verse is the last entry after loadPrevious
-  loadNext(contextCount);
-
-  emit scrollToIndex(std::max(0, targetIndex));
+  loadNext(10);
+  emit refreshed();
 }
 
 ///
@@ -238,6 +257,15 @@ void ScriptureListModel::loadNext(const int count)
     entries_.erase(entries_.begin(), entries_.begin() + excess);
     endRemoveRows();
   }
+}
+
+///
+///
+void ScriptureListModel::clear()
+{
+  beginResetModel();
+  entries_.clear();
+  endResetModel();
 }
 
 ///
