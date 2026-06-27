@@ -72,11 +72,12 @@ Item
         currentChapter = 0
         return
       }
-      let idx = indexAt(0, contentY + 1)
-      if(idx >= 0)
+      let row = indexAt(contentX, contentY)
+      if(row >= 0)
       {
-        currentBook = model.bookName(idx)
-        currentChapter = model.chapterNumber(idx)
+        let idx = model.index(row, 0)
+        currentBook = model.data(idx, ScriptureListModel.BookNameRole)
+        currentChapter = Number(model.data(idx, ScriptureListModel.ChapterRole))
       }
     }
 

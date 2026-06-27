@@ -51,7 +51,7 @@ ScriptureListModel::~ScriptureListModel() noexcept = default;
 
 ///
 ///
-auto ScriptureListModel::rowCount(const QModelIndex& parent) const -> int
+int ScriptureListModel::rowCount(const QModelIndex& parent) const
 {
   if(parent.isValid())
   {
@@ -62,9 +62,9 @@ auto ScriptureListModel::rowCount(const QModelIndex& parent) const -> int
 
 ///
 ///
-auto ScriptureListModel::data(const QModelIndex& index, const int role) const -> QVariant
+QVariant ScriptureListModel::data(const QModelIndex& index, const int role) const
 {
-  if(!index.isValid() || index.row() < 0 || index.row() >= static_cast<int>(entries_.size()))
+  if(!index.isValid() || index.row() < 0 || static_cast<decltype(entries_.size())>(index.row()) >= entries_.size())
   {
     return {};
   }
@@ -77,13 +77,13 @@ auto ScriptureListModel::data(const QModelIndex& index, const int role) const ->
   case VerseNumberRole: return entry.verse;
   case IsBookHeaderRole: return entry.isBookHeader;
   case IsChapterHeaderRole: return entry.isChapterHeader;
-  default: return {};
+  default: LOG_DEBUG("role not found: {}", role) return {};
   }
 }
 
 ///
 ///
-auto ScriptureListModel::roleNames() const -> QHash<int, QByteArray>
+QHash<int, QByteArray> ScriptureListModel::roleNames() const
 {
   return {
     {      VerseTextRole,       "verseText"},
@@ -93,39 +93,6 @@ auto ScriptureListModel::roleNames() const -> QHash<int, QByteArray>
     {   IsBookHeaderRole,    "isBookHeader"},
     {IsChapterHeaderRole, "isChapterHeader"},
   };
-}
-
-///
-///
-QString ScriptureListModel::bookName(const int index)
-{
-  if(index < entries_.size())
-  {
-    return entries_.at(index).bookName;
-  }
-  return QString{""};
-}
-
-///
-///
-int ScriptureListModel::chapterNumber(const int index)
-{
-  if(index < entries_.size())
-  {
-    return numeric_cast<int>(entries_.at(index).chapter);
-  }
-  return 0;
-}
-
-///
-///
-int ScriptureListModel::verseNumber(const int index)
-{
-  if(index < entries_.size())
-  {
-    return numeric_cast<int>(entries_.at(index).verse);
-  }
-  return 0;
 }
 
 ///

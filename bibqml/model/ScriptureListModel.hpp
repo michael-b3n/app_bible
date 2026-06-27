@@ -3,6 +3,7 @@
 #include <bibstd/bible/reference.hpp>
 
 #include <QAbstractListModel>
+#include <QMetaEnum>
 #include <QObject>
 #include <QtQml/qqmlregistration.h>
 
@@ -36,6 +37,7 @@ public: // Typedefs
     IsBookHeaderRole,
     IsChapterHeaderRole,
   };
+  Q_ENUM(Role)
 
 public: // Structors
   explicit ScriptureListModel(
@@ -44,25 +46,9 @@ public: // Structors
   ~ScriptureListModel() noexcept override;
 
 public: // Overrides
-  auto rowCount(const QModelIndex& parent = QModelIndex()) const -> int override;
-  auto data(const QModelIndex& index, int role = Qt::DisplayRole) const -> QVariant override;
-  auto roleNames() const -> QHash<int, QByteArray> override;
-
-public: // Accessors
-  ///
-  /// Access the name of a book of the element at a specific index.
-  ///
-  Q_INVOKABLE QString bookName(int index);
-
-  ///
-  /// Access the chapter number of the element at a specific index.
-  ///
-  Q_INVOKABLE int chapterNumber(int index);
-
-  ///
-  /// Access the verse number of the element at a specific index.
-  ///
-  Q_INVOKABLE int verseNumber(int index);
+  int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+  QVariant data(const QModelIndex& index, int role) const override;
+  QHash<int, QByteArray> roleNames() const override;
 
 public: // Modifiers
   ///
