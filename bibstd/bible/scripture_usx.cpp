@@ -30,11 +30,11 @@ namespace detail
 ///
 class node_simple_content_walker : public pugi::xml_tree_walker
 {
-public: // Structors
-  node_simple_content_walker() = default;
-
 public: // Variables
   std::string content;
+
+public: // Structors
+  node_simple_content_walker() = default;
 
 private: // Overrides
   auto for_each(pugi::xml_node& node) -> bool override;
@@ -58,9 +58,33 @@ auto node_simple_content_walker::for_each(pugi::xml_node& node) -> bool
 ///
 class node_path_finder_walker : public pugi::xml_tree_walker
 {
+  // Typedefs
+  using string_matrix_type = std::vector<std::vector<std::string>>;
+
+  struct criteria_data final
+  {
+    bool starts_with_wildcard = false;
+    typename string_matrix_type::value_type path_sections;
+  };
+
+  struct walker_data final
+  {
+    criteria_data criteria;
+    std::map<int, std::vector<pugi::xml_node>> found_nodes;
+  };
+
+  // Constants
+  static constexpr std::string_view wildcard = "...";
+  static constexpr char section_delimiter = '/';
+  static constexpr auto is_wildcard = [](const std::string_view data) { return data == wildcard; };
+
+  // Variables
+  std::vector<walker_data> data_;
+  decltype(walker_data::found_nodes) found_nodes_;
+
 public: // Typedefs
-  using result_type = std::map<int, std::vector<pugi::xml_node>>;
-  using string_list_type = std::vector<std::string>;
+  using result_type = decltype(found_nodes_);
+  using string_list_type = typename string_matrix_type::value_type;
 
 public: // Structors
   ///
@@ -78,27 +102,6 @@ public: // Accessors
   ///
   auto found() const -> const result_type&;
 
-private: // Typedefs
-  using string_matrix_type = std::vector<string_list_type>;
-
-  struct criteria_data final
-  {
-    bool starts_with_wildcard = false;
-    string_list_type path_sections;
-  };
-
-  struct walker_data final
-  {
-    criteria_data criteria;
-    result_type found_nodes;
-  };
-
-private: // Constants
-  static constexpr std::string_view wildcard = "...";
-  static constexpr char section_delimiter = '/';
-
-  static constexpr auto is_wildcard = [](const std::string_view data) { return data == wildcard; };
-
 private: // Implementation
   static auto parse_criteria(const auto& criteria_paths) -> std::vector<walker_data>;
   static auto parse_path_sections(std::string_view criteria_path) -> string_list_type;
@@ -107,10 +110,6 @@ private: // Implementation
 private: // Overrides
   auto for_each(pugi::xml_node& node) -> bool override;
   auto end(pugi::xml_node& node) -> bool override;
-
-private: // Variables
-  std::vector<walker_data> data_;
-  result_type found_nodes_;
 };
 
 ///

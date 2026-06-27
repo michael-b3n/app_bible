@@ -8,17 +8,19 @@ namespace bibstd::workflow
 
 ///
 ///
-// clang-format off
-workflow_bible_ref_lookup_settings::workflow_bible_ref_lookup_settings()
-  : translations{workflow_settings_->create_setting("lookup.translations", std::vector<bible::translation>{bible::translation::ngu, bible::translation::elb})}
-// clang-format on
+workflow_bible_ref_lookup_settings::workflow_bible_ref_lookup_settings(std::shared_ptr<workflow_settings> workflow_settings)
+  : framework::settings_base{std::move(workflow_settings)}
+  , translations{workflow_settings_->create_setting(
+      "lookup.translations", std::vector<bible::translation>{bible::translation::ngu, bible::translation::elb}
+    )}
 {
 }
 
 ///
 ///
-workflow_bible_ref_lookup::workflow_bible_ref_lookup()
-  : thread_pool_guard_{framework::thread_pool::init()}
+workflow_bible_ref_lookup::workflow_bible_ref_lookup(std::shared_ptr<workflow_settings> workflow_settings)
+  : workflow_base{std::move(workflow_settings)}
+  , thread_pool_guard_{framework::thread_pool::init()}
   , core_lookup_bibleserver_{std::make_unique<core::core_lookup_bibleserver>()}
 {
 }
@@ -36,7 +38,7 @@ auto workflow_bible_ref_lookup::lookup(const params& params) -> void
     framework::thread_pool::queue_task(
       [this, params]() mutable
       {
-        const auto translations = settings->translations->value();
+        const auto translations = settings().translations->value();
         try
         {
           std::ranges::for_each(

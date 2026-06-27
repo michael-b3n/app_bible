@@ -5,8 +5,8 @@ namespace bibstd::framework
 
 ///
 ///
-settings_base::settings_base()
-  : workflow_settings_{std::make_unique<workflow::workflow_settings>()}
+settings_base::settings_base(std::shared_ptr<workflow::workflow_settings> workflow_settings)
+  : workflow_settings_{std::move(workflow_settings)}
 {
 }
 

@@ -17,7 +17,7 @@ namespace bibstd::bible
 ///
 class scripture
 {
-private: // Typedefs
+  // Typedefs
   ///
   /// Struct containing the HTML content of a bible verse,
   /// with paragraph markers using data-id attribute ("begin", "continue", or "undefined").

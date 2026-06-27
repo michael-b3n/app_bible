@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bibstd/bible/reference.hpp>
+#include <bibstd/util/non_owning_ptr.hpp>
 
 #include <QAbstractListModel>
 #include <QMetaEnum>
@@ -15,6 +16,7 @@ namespace bibstd::workflow
 // Forward declaration
 class workflow_scripture;
 } // namespace bibstd::workflow
+
 namespace bibqml
 {
 
@@ -26,6 +28,24 @@ class ScriptureListModel final : public QAbstractListModel
 {
   Q_OBJECT
   QML_ELEMENT
+
+  // Typedefs
+  ///
+  /// ListModel Entry
+  ///
+  struct Entry final
+  {
+    bibstd::bible::reference ref;
+    QString verseText;
+    QString bookName;
+    std::uint32_t chapterNumber;
+    std::uint32_t verseNumber;
+    bool isHeader;
+  };
+
+  // Variables
+  std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture_;
+  std::deque<Entry> entries_;
 
 public: // Typedefs
   enum Role
@@ -40,7 +60,8 @@ public: // Typedefs
 
 public: // Structors
   explicit ScriptureListModel(
-    std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture, QObject* parent = nullptr
+    std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture,
+    bibstd::util::non_owning_ptr<QObject> parent = nullptr
   );
   ~ScriptureListModel() noexcept override;
 
@@ -74,24 +95,9 @@ public: // Modifiers
 signals:
   void refreshed();
 
-private: // Typedefs
-  struct Entry final
-  {
-    bibstd::bible::reference ref;
-    QString verseText;
-    QString bookName;
-    std::uint32_t chapterNumber;
-    std::uint32_t verseNumber;
-    bool isHeader;
-  };
-
 private: // Implementation
-  auto fetchPassage(const bibstd::bible::reference& ref) -> QString;
-  auto makeEntry(const bibstd::bible::reference& ref) -> Entry;
-
-private: // Variables
-  std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture_;
-  std::deque<Entry> entries_;
+  QString fetchPassage(const bibstd::bible::reference& ref) const;
+  Entry makeEntry(const bibstd::bible::reference& ref) const;
 };
 
 } // namespace bibqml

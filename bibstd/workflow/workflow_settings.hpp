@@ -6,7 +6,6 @@
 #include "bibstd/util/contains.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/non_owning_ptr.hpp"
-#include "bibstd/workflow/workflow_base.hpp"
 
 #include <filesystem>
 #include <mutex>
@@ -21,7 +20,7 @@ namespace bibstd::workflow
 /// There can be multiple workflows of the same type but all settings are shared.
 /// \tparam ...Args List of all settings types.
 ///
-class workflow_settings final : public workflow_base<workflow_settings>
+class workflow_settings final
 {
   // Typedefs
   template<framework::underlying_setting_type_erased_type T>
@@ -30,6 +29,20 @@ class workflow_settings final : public workflow_base<workflow_settings>
   using setting_type_erased_uptr_type = std::unique_ptr<framework::setting_type_erased<T>>;
   using setting_type_erased_uptr_variant_type =
     meta::for_each_t<framework::setting_type_erased_variant, setting_type_erased_uptr_type>;
+
+  ///
+  /// Internal settings data struct.
+  ///
+  struct setting_data final
+  {
+    std::string path;
+    setting_type_erased_uptr_variant_type setting;
+  };
+
+  // Variables
+  const framework::property_tree::sptr_type tree_{framework::property_tree::create(settings_file_path())};
+  mutable std::mutex mtx_{};
+  std::vector<setting_data> settings_{};
 
 public: // Typedefs
   using setting_type_erased_non_owning_ptr_variant_type =
@@ -52,14 +65,14 @@ public: // Static interface
   /// Access all created settings.
   /// \return list of all created settings
   ///
-  [[nodiscard]] static auto type_erased_settings() -> std::vector<setting_type_erased_non_owning_ptr_variant_type>;
+  [[nodiscard]] auto type_erased_settings() const -> std::vector<setting_type_erased_non_owning_ptr_variant_type>;
 
   ///
   /// Access a type erased setting for the specified path.
   /// \param path Setting path
   /// \return type erased setting or nullopt if no setting with the specified path exists
   ///
-  [[nodiscard]] static auto type_erased_setting(const std::string& path)
+  [[nodiscard]] auto type_erased_setting(const std::string& path) const
     -> std::optional<setting_type_erased_non_owning_ptr_variant_type>;
 
 public: // Structors
@@ -80,18 +93,6 @@ public: // Modifiers
     T&& default_value,
     framework::setting_validator<T>&& validator = std::make_shared<framework::setting_validator_unbound>()
   ) -> setting_non_owning_ptr_type<T>;
-
-private: // Typedefs
-  struct setting_data final
-  {
-    std::string path;
-    setting_type_erased_uptr_variant_type setting;
-  };
-
-private: // Variables
-  inline static std::mutex settings_mtx_{};
-  inline static std::vector<setting_data> settings_{};
-  const framework::property_tree::sptr_type tree_{framework::property_tree::create(settings_file_path())};
 };
 
 ///
@@ -108,7 +109,7 @@ auto workflow_settings::create_setting(const std::string& path, T&& default_valu
   const auto setting_ptr = setting.get();
   using underlying_setting_type_erased_type = framework::setting_type_erased<framework::setting_type_erased_type_from<T>>;
 
-  const auto lock = std::lock_guard(settings_mtx_);
+  const auto lock = std::lock_guard(mtx_);
   const auto contains_path = util::contains(settings_, [&path](const auto& data) { return data.path == path; });
   if(contains_path)
   {

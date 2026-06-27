@@ -4,7 +4,6 @@
 #include "bibstd/bible/reference_range.hpp"
 #include "bibstd/framework/process_params.hpp"
 #include "bibstd/framework/settings_base.hpp"
-#include "bibstd/framework/settings_owner.hpp"
 #include "bibstd/framework/thread_pool.hpp"
 #include "bibstd/signal/adapter.hpp"
 #include "bibstd/signal/common.hpp"
@@ -13,11 +12,12 @@
 #include <memory>
 #include <vector>
 
+// Forward declarations
 namespace bibstd::core
 {
-// Forward declarations
 class core_lookup_bibleserver;
 } // namespace bibstd::core
+
 namespace bibstd::workflow
 {
 
@@ -35,7 +35,7 @@ struct workflow_bible_ref_lookup_sigs final
 class workflow_bible_ref_lookup_settings final : public framework::settings_base
 {
 public: // Structors
-  workflow_bible_ref_lookup_settings();
+  workflow_bible_ref_lookup_settings(std::shared_ptr<workflow_settings> workflow_settings);
   ~workflow_bible_ref_lookup_settings() noexcept = default;
 
 public: // Variables
@@ -48,21 +48,25 @@ public: // Variables
 /// - ended: Emitted when the workflow ends. Slots receive the result parameters `result_type`.
 ///
 class workflow_bible_ref_lookup final
-  : public workflow_base<workflow_bible_ref_lookup>
-  , public framework::settings_owner<workflow_bible_ref_lookup_settings>
+  : public workflow_base<workflow_bible_ref_lookup_settings>
   , public signal::adapter<workflow_bible_ref_lookup_sigs>
 {
-private: // Typedefs
+  // Typedefs
   struct params_t final
   {
     std::vector<bible::reference_range> references;
   };
 
+  // Variables
+  const util::shared_scope_guard thread_pool_guard_;
+  const framework::thread_pool::strand_id_type strand_id_{framework::thread_pool::strand_id()};
+  const std::unique_ptr<core::core_lookup_bibleserver> core_lookup_bibleserver_;
+
 public: // Typedefs
   using params = framework::process_params<params_t>;
 
 public: // Structors
-  workflow_bible_ref_lookup();
+  workflow_bible_ref_lookup(std::shared_ptr<workflow_settings> workflow_settings);
   ~workflow_bible_ref_lookup() noexcept;
 
 public: // Modifiers
@@ -71,11 +75,6 @@ public: // Modifiers
   /// \param params Start parameters for the workflow
   ///
   auto lookup(const params& params) -> void;
-
-private: // Variables
-  const util::shared_scope_guard thread_pool_guard_;
-  const framework::thread_pool::strand_id_type strand_id_{framework::thread_pool::strand_id()};
-  const std::unique_ptr<core::core_lookup_bibleserver> core_lookup_bibleserver_;
 };
 
 } // namespace bibstd::workflow

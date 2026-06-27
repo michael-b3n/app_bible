@@ -15,6 +15,11 @@ namespace bibstd::framework
 template<underlying_setting_type_erased_type T>
 class setting_type_erased final
 {
+  // Variables
+  const std::function<T()> get_;
+  const std::function<bool(const T&)> set_;
+  // Private functions listed first since they manage the underlying setting lifetime
+
 public: // Typedefs
   using value_type = T;
 
@@ -35,11 +40,6 @@ public: // Setters
   /// \param v setting value that shall be set
   ///
   auto value(const value_type& v) -> bool;
-
-private: // Variables
-  const std::function<value_type()> get_;
-  const std::function<bool(const value_type&)> set_;
-  // Private functions listed first since they manage the underlying setting lifetime
 
 public: // Variables
   const signal::adapter<setting_signals>& signal_adapter;

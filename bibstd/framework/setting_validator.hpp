@@ -40,6 +40,9 @@ concept type_erased_validator_param_requirement =
 ///
 class setting_validator_connector
 {
+  // Variables
+  std::function<void()> on_changed_{nullptr};
+
 public: // Structors
   setting_validator_connector() = default;
   virtual ~setting_validator_connector() = default;
@@ -59,9 +62,6 @@ protected: // Functions
 
 protected: // Variables
   mutable std::mutex mtx_{};
-
-private: // Variables
-  std::function<void()> on_changed_{nullptr};
 };
 
 } // namespace detail
@@ -81,6 +81,11 @@ struct setting_validator_unbound final : public detail::setting_validator_connec
 template<underlying_setting_type T>
 class setting_validator_range final : public detail::setting_validator_connector
 {
+  // Variables
+  const math::value_range<
+    std::conditional_t<detail::setting_validator_range_type<meta::remove_optional_t<T>>, meta::remove_optional_t<T>, int>>
+    range_;
+
 public: // Typedefs
   using sptr_type = std::shared_ptr<setting_validator_range<T>>;
   using underlying_type = T;
@@ -119,11 +124,6 @@ public: // Dummy implementation for unsupported types
     requires(!detail::setting_validator_range_type<T>);
   auto contains(const T& value) const -> bool
     requires(!detail::setting_validator_range_type<T>);
-
-private: // Variables
-  const math::value_range<
-    std::conditional_t<detail::setting_validator_range_type<meta::remove_optional_t<T>>, meta::remove_optional_t<T>, int>>
-    range_;
 };
 
 ///
@@ -132,9 +132,16 @@ private: // Variables
 template<underlying_setting_type_erased_type T>
 class setting_validator_range_type_erased final
 {
+  // Variables
+  const std::function<T(const T&)> validate_;
+  const std::function<bool(const T&)> contains_;
+
 public: // Typedefs
   using sptr_type = std::shared_ptr<setting_validator_range_type_erased<T>>;
   using underlying_type = T;
+
+public: // Variables
+  const std::shared_ptr<detail::setting_validator_connector> connector;
 
 public: // Structors
   setting_validator_range_type_erased(const auto& validator)
@@ -151,13 +158,6 @@ public: // Operators
   /// \see setting_validator_range::contains
   ///
   [[nodiscard]] auto contains(const T& value) const -> bool;
-
-public: // Variables
-  const std::shared_ptr<detail::setting_validator_connector> connector;
-
-private: // Variables
-  const std::function<T(const T&)> validate_;
-  const std::function<bool(const T&)> contains_;
 };
 
 ///
@@ -166,6 +166,9 @@ private: // Variables
 template<underlying_setting_type T>
 class setting_validator_list final : public detail::setting_validator_connector
 {
+  // Variables
+  std::vector<meta::remove_optional_t<T>> list_{};
+
 public: // Typedefs
   using sptr_type = std::shared_ptr<setting_validator_list<T>>;
   using underlying_type = T;
@@ -206,9 +209,6 @@ public: // Operators
   /// \return true if value is contained, false otherwise
   ///
   [[nodiscard]] auto contains(const T& value) const -> bool;
-
-private: // Variables
-  std::vector<meta::remove_optional_t<T>> list_{};
 };
 
 ///
@@ -217,9 +217,16 @@ private: // Variables
 template<underlying_setting_type_erased_type T>
 class setting_validator_list_type_erased final
 {
+  // Variables
+  const std::function<std::vector<meta::remove_optional_t<T>>()> available_;
+  const std::function<bool(const T&)> contains_;
+
 public: // Typedefs
   using sptr_type = std::shared_ptr<setting_validator_list_type_erased<T>>;
   using underlying_type = T;
+
+public: // Variables
+  const std::shared_ptr<detail::setting_validator_connector> connector;
 
 public: // Structors
   setting_validator_list_type_erased(const auto& validator)
@@ -236,13 +243,6 @@ public: // Operators
   /// \see setting_validator_list::contains
   ///
   [[nodiscard]] auto contains(const T& value) const -> bool;
-
-public: // Variables
-  const std::shared_ptr<detail::setting_validator_connector> connector;
-
-private: // Variables
-  const std::function<std::vector<meta::remove_optional_t<T>>()> available_;
-  const std::function<bool(const T&)> contains_;
 };
 
 ///
@@ -351,8 +351,7 @@ auto setting_validator_range<T>::contains([[maybe_unused]] const T&) const -> bo
 template<underlying_setting_type_erased_type T>
 setting_validator_range_type_erased<T>::setting_validator_range_type_erased(const auto& validator)
   requires(detail::type_erased_validator_param_requirement<T, setting_validator_range, decltype(validator)>)
-  : connector{validator}
-  , validate_{[validator](const T& value)
+  : validate_{[validator](const T& value)
               {
                 return detail::validator_t<decltype(validator)>::to_type_erased_value(
                   validator->validate(detail::validator_t<decltype(validator)>::from_type_erased_value(value))
@@ -360,6 +359,7 @@ setting_validator_range_type_erased<T>::setting_validator_range_type_erased(cons
               }}
   , contains_{[validator](const T& value)
               { return validator->contains(detail::validator_t<decltype(validator)>::from_type_erased_value(value)); }}
+  , connector{validator}
 {
 }
 
@@ -464,8 +464,7 @@ auto setting_validator_list<T>::contains(const T& value) const -> bool
 template<underlying_setting_type_erased_type T>
 setting_validator_list_type_erased<T>::setting_validator_list_type_erased(const auto& validator)
   requires(detail::type_erased_validator_param_requirement<T, setting_validator_list, decltype(validator)>)
-  : connector{validator}
-  , available_{[validator]()
+  : available_{[validator]()
                {
                  const auto available_list = validator->available();
                  auto converted_list = std::vector<meta::remove_optional_t<T>>{};
@@ -487,6 +486,7 @@ setting_validator_list_type_erased<T>::setting_validator_list_type_erased(const 
                }}
   , contains_{[validator](const T& value)
               { return validator->contains(detail::validator_t<decltype(validator)>::from_type_erased_value(value)); }}
+  , connector{validator}
 {
 }
 

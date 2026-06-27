@@ -13,6 +13,11 @@ namespace bibstd::framework
 ///
 class active_worker final
 {
+  // Variables
+  std::unique_ptr<task_queue> worker_queue_;
+  std::jthread worker_;
+  const std::thread::id worker_id_;
+
 public: // Structors
   active_worker();
   ~active_worker() noexcept;
@@ -29,11 +34,6 @@ private: // Implementation
   /// Stop main active_worker thread and cleanup task queues.
   ///
   auto shutdown() -> void;
-
-private: // Variables
-  std::unique_ptr<task_queue> worker_queue_;
-  std::jthread worker_;
-  const std::thread::id worker_id_;
 };
 
 } // namespace bibstd::framework

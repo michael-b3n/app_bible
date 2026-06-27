@@ -20,6 +20,11 @@ namespace bibstd::system
 ///
 class tray final
 {
+  // Variables
+  inline static std::unique_ptr<framework::active_worker> worker_{};
+  inline static std::unique_ptr<Tray::Tray> tray_{nullptr};
+  inline static std::map<int, std::function<void()>> callback_map_{};
+
 public: // Typedefs
   ///
   /// Icon file loaded into memory.
@@ -44,11 +49,6 @@ public: // Static modifiers
 
 private: // Static helpers
   static auto get_message() -> void;
-
-private:
-  inline static std::unique_ptr<framework::active_worker> worker_{};
-  inline static std::unique_ptr<Tray::Tray> tray_{nullptr};
-  inline static std::map<int, std::function<void()>> callback_map_{};
 };
 
 } // namespace bibstd::system

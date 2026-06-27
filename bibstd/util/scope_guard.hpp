@@ -17,8 +17,11 @@ namespace bibstd::util
 ///
 class scope_guard final
 {
+  // Variables
+  std::move_only_function<void()> on_destruction_;
+
 public: // Typedefs
-  using on_destruction_type = std::move_only_function<void()>;
+  using on_destruction_type = decltype(on_destruction_);
 
 public: // Constructors
   scope_guard() = default;
@@ -39,9 +42,6 @@ public: // Modifiers
 
 private: // Implementation
   auto destruct() -> void;
-
-private:
-  on_destruction_type on_destruction_;
 };
 
 ///
@@ -51,6 +51,10 @@ private:
 ///
 class shared_scope_guard final
 {
+  // Variables
+  bool is_initial_instance_;
+  scope_guard instance_guard_;
+
 public: // Typedefs
   ///
   /// A helper class to create a bound scope exit action instance.
@@ -59,6 +63,9 @@ public: // Typedefs
   ///
   class creator final
   {
+    // Variables
+    std::weak_ptr<scope_guard> instance_;
+
   public: // Constructors
     creator() = default;
 
@@ -70,9 +77,6 @@ public: // Typedefs
     /// instance as other guards created by this function
     ///
     auto create(scope_guard::on_destruction_type&& on_destruction) -> shared_scope_guard;
-
-  private:
-    std::weak_ptr<scope_guard> instance_;
   };
 
 public: // Constructors
@@ -100,10 +104,6 @@ public: // Modifiers
 
 private: // Constructors
   shared_scope_guard(scope_guard instance_guard, bool is_initial_instance);
-
-private:
-  bool is_initial_instance_;
-  scope_guard instance_guard_;
 };
 
 } // namespace bibstd::util

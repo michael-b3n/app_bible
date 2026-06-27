@@ -16,6 +16,9 @@ namespace bibstd::math
 template<typename ValueType, std::size_t D>
 class coordinates final
 {
+  // Variables
+  std::array<ValueType, D> coordinates_;
+
 public: // Typedefs
   using value_type = ValueType;
 
@@ -66,9 +69,6 @@ public: // Operators
   constexpr auto operator==(const coordinates<value_type, D>&) const -> bool = default;
   constexpr auto operator+(const coordinates<value_type, D>& rhs) const -> coordinates<value_type, D>;
   constexpr auto operator-(const coordinates<value_type, D>& rhs) const -> coordinates<value_type, D>;
-
-private: // Variables
-  std::array<value_type, D> coordinates_;
 };
 
 ///

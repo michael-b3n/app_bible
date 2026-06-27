@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <type_traits>
 
 namespace bibstd::io
 {
@@ -22,6 +23,11 @@ namespace bibstd::bible
 ///
 class scripture_usx final : public scripture
 {
+  // Variables
+  const std::optional<info_type> info_data_;
+  const std::map<reference_type, passage_html_type> verse_data_;
+  const versification_type versification_;
+
 public: // Constants
   static constexpr auto unknown_name = "Unknown Scripture";
   static constexpr auto unknown_abbreviation = "Unknown Abbreviation";
@@ -98,7 +104,7 @@ public: // Constants
   static_assert(books.size() == util::enum_count<book_id>());
 
 public: // Typedefs
-  using passage_map_type = std::map<reference_type, passage_html_type>;
+  using passage_map_type = std::remove_const_t<decltype(verse_data_)>;
 
 public: // Creators
   ///
@@ -127,13 +133,6 @@ private: // Overrides
   /// \see scripture::versification
   ///
   auto do_versification() const -> const versification_type& override;
-
-private: // Implementation
-
-private: // Variables
-  const std::optional<info_type> info_data_;
-  const passage_map_type verse_data_;
-  const versification_type versification_;
 };
 
 } // namespace bibstd::bible

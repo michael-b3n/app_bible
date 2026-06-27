@@ -2,18 +2,27 @@
 
 #include "src/construct_backend.hpp"
 
-#include <bibqml/bridge/BridgeBibleRefOcr.hpp>
-#include <bibqml/model/ScriptureListModel.hpp>
-
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+
+// Forward declarations
+namespace bibqml
+{
+class BridgeBibleRefOcr;
+class ScriptureListModel;
+class SettingsListModel;
+} // namespace bibqml
 
 namespace aba
 {
 
 struct bridge_instance final
 {
+  // Structors
+  ~bridge_instance() noexcept;
+
   // Variables
+  std::unique_ptr<bibqml::SettingsListModel> settings_list_model;
   std::unique_ptr<bibqml::BridgeBibleRefOcr> bridge_bible_ref_ocr;
   std::unique_ptr<bibqml::ScriptureListModel> scripture_list_model;
 };

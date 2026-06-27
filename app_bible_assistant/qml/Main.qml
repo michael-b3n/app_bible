@@ -7,8 +7,9 @@ QtObject
 {
   id: root
 
+  required property SettingsListModel listModelSettings
+  required property ScriptureListModel listModelScripture
   required property BridgeBibleRefOcr bridgeBibleRefOcr
-  required property ScriptureListModel listModelPassage
 
   // Constants
   /*no binding*/ readonly property real goldenRatio: 1.618
@@ -180,8 +181,9 @@ QtObject
       {
         id: mainTabLayout
 
+        listModelSettings: root.listModelSettings
+        listModelScripture: root.listModelScripture
         bridgeBibleRefOcr: root.bridgeBibleRefOcr
-        listModelPassage: root.listModelPassage
 
         anchors.fill: parent
 

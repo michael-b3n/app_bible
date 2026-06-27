@@ -23,6 +23,10 @@ class rect final
 {
   static_assert(!std::is_same_v<bool, std::remove_cvref_t<ValueType>>);
 
+  // Variables
+  value_range<ValueType> horizontal_range_;
+  value_range<ValueType> vertical_range_;
+
 public: // Typedefs
   using value_type = ValueType;
   using coordinates_type = coordinates<value_type, 2>;
@@ -69,10 +73,6 @@ public: // Accessors
   /// \return center coordinates
   ///
   constexpr auto center() const -> coordinates_type;
-
-private: // Variables
-  value_range<value_type> horizontal_range_;
-  value_range<value_type> vertical_range_;
 };
 
 ///

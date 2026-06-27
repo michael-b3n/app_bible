@@ -15,16 +15,22 @@ class versification;
 ///
 class reference final
 {
-public: // Typedefs
+  // Typedefs
   template<typename T>
-  struct __typesafe_number_template final
+  struct typesafe_number_template final
   {
     std::uint32_t value;
-    constexpr auto operator<=>(const __typesafe_number_template<T>&) const = default;
+    constexpr auto operator<=>(const typesafe_number_template<T>&) const = default;
   };
 
-  using chapter_type = __typesafe_number_template<struct chapter_tag>;
-  using verse_type = __typesafe_number_template<struct verse_tag>;
+  // Variables
+  book_id book_;
+  typesafe_number_template<struct chapter_tag> chapter_;
+  typesafe_number_template<struct verse_tag> verse_;
+
+public: // Typedefs
+  using chapter_type = decltype(chapter_);
+  using verse_type = decltype(verse_);
 
 public: // Static constructor
   ///
@@ -68,11 +74,6 @@ public: // Accessors
   constexpr auto book() const -> book_id { return book_; }
   constexpr auto chapter() const -> chapter_type { return chapter_; }
   constexpr auto verse() const -> verse_type { return verse_; }
-
-private: // Variables
-  book_id book_;
-  chapter_type chapter_;
-  verse_type verse_;
 };
 
 ///
@@ -118,9 +119,9 @@ constexpr reference::reference(const book_id book, const chapter_type chapter, c
 ///
 ///
 template<typename T>
-struct std::formatter<bibstd::bible::reference::__typesafe_number_template<T>> : std::formatter<std::string>
+struct std::formatter<bibstd::bible::reference::typesafe_number_template<T>> : std::formatter<std::string>
 {
-  auto format(const bibstd::bible::reference::__typesafe_number_template<T> e, std::format_context& ctx) const
+  auto format(const auto e, std::format_context& ctx) const
   {
     return formatter<std::string>::format(std::format("{}", e.value), ctx);
   }

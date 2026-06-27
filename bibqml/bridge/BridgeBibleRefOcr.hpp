@@ -29,7 +29,13 @@ class BridgeBibleRefOcr final : public QObject
 
   Q_PROPERTY(bool running MEMBER running_ NOTIFY runningChanged)
   Q_PROPERTY(QPoint cursorPosition MEMBER cursorPosition_ NOTIFY cursorPositionChanged)
-  Q_PROPERTY(QString htmlPassage MEMBER htmlPassage_ NOTIFY htmlPassageChanged)
+
+  // Variables
+  const bibstd::workflow::workflow_hotkey::shared_sig_type findReferenceSig_{};
+  bibstd::framework::process_id_type processId_{};
+  bool running_{false};
+  QPoint cursorPosition_{0, 0};
+  bibstd::signal::synchronized_executor executor_;
 
 public: // Structors
   explicit BridgeBibleRefOcr(
@@ -42,7 +48,6 @@ public: // Structors
 signals:
   void runningChanged(bool running);
   void cursorPositionChanged(const QPoint& cursorPosition);
-  void htmlPassageChanged(const QString& htmlPassage);
   void referenceFound(const QString& bookId, int chapter, int verse);
 
 public: // Modifiers
@@ -51,15 +56,6 @@ public: // Modifiers
   /// This will stop the frontend backend communication.
   ///
   void disconnect();
-
-private: // Variables
-  bool running_{false};
-  QPoint cursorPosition_{0, 0};
-  QString htmlPassage_{};
-
-  const bibstd::workflow::workflow_hotkey::shared_sig_type findReferenceSig_{};
-  bibstd::framework::process_id_type processId_{};
-  bibstd::signal::synchronized_executor executor_;
 };
 
 } // namespace bibqml

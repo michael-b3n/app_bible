@@ -8,8 +8,8 @@ Item
 {
   id: root
 
+  required property ScriptureListModel listModelScripture
   required property BridgeBibleRefOcr bridgeBibleRefOcr
-  required property ScriptureListModel listModelPassage
 
   // Sticky header showing current book and chapter
   Rectangle
@@ -57,7 +57,7 @@ Item
     anchors.right: parent.right
     anchors.bottom: parent.bottom
     clip: true
-    model: root.listModelPassage
+    model: root.listModelScripture
     spacing: Metrics.spacingTiny
     cacheBuffer: 600
 
@@ -98,7 +98,7 @@ Item
 
     Connections
     {
-      target: root.listModelPassage
+      target: root.listModelScripture
       function onRefreshed() { Qt.callLater(function() { listView.loadPrevious(1) }) }
     }
 

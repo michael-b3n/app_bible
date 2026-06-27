@@ -1,11 +1,11 @@
 #include "bibqml/model/ScriptureListModel.hpp"
 
-#include "bibstd/util/ranges.hpp"
 #include <bibstd/bible/common.hpp>
 #include <bibstd/bible/reference_formatter_de.hpp>
 #include <bibstd/util/enum.hpp>
 #include <bibstd/util/log.hpp>
 #include <bibstd/util/numeric_cast.hpp>
+#include <bibstd/util/ranges.hpp>
 #include <bibstd/workflow/workflow_scripture.hpp>
 
 #include <algorithm>
@@ -38,7 +38,7 @@ auto default_scripture(bibstd::workflow::workflow_scripture& workflow_scripture)
 ///
 ///
 ScriptureListModel::ScriptureListModel(
-  std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture, QObject* parent
+  std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture, const bibstd::util::non_owning_ptr<QObject> parent
 )
   : QAbstractListModel{parent}
   , workflow_scripture_{std::move(workflow_scripture)}
@@ -216,7 +216,7 @@ void ScriptureListModel::clear()
 
 ///
 ///
-auto ScriptureListModel::fetchPassage(const bibstd::bible::reference& ref) -> QString
+QString ScriptureListModel::fetchPassage(const bibstd::bible::reference& ref) const
 {
   auto params = bibstd::workflow::workflow_scripture::passage_params::value_type{ref, std::nullopt};
   auto result = workflow_scripture_->passage(params);
@@ -229,7 +229,7 @@ auto ScriptureListModel::fetchPassage(const bibstd::bible::reference& ref) -> QS
 
 ///
 ///
-auto ScriptureListModel::makeEntry(const bibstd::bible::reference& ref) -> Entry
+ScriptureListModel::Entry ScriptureListModel::makeEntry(const bibstd::bible::reference& ref) const
 {
   const auto& prettyName = bibstd::bible::reference_formatter_de::pretty_names.at(ref.book());
   const auto bookName = QString::fromUtf8(prettyName.data(), static_cast<qsizetype>(prettyName.size()));

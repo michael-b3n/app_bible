@@ -36,6 +36,9 @@ concept executor_kind = requires(
 template<std::default_initializable T>
 class adapter
 {
+  // Variables
+  T sigs_;
+
 public: // Typedefs
   using signals_type = T;
 
@@ -88,9 +91,6 @@ protected: // Accessors
   /// \return result of the signal call, if any
   ///
   auto notify(auto sig_projection, auto&&... args) -> auto;
-
-private: // Variables
-  T sigs_;
 };
 
 ///

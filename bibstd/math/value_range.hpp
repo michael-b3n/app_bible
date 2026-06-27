@@ -30,6 +30,10 @@ struct value_range final
   // Typedefs
   using value_type = ValueType;
 
+  // Variables
+  value_type begin;
+  value_type end;
+
   ///
   /// Range creator taking begin and size values.
   /// \throws util::exception if the provided values would create an overflow
@@ -57,10 +61,6 @@ struct value_range final
 
   // Operators
   constexpr auto operator==(const value_range& other) const -> bool;
-
-  // Variables
-  value_type begin;
-  value_type end;
 };
 
 ///

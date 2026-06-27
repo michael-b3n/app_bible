@@ -1,9 +1,11 @@
 #include "bibstd/workflow/workflow_scripture.hpp"
 #include "bibstd/bible/versification.hpp"
 #include "bibstd/core/core_scripture_store.hpp"
+#include "bibstd/framework/settings_base.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/visit_helper.hpp"
+#include "bibstd/workflow/workflow_settings.hpp"
 
 #include <memory>
 
@@ -12,8 +14,9 @@ namespace bibstd::workflow
 
 ///
 ///
-workflow_scripture_settings::workflow_scripture_settings()
-  : scripture_name{workflow_settings_->create_setting(
+workflow_scripture_settings::workflow_scripture_settings(std::shared_ptr<workflow_settings> workflow_settings)
+  : framework::settings_base{std::move(workflow_settings)}
+  , scripture_name{workflow_settings_->create_setting(
       "scripture.name",
       setting_value_t<decltype(scripture_name)>{},
       std::make_shared<framework::setting_validator_list<setting_value_t<decltype(scripture_name)>>>()
@@ -50,8 +53,9 @@ auto workflow_scripture::versification_wrapper::get() const -> const bible::scri
 
 ///
 ///
-workflow_scripture::workflow_scripture()
-  : core_scripture_store_(std::make_unique<core::core_scripture_store>())
+workflow_scripture::workflow_scripture(std::shared_ptr<workflow_settings> workflow_settings)
+  : workflow_base{std::move(workflow_settings)}
+  , core_scripture_store_(std::make_unique<core::core_scripture_store>())
 {
   init();
 }
@@ -68,7 +72,7 @@ auto workflow_scripture::scripture(const scripture_params& params) -> scripture_
   {
     const auto lock = std::scoped_lock{mtx_};
     decltype(auto) scriptures = core_scripture_store_->scriptures();
-    const auto scripture_name = params->scripture_name ? params->scripture_name : settings->scripture_name->value();
+    const auto scripture_name = params->scripture_name ? params->scripture_name : settings().scripture_name->value();
     auto result = scripture_result{return_failure};
     if(scripture_name)
     {
@@ -107,7 +111,7 @@ auto workflow_scripture::passage(const passage_params& params) -> passage_result
   {
     const auto lock = std::scoped_lock{mtx_};
     decltype(auto) scriptures = core_scripture_store_->scriptures();
-    const auto scripture_name = params->scripture_name ? params->scripture_name : settings->scripture_name->value();
+    const auto scripture_name = params->scripture_name ? params->scripture_name : settings().scripture_name->value();
     auto result = passage_result{return_failure};
     if(scripture_name)
     {
@@ -148,7 +152,7 @@ auto workflow_scripture::init() -> void
   decltype(auto) scriptures = core_scripture_store_->scriptures();
   const auto scripture_names = scriptures | std::views::keys | std::ranges::to<std::vector>();
   decltype(auto) scripture_name_validator =
-    std::get<framework::setting_validator_list<std::optional<std::string>>::sptr_type>(settings->scripture_name->validator);
+    std::get<framework::setting_validator_list<std::optional<std::string>>::sptr_type>(settings().scripture_name->validator);
   std::ignore = scripture_name_validator->available(scripture_names);
 
   static constexpr auto has_kjv_versification = [](const auto& s)
@@ -156,11 +160,11 @@ auto workflow_scripture::init() -> void
 
   if(const auto it = std::ranges::find_if(scriptures, has_kjv_versification); it != std::ranges::cend(scriptures))
   {
-    settings->scripture_name->value(it->first);
+    settings().scripture_name->value(it->first);
   }
   else if(!scripture_names.empty())
   {
-    settings->scripture_name->value(scripture_names.front());
+    settings().scripture_name->value(scripture_names.front());
   }
 }
 

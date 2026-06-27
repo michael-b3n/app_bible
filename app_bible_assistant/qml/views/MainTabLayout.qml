@@ -7,8 +7,9 @@ Item
 {
   id: root
 
+  required property SettingsListModel listModelSettings
+  required property ScriptureListModel listModelScripture
   required property BridgeBibleRefOcr bridgeBibleRefOcr
-  required property ScriptureListModel listModelPassage
 
   readonly property bool runningState : bridgeBibleRefOcr.running
 
@@ -83,12 +84,13 @@ Item
 
       TabScriptureContent
       {
+        listModelScripture: root.listModelScripture
         bridgeBibleRefOcr: root.bridgeBibleRefOcr
-        listModelPassage: root.listModelPassage
       }
 
       TabSettingsContent
       {
+        listModelSettings: root.listModelSettings
       }
     }
   }

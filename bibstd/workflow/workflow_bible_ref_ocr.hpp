@@ -6,7 +6,6 @@
 #include "bibstd/bible/scripture.hpp"
 #include "bibstd/framework/process_params.hpp"
 #include "bibstd/framework/settings_base.hpp"
-#include "bibstd/framework/settings_owner.hpp"
 #include "bibstd/util/language.hpp"
 #include "bibstd/util/screen_types.hpp"
 #include "bibstd/workflow/workflow_base.hpp"
@@ -33,7 +32,7 @@ namespace bibstd::workflow
 struct workflow_bible_ref_ocr_settings final : public framework::settings_base
 {
   // Structors
-  workflow_bible_ref_ocr_settings();
+  workflow_bible_ref_ocr_settings(std::shared_ptr<workflow_settings> workflow_settings);
 
   // Variables
   const setting_type<std::optional<std::filesystem::path>> tessdata_path;
@@ -46,9 +45,7 @@ struct workflow_bible_ref_ocr_settings final : public framework::settings_base
 ///
 /// Bible reference ocr: this workflow searches for bible references on a screen area using OCR around the cursor position.
 ///
-class workflow_bible_ref_ocr final
-  : public workflow_base<workflow_bible_ref_ocr>
-  , public framework::settings_owner<workflow_bible_ref_ocr_settings>
+class workflow_bible_ref_ocr final : public workflow_base<workflow_bible_ref_ocr_settings>
 {
   // Typedefs
   struct params_t final
@@ -81,6 +78,12 @@ class workflow_bible_ref_ocr final
     workflow_scripture::versification_wrapper_type versification;
   };
 
+  // Variables
+  mutable std::mutex mtx_;
+  const std::unique_ptr<core::core_bible_ref_finder> core_bible_ref_finder_;
+  const std::shared_ptr<workflow_scripture> workflow_scripture_;
+  bible::reference_ocr::ocr_engine_list_type ocr_engines_;
+
 public: // Typedefs
   using params = framework::process_params<params_t>;
   using result = framework::process_result<result_t>;
@@ -91,7 +94,9 @@ public: // Structors
   /// If tesseract is used for OCR, a valid tessdata path is required:
   /// \see txt::ocr_engine_tesseract::tessdata_folder_finder.
   ///
-  workflow_bible_ref_ocr(std::shared_ptr<workflow_scripture> workflow_scripture);
+  workflow_bible_ref_ocr(
+    std::shared_ptr<workflow_settings> workflow_settings, std::shared_ptr<workflow_scripture> workflow_scripture
+  );
   ~workflow_bible_ref_ocr() noexcept;
 
 public: // Modifiers
@@ -106,12 +111,6 @@ private: // Implementation
   [[nodiscard]] auto versification() const -> decltype(settings_t::versification);
   [[nodiscard]] auto find_references(const auto& params, const settings_t& settings, auto algorithm)
     -> framework::process_result<std::vector<bible::reference_range>>;
-
-private: // Variables
-  mutable std::mutex mtx_;
-  const std::unique_ptr<core::core_bible_ref_finder> core_bible_ref_finder_;
-  const std::shared_ptr<workflow_scripture> workflow_scripture_;
-  bible::reference_ocr::ocr_engine_list_type ocr_engines_;
 };
 
 } // namespace bibstd::workflow

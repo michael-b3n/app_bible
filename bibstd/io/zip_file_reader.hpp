@@ -27,6 +27,10 @@ class zip_entry;
 ///
 class zip_file_reader final
 {
+  // Variables
+  std::string password_;
+  util::non_owning_ptr<zip> zip_handle_;
+
 public: // Typedefs
   ///
   /// Compression methods supported by ZIP archives.
@@ -176,8 +180,7 @@ private: // Helpers
   /// \param flag Flags for querying the name
   /// \return true if entry is found, false otherwise
   ///
-  [[nodiscard]] auto index_of_entry(const std::string& name, query_flags_type flag = {}) const
-    -> std::optional<std::size_t>;
+  [[nodiscard]] auto index_of_entry(const std::string& name, query_flags_type flag = {}) const -> std::optional<std::size_t>;
 
   ///
   /// Get entry by index.
@@ -199,10 +202,6 @@ private: // Helpers
   /// \return Error message string
   ///
   [[nodiscard]] auto error_message() const -> std::string;
-
-private: // Variables
-  std::string password_;
-  util::non_owning_ptr<zip> zip_handle_;
 };
 
 } // namespace bibstd::io

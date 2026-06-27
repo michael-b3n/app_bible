@@ -22,6 +22,20 @@ namespace bibstd::signal
 ///
 class synchronized_executor final
 {
+  // Typedefs
+  struct sync_wrapper final
+  {
+    bool disconnected{false};
+    std::mutex mtx{};
+  };
+
+  // Variables
+  const util::shared_scope_guard thread_pool_guard_;
+  const std::optional<framework::thread_pool::strand_id_type> strand_id_;
+  mutable std::mutex mtx_;
+  std::vector<std::shared_ptr<sync_wrapper>> syncs_{};
+  connection_store connections_;
+
 public: // Structors
   synchronized_executor();
   synchronized_executor(framework::thread_pool::strand_id_type strand_id);
@@ -58,13 +72,6 @@ public: // Modifiers
   ///
   auto disconnect() -> void;
 
-private: // Typedefs
-  struct sync_wrapper final
-  {
-    bool disconnected{false};
-    std::mutex mtx{};
-  };
-
 private: // Implementation
   ///
   /// Execute task in thread pool. If strand_id was specified in constructor,
@@ -72,13 +79,6 @@ private: // Implementation
   /// \param task Task to execute
   ///
   auto exec(framework::thread_pool::task_type&& task) const -> void;
-
-private: // Variables
-  const util::shared_scope_guard thread_pool_guard_;
-  const std::optional<framework::thread_pool::strand_id_type> strand_id_;
-  mutable std::mutex mtx_;
-  std::vector<std::shared_ptr<sync_wrapper>> syncs_{};
-  connection_store connections_;
 };
 
 ///

@@ -51,8 +51,19 @@ template<typename FirstType, typename SecondType, std::size_t N, bool Bidirectio
   requires detail::mappable_types<FirstType, SecondType, BidirectionalFlag>
 class const_map final
 {
+  ///
+  /// Compile time pointer comparisons are not defined, even though with GCC a constexpr const_map with pairs
+  /// of type pair<C, const char*> will compile. Other compilers like clang will not.
+  /// The comparable_type templated alias should be used for comparing elements.
+  ///
+  template<typename C>
+  using comparable_type = std::conditional_t<std::is_convertible_v<C, std::string_view>, std::string_view, C>;
+
+  // Variables
+  const std::array<std::pair<FirstType, SecondType>, N> map_;
+
 public: // Typedefs
-  using value_type = std::pair<FirstType, SecondType>;
+  using value_type = std::remove_const_t<decltype(map_)>::value_type;
   using size_type = std::size_t;
   using first_type = value_type::first_type;
   using second_type = value_type::second_type;
@@ -126,15 +137,6 @@ public: // Iterator Overloads
   constexpr auto rend() const -> const_reverse_iterator { return map_.rend(); }
   constexpr auto crend() const -> const_reverse_iterator { return map_.crend(); }
 
-private: // Typedefs
-  ///
-  /// Compile time pointer comparisons are not defined, even though with GCC a constexpr const_map with pairs
-  /// of type pair<C, const char*> will compile. Other compilers like clang will not.
-  /// The comparable_type templated alias should be used for comparing elements.
-  ///
-  template<typename C>
-  using comparable_type = std::conditional_t<std::is_convertible_v<C, std::string_view>, std::string_view, C>;
-
 private: // Implementation
   ///
   /// Checks if values are equal using `comparable_type` for comparison.
@@ -143,9 +145,6 @@ private: // Implementation
   /// \return true if equal, false otherwise
   ///
   constexpr auto is_equal(const auto& lhs, const auto& rhs) const -> bool;
-
-private: // Variables
-  const std::array<value_type, N> map_;
 };
 
 ///

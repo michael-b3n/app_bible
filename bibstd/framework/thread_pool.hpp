@@ -20,12 +20,47 @@ namespace bibstd::framework
 ///
 class thread_pool final
 {
+  // Typedefs
+  using task_id_type = util::uid<struct task_id_tag>;
+
+  struct id_pair final
+  {
+    task_id_type task_id{};
+    util::uid<struct strand_id_tag> strand_id{};
+  };
+
+  ///
+  /// Thread pool element holding IDs and timestamps for bookkeeping.
+  /// \warning On destruction of this struct the worker object has to be destroyed first,
+  /// since it might modify other members of this struct on destruction.
+  ///
+  struct pool_element final
+  {
+    std::vector<id_pair> ids{};
+    std::chrono::system_clock::time_point last_use{std::chrono::system_clock::now()};
+    active_worker worker{};
+  };
+
+  struct task_data final
+  {
+    task_queue::task_type task{[] {}};
+    task_id_type task_id{};
+    decltype(id_pair::strand_id) strand_id{};
+  };
+
+  using pool_type = std::vector<std::unique_ptr<pool_element>>;
+
+  // Variables
+  inline static std::atomic_bool initialized_{false};
+  inline static std::mutex mtx_{};
+  inline static pool_type pool_{};
+
 public: // Constants
   inline static const auto max_thread_count = std::thread::hardware_concurrency();
 
 public: // Typedefs
-  using task_type = task_queue::task_type;
-  using strand_id_type = util::uid<struct strand_id_tag>;
+  using task_type = decltype(task_data::task);
+  using strand_id_type = decltype(id_pair::strand_id);
 
 public: // Accessors
   ///
@@ -57,46 +92,11 @@ public: // Modifiers
   ///
   static auto queue_task(task_type&& task, strand_id_type id) -> void;
 
-private: // Typedefs
-  using task_id_type = util::uid<struct task_id_tag>;
-
-  struct id_pair final
-  {
-    task_id_type task_id{};
-    strand_id_type strand_id{};
-  };
-
-  ///
-  /// Thread pool element holding IDs and timestamps for bookkeeping.
-  /// \warning On destruction of this struct the worker object has to be destroyed first,
-  /// since it might modify other members of this struct on destruction.
-  ///
-  struct pool_element final
-  {
-    std::vector<id_pair> ids{};
-    std::chrono::system_clock::time_point last_use{std::chrono::system_clock::now()};
-    active_worker worker{};
-  };
-
-  struct task_data final
-  {
-    task_type task{[] {}};
-    task_id_type task_id{};
-    strand_id_type strand_id{};
-  };
-
-  using pool_type = std::vector<std::unique_ptr<pool_element>>;
-
 private: // Implementation
   static auto queue_task_index(task_data&& data, std::size_t index) -> void;
   static auto queue_task_auto(task_data&& data) -> void;
   static auto create_task_wrapper(task_data&& data, util::non_owning_ptr<pool_element> element) -> task_type;
   static auto extract_abandoned_workers() -> pool_type;
-
-private: // Variables
-  inline static std::atomic_bool initialized_{false};
-  inline static std::mutex mtx_{};
-  inline static pool_type pool_{};
 };
 
 } // namespace bibstd::framework

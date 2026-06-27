@@ -5,17 +5,19 @@ namespace bibstd::workflow
 
 ///
 ///
-// clang-format off
-workflow_template_settings::workflow_template_settings()
-  : text(workflow_settings_->create_setting("template.text", setting_value_t<decltype(text)>{"default value"}))
+workflow_template_settings::workflow_template_settings(std::shared_ptr<workflow_settings> workflow_settings)
+  : framework::settings_base{std::move(workflow_settings)}
+  , text(workflow_settings_->create_setting("template.text", setting_value_t<decltype(text)>{"default value"}))
   , flag(workflow_settings_->create_setting("template.flag", false))
-// clang-format on
 {
 }
 
 ///
 ///
-workflow_template::workflow_template() = default;
+workflow_template::workflow_template(std::shared_ptr<workflow_settings> workflow_settings)
+  : workflow_base{std::move(workflow_settings)}
+{
+}
 
 ///
 ///

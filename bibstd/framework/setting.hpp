@@ -30,9 +30,16 @@ struct setting_signals final
 template<underlying_setting_type T>
 class setting final : public signal::adapter<setting_signals>
 {
+  // Variables
+  property<T> value_;
+
 public: // Typedefs
   using value_type = T;
   using sptr_type = std::shared_ptr<setting<value_type>>;
+
+public: // Variables
+  const std::string path;
+  const setting_validator<value_type> validator;
 
 public: // Structors
   setting(const std::string& path, property<value_type>&& value, setting_validator<value_type>&& validator);
@@ -53,22 +60,15 @@ public: // Setters
 
 private: // Helpers
   auto validate() -> void;
-
-public: // Variables
-  const std::string path;
-  const setting_validator<value_type> validator;
-
-private: // Variables
-  property<value_type> value_;
 };
 
 ///
 ///
 template<underlying_setting_type T>
 setting<T>::setting(const std::string& path_, property<value_type>&& value, setting_validator<value_type>&& validator_)
-  : path{path_}
+  : value_{std::move(value)}
+  , path{path_}
   , validator{std::move(validator_)}
-  , value_{std::move(value)}
 {
   std::visit(
     [this](const auto& v)

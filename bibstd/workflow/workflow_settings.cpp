@@ -17,9 +17,9 @@ auto workflow_settings::settings_file_path() -> const std::filesystem::path&
 
 ///
 ///
-auto workflow_settings::type_erased_settings() -> std::vector<setting_type_erased_non_owning_ptr_variant_type>
+auto workflow_settings::type_erased_settings() const -> std::vector<setting_type_erased_non_owning_ptr_variant_type>
 {
-  const auto lock = std::lock_guard(settings_mtx_);
+  const auto lock = std::lock_guard(mtx_);
   auto retval = std::vector<setting_type_erased_non_owning_ptr_variant_type>(settings_.size());
   const auto to_ptr = [](const auto& data)
   { return std::visit([](const auto& e) -> decltype(retval)::value_type { return e.get(); }, data.setting); };
@@ -32,10 +32,10 @@ auto workflow_settings::type_erased_settings() -> std::vector<setting_type_erase
 
 ///
 ///
-auto workflow_settings::type_erased_setting(const std::string& path)
+auto workflow_settings::type_erased_setting(const std::string& path) const
   -> std::optional<setting_type_erased_non_owning_ptr_variant_type>
 {
-  const auto lock = std::lock_guard(settings_mtx_);
+  const auto lock = std::lock_guard(mtx_);
   const auto it = std::ranges::find_if(settings_, [&path](const auto& data) { return data.path == path; });
   if(it != std::ranges::cend(settings_))
   {
