@@ -27,7 +27,6 @@ public: // Accessors
   /// Get the geometry of the screen at the specified position.
   /// On a multi monitor setup, this function returns the geometry of the monitor
   /// that contains the specified global position.
-  /// \param global_pos Global position
   /// \return geometry of the screen at the specified position
   /// in QML as `Qt.rect(x: ..., y: ..., width: ..., height: ...)`
   ///

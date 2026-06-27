@@ -32,10 +32,9 @@ public: // Typedefs
   {
     VerseTextRole = Qt::UserRole + 1,
     BookNameRole,
-    ChapterRole,
+    ChapterNumberRole,
     VerseNumberRole,
-    IsBookHeaderRole,
-    IsChapterHeaderRole,
+    IsHeaderRole,
   };
   Q_ENUM(Role)
 
@@ -81,14 +80,10 @@ private: // Typedefs
     bibstd::bible::reference ref;
     QString verseText;
     QString bookName;
-    std::uint32_t chapter;
-    std::uint32_t verse;
-    bool isBookHeader;
-    bool isChapterHeader;
+    std::uint32_t chapterNumber;
+    std::uint32_t verseNumber;
+    bool isHeader;
   };
-
-private: // Constants
-  static constexpr int max_entries_{200};
 
 private: // Implementation
   auto fetchPassage(const bibstd::bible::reference& ref) -> QString;

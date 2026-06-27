@@ -28,7 +28,6 @@ class Metrics final : public QObject
   Q_PROPERTY(int spacingSmall MEMBER spacingSmall_ CONSTANT)
   Q_PROPERTY(int spacingMedium MEMBER spacingMedium_ CONSTANT)
   Q_PROPERTY(int spacingLarge MEMBER spacingLarge_ CONSTANT)
-  Q_PROPERTY(int spacingXLarge MEMBER spacingXLarge_ CONSTANT)
 
   // Radii
   Q_PROPERTY(int radiusMedium MEMBER radiusMedium_ CONSTANT)
@@ -45,7 +44,7 @@ private: // Variables
   // Font sizes
   int fontSizeSmall_{8};
   int fontSizeBody_{9};
-  int fontSizeHeading_{11};
+  int fontSizeHeading_{10};
 
   // Spacing
   int spacingTiny_{2};

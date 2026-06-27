@@ -77,7 +77,7 @@ Item
       {
         let idx = model.index(row, 0)
         currentBook = model.data(idx, ScriptureListModel.BookNameRole)
-        currentChapter = Number(model.data(idx, ScriptureListModel.ChapterRole))
+        currentChapter = Number(model.data(idx, ScriptureListModel.ChapterNumberRole))
       }
     }
 
@@ -123,22 +123,21 @@ Item
       required property int index
       required property string verseText
       required property string bookName
-      required property int chapter
+      required property int chapterNumber
       required property int verseNumber
-      required property bool isBookHeader
-      required property bool isChapterHeader
+      required property bool isHeader
 
       width: listView.width - vScrollBar.width
 
       // Book header
       Loader
       {
-        active: delegateRoot.isBookHeader
+        active: delegateRoot.isHeader
         width: parent.width
         sourceComponent: Rectangle
         {
           width: parent.width
-          height: bookTitle.implicitHeight + Metrics.spacingXLarge
+          height: bookTitle.implicitHeight + Metrics.spacingLarge
           color: Colors.bookHeader
           radius: Metrics.radiusMedium
 
@@ -147,47 +146,11 @@ Item
             id: bookTitle
 
             anchors.centerIn: parent
-            text: delegateRoot.bookName
+            text: delegateRoot.bookName + " %1".arg(delegateRoot.chapterNumber)
             font.pointSize: Metrics.fontSizeHeading
             font.bold: true
             color: Colors.bookHeaderText
             renderType: Text.CurveRendering
-          }
-        }
-      }
-
-      // Chapter header
-      Loader
-      {
-        active: delegateRoot.isChapterHeader
-        width: parent.width
-        sourceComponent: Item
-        {
-          width: parent.width
-          height: chapterBadge.height + Metrics.spacingMedium
-
-          Rectangle
-          {
-            id: chapterBadge
-            anchors.left: parent.left
-            anchors.leftMargin: Metrics.spacingSmall
-            anchors.verticalCenter: parent.verticalCenter
-            width: chapterLabel.implicitWidth + Metrics.spacingXLarge
-            height: chapterLabel.implicitHeight + Metrics.spacingMedium
-            radius: Metrics.radiusMedium
-            color: Colors.chapterBox
-
-            Text
-            {
-              id: chapterLabel
-
-              anchors.centerIn: parent
-              text: qsTr("Kapitel %1").arg(delegateRoot.chapter)
-              font.pointSize: Metrics.fontSizeBody
-              font.bold: true
-              color: Colors.chapterText
-              renderType: Text.CurveRendering
-            }
           }
         }
       }

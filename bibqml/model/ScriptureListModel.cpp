@@ -73,11 +73,10 @@ QVariant ScriptureListModel::data(const QModelIndex& index, const int role) cons
   {
   case VerseTextRole: return entry.verseText;
   case BookNameRole: return entry.bookName;
-  case ChapterRole: return entry.chapter;
-  case VerseNumberRole: return entry.verse;
-  case IsBookHeaderRole: return entry.isBookHeader;
-  case IsChapterHeaderRole: return entry.isChapterHeader;
-  default: LOG_DEBUG("role not found: {}", role) return {};
+  case ChapterNumberRole: return entry.chapterNumber;
+  case VerseNumberRole: return entry.verseNumber;
+  case IsHeaderRole: return entry.isHeader;
+  default: return {};
   }
 }
 
@@ -86,12 +85,11 @@ QVariant ScriptureListModel::data(const QModelIndex& index, const int role) cons
 QHash<int, QByteArray> ScriptureListModel::roleNames() const
 {
   return {
-    {      VerseTextRole,       "verseText"},
-    {       BookNameRole,        "bookName"},
-    {        ChapterRole,         "chapter"},
-    {    VerseNumberRole,     "verseNumber"},
-    {   IsBookHeaderRole,    "isBookHeader"},
-    {IsChapterHeaderRole, "isChapterHeader"},
+    {    VerseTextRole,     "verseText"},
+    {     BookNameRole,      "bookName"},
+    {ChapterNumberRole, "chapterNumber"},
+    {  VerseNumberRole,   "verseNumber"},
+    {     IsHeaderRole,      "isHeader"},
   };
 }
 
@@ -165,16 +163,6 @@ void ScriptureListModel::loadPrevious(const int count)
   beginInsertRows(QModelIndex(), 0, insertCount - 1);
   std::ranges::for_each(newEntries, [&](auto& entry) { entries_.push_front(std::move(entry)); });
   endInsertRows();
-
-  // Trim excess entries from the back to keep model bounded
-  const auto excess = static_cast<int>(entries_.size()) - max_entries_;
-  if(excess > 0)
-  {
-    const auto startRow = static_cast<int>(entries_.size()) - excess;
-    beginRemoveRows(QModelIndex(), startRow, startRow + excess - 1);
-    entries_.erase(entries_.end() - excess, entries_.end());
-    endRemoveRows();
-  }
 }
 
 ///
@@ -215,15 +203,6 @@ void ScriptureListModel::loadNext(const int count)
   beginInsertRows(QModelIndex(), startRow, startRow + insertCount - 1);
   std::ranges::for_each(newEntries, [&](auto& entry) { entries_.push_back(std::move(entry)); });
   endInsertRows();
-
-  // Trim excess entries from the front to keep model bounded
-  const auto excess = static_cast<int>(entries_.size()) - max_entries_;
-  if(excess > 0)
-  {
-    beginRemoveRows(QModelIndex(), 0, excess - 1);
-    entries_.erase(entries_.begin(), entries_.begin() + excess);
-    endRemoveRows();
-  }
 }
 
 ///
@@ -259,10 +238,9 @@ auto ScriptureListModel::makeEntry(const bibstd::bible::reference& ref) -> Entry
     .ref = ref,
     .verseText = fetchPassage(ref),
     .bookName = bookName,
-    .chapter = ref.chapter().value,
-    .verse = ref.verse().value,
-    .isBookHeader = ref.chapter() == decltype(ref.chapter()){1} && ref.verse() == decltype(ref.verse()){1},
-    .isChapterHeader = ref.verse() == decltype(ref.verse()){1},
+    .chapterNumber = ref.chapter().value,
+    .verseNumber = ref.verse().value,
+    .isHeader = ref.verse() == decltype(ref.verse()){1},
   };
 }
 

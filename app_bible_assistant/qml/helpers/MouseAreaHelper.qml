@@ -32,7 +32,6 @@ Item
 
     hoverEnabled: true
     anchors.fill: parent
-    cursorShape: Qt.SizeAllCursor
 
     onPressed: (mouse) =>
     {
