@@ -211,7 +211,7 @@ constexpr auto __unfolder1(const auto& aggregate) -> auto
 /// \return number of parameters that can be used to construct type T
 ///
 template<typename T, std::size_t Max = 128>
-  requires std::is_aggregate_v<T>
+  requires(std::is_aggregate_v<T>)
 consteval auto data_member_count() -> std::size_t
 {
   constexpr auto retval = [&]<std::size_t... I>(std::index_sequence<I...>)
@@ -227,7 +227,7 @@ consteval auto data_member_count() -> std::size_t
 /// \return a tuple containing the elements of the aggregate
 ///
 template<typename T>
-  requires std::is_aggregate_v<T>
+  requires(std::is_aggregate_v<T>)
 constexpr auto to_tuple(const T& a) -> auto
 {
   constexpr auto count = data_member_count<T, 20>(); // max 20 elements supported
@@ -264,7 +264,7 @@ constexpr auto to_tuple(const T& a) -> auto
 /// \tparam T The type of the aggregate to be deduced
 ///
 template<typename T>
-  requires std::is_aggregate_v<T>
+  requires(std::is_aggregate_v<T>)
 using to_tuple_t = decltype(to_tuple(std::declval<T>()));
 
 ///

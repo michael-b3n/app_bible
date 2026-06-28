@@ -18,7 +18,6 @@ class setting_type_erased final
   // Variables
   const std::function<T()> get_;
   const std::function<bool(const T&)> set_;
-  // Private functions listed first since they manage the underlying setting lifetime
 
 public: // Typedefs
   using value_type = T;

@@ -25,6 +25,7 @@ auto disconnect_bridge(bridge_instance& instance) -> void
 {
   assert(instance.bridge_bible_ref_ocr);
   instance.bridge_bible_ref_ocr->disconnect();
+  instance.settings_list_model->disconnect();
 }
 
 ///

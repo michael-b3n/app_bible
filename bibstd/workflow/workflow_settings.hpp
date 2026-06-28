@@ -33,7 +33,7 @@ class workflow_settings final
   ///
   /// Internal settings data struct.
   ///
-  struct setting_data final
+  struct setting_uptr_data final
   {
     std::string path;
     setting_type_erased_uptr_variant_type setting;
@@ -42,11 +42,20 @@ class workflow_settings final
   // Variables
   const framework::property_tree::sptr_type tree_{framework::property_tree::create(settings_file_path())};
   mutable std::mutex mtx_{};
-  std::vector<setting_data> settings_{};
+  std::vector<setting_uptr_data> settings_{};
 
 public: // Typedefs
   using setting_type_erased_non_owning_ptr_variant_type =
     meta::for_each_t<framework::setting_type_erased_variant, setting_type_erased_non_owning_ptr_type>;
+
+  ///
+  /// Settings data struct.
+  ///
+  struct setting_data final
+  {
+    std::string path;
+    setting_type_erased_non_owning_ptr_variant_type setting;
+  };
 
   template<framework::underlying_setting_type T>
   using setting_non_owning_ptr_type = util::non_owning_ptr<framework::setting<T>>;
@@ -65,7 +74,7 @@ public: // Static interface
   /// Access all created settings.
   /// \return list of all created settings
   ///
-  [[nodiscard]] auto type_erased_settings() const -> std::vector<setting_type_erased_non_owning_ptr_variant_type>;
+  [[nodiscard]] auto type_erased_settings() const -> std::vector<setting_data>;
 
   ///
   /// Access a type erased setting for the specified path.
@@ -115,7 +124,9 @@ auto workflow_settings::create_setting(const std::string& path, T&& default_valu
   {
     throw util::exception(std::format("setting already created: path=\"{}\"", path));
   }
-  settings_.emplace_back(setting_data{.path = path, .setting = std::make_unique<underlying_setting_type_erased_type>(setting)});
+  settings_.emplace_back(
+    setting_uptr_data{.path = path, .setting = std::make_unique<underlying_setting_type_erased_type>(setting)}
+  );
   return setting_ptr;
 }
 

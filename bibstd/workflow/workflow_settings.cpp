@@ -17,15 +17,20 @@ auto workflow_settings::settings_file_path() -> const std::filesystem::path&
 
 ///
 ///
-auto workflow_settings::type_erased_settings() const -> std::vector<setting_type_erased_non_owning_ptr_variant_type>
+auto workflow_settings::type_erased_settings() const -> std::vector<setting_data>
 {
   const auto lock = std::lock_guard(mtx_);
-  auto retval = std::vector<setting_type_erased_non_owning_ptr_variant_type>(settings_.size());
-  const auto to_ptr = [](const auto& data)
-  { return std::visit([](const auto& e) -> decltype(retval)::value_type { return e.get(); }, data.setting); };
-  for(const auto [i, ptr] : settings_ | std::views::transform(to_ptr) | std::views::enumerate)
+  auto retval = std::vector<setting_data>(settings_.size());
+  const auto to_setting_data = [](const auto& data)
   {
-    retval.at(i) = ptr;
+    return setting_data{
+      data.path,
+      std::visit([](const auto& e) -> setting_type_erased_non_owning_ptr_variant_type { return e.get(); }, data.setting)
+    };
+  };
+  for(const auto [i, d] : settings_ | std::views::transform(to_setting_data) | std::views::enumerate)
+  {
+    retval.at(i) = d;
   }
   return retval;
 }

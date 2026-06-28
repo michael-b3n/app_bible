@@ -99,23 +99,29 @@ using remove_from_pack_t = typename remove_from_pack<P>::type;
 ///
 /// Combine two pack types to one pack type. Pack type type is of first type.
 ///
-template<packaged T, packaged P>
+template<packaged P, packaged... Ps>
 struct combine_pack;
 
-template<template<typename...> typename P1, template<typename...> typename P2, typename... Ts, typename... Args>
-struct combine_pack<P1<Ts...>, P2<Args...>>
+template<template<typename...> typename P, typename... Ts>
+struct combine_pack<P<Ts...>>
 {
-  using type = P1<Ts..., Args...>;
+  using type = P<Ts...>;
+};
+
+template<template<typename...> typename P1, template<typename...> typename P2, typename... T1s, typename... T2s, typename... Ps>
+struct combine_pack<P1<T1s...>, P2<T2s...>, Ps...>
+{
+  using type = typename combine_pack<P1<T1s..., T2s...>, Ps...>::type;
 };
 
 ///
-/// Combine pack method to combine pack T with pack P. Type is of pack type T.
+/// Combine pack method to combine pack P1 with pack P2, ... and PN. Type is of pack type P1.
 /// \tparam T pack of types
 /// \tparam P pack of types
 /// \result type of T<T<0>, T<1>, ... T<m>, P<0>, P<1>, ... P<n>>
 ///
-template<typename T, typename P>
-using combine_pack_t = typename combine_pack<T, P>::type;
+template<packaged P, packaged... Ps>
+using combine_pack_t = typename combine_pack<P, Ps...>::type;
 
 ///
 /// Split a pack like type P into two pack like types.

@@ -22,7 +22,7 @@ namespace detail
 /// Basic settings types.
 ///
 using setting_basic_variant = std::variant<
-  bool,
+  /*bool added below since std::vector<bool> shall not be allowed*/
   std::int32_t,
   std::int64_t,
   std::uint32_t,
@@ -135,8 +135,10 @@ concept type_erasable = requires(E e) {
 /// All supported setting types as a variant type.
 ///
 using setting_type_erased_variant = meta::combine_pack_t<
+  std::variant<bool, std::optional<bool>>,
   detail::setting_basic_variant,
-  meta::combine_pack_t<detail::setting_basic_optional_variant, detail::setting_basic_list_variant>>;
+  detail::setting_basic_optional_variant,
+  detail::setting_basic_list_variant>;
 
 ///
 /// Concept for all supported base setting types. These types are type erased settings. Supported are:

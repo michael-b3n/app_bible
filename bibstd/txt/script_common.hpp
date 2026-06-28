@@ -116,7 +116,7 @@ public: // Static
   /// \return optional string_view of the char or std::nullopt if char is not in list
   ///
   template<typename T>
-    requires std::equality_comparable_with<typename T::value_type, std::string_view>
+    requires(std::equality_comparable_with<typename T::value_type, std::string_view>)
   static constexpr auto contains(const T& chars, std::string_view string_view, std::size_t index)
     -> std::optional<std::string_view>;
 
@@ -182,7 +182,7 @@ constexpr auto script_common::is_char(
 ///
 ///
 template<typename T>
-  requires std::equality_comparable_with<typename T::value_type, std::string_view>
+  requires(std::equality_comparable_with<typename T::value_type, std::string_view>)
 constexpr auto script_common::contains(const T& chars, const std::string_view string_view, const std::size_t index)
   -> std::optional<std::string_view>
 {

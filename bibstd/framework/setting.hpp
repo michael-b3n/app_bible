@@ -3,7 +3,6 @@
 #include "bibstd/framework/property.hpp"
 #include "bibstd/framework/setting_common.hpp"
 #include "bibstd/framework/setting_validator.hpp"
-#include "bibstd/meta/type_traits.hpp"
 #include "bibstd/signal/adapter.hpp"
 #include "bibstd/util/visit_helper.hpp"
 
@@ -97,7 +96,7 @@ auto setting<T>::value() const -> T
 ///
 ///
 template<underlying_setting_type T>
-auto setting<T>::value(const T& v) -> bool
+auto setting<T>::value(const value_type& v) -> bool
 {
   return util::visit_lambdas(
     validator,
@@ -160,7 +159,14 @@ auto setting<T>::validate() -> void
       {
         const auto changed = [&]
         {
-          if constexpr(meta::is_optional_v<T>)
+          if constexpr(setting_validator_list<value_type>::is_vector_type)
+          {
+            auto new_value = value_.value();
+            std::erase_if(new_value, [&](const auto& v) { return !validator_list->contains(v); });
+            decltype(auto) old_value = value_.exchange(std::move(new_value));
+            return old_value != new_value;
+          }
+          else if constexpr(setting_validator_list<value_type>::is_optional_type)
           {
             decltype(auto) old_value = value_.exchange(std::nullopt);
             return old_value != std::nullopt;

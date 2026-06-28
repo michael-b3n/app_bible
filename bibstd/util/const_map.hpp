@@ -48,7 +48,7 @@ concept comparable_with = explicit_if_equality_comparable<T, F, S, Bidirectional
 /// Const bimap with compile time access to values.
 ///
 template<typename FirstType, typename SecondType, std::size_t N, bool BidirectionalFlag = true>
-  requires detail::mappable_types<FirstType, SecondType, BidirectionalFlag>
+  requires(detail::mappable_types<FirstType, SecondType, BidirectionalFlag>)
 class const_map final
 {
   ///
@@ -78,7 +78,7 @@ public: // Constructor
   ///
   template<typename... P>
   constexpr const_map(P&&... p)
-    requires meta::are_same_v<std::pair<first_type, second_type>, std::remove_cvref_t<P>...>;
+    requires(meta::are_same_v<std::pair<first_type, second_type>, std::remove_cvref_t<P>...>);
 
 public: // Accessor
   ///
@@ -168,10 +168,10 @@ concept const_map_type = is_const_map_v<T>;
 ///
 ///
 template<typename FirstType, typename SecondType, std::size_t N, bool BidirectionalFlag>
-  requires detail::mappable_types<FirstType, SecondType, BidirectionalFlag>
+  requires(detail::mappable_types<FirstType, SecondType, BidirectionalFlag>)
 template<typename... P>
 constexpr const_map<FirstType, SecondType, N, BidirectionalFlag>::const_map(P&&... p)
-  requires meta::are_same_v<std::pair<first_type, second_type>, std::remove_cvref_t<P>...>
+  requires(meta::are_same_v<std::pair<first_type, second_type>, std::remove_cvref_t<P>...>)
   : map_{std::array{std::forward<P>(p)...}}
 {
   std::ranges::for_each(
@@ -202,7 +202,7 @@ constexpr const_map<FirstType, SecondType, N, BidirectionalFlag>::const_map(P&&.
 ///
 ///
 template<typename FirstType, typename SecondType, std::size_t N, bool BidirectionalFlag>
-  requires detail::mappable_types<FirstType, SecondType, BidirectionalFlag>
+  requires(detail::mappable_types<FirstType, SecondType, BidirectionalFlag>)
 template<typename F>
 constexpr auto const_map<FirstType, SecondType, N, BidirectionalFlag>::contains(const F& first) const -> bool
   requires(detail::comparable_with<F, first_type, second_type, BidirectionalFlag>)
@@ -213,7 +213,7 @@ constexpr auto const_map<FirstType, SecondType, N, BidirectionalFlag>::contains(
 ///
 ///
 template<typename FirstType, typename SecondType, std::size_t N, bool BidirectionalFlag>
-  requires detail::mappable_types<FirstType, SecondType, BidirectionalFlag>
+  requires(detail::mappable_types<FirstType, SecondType, BidirectionalFlag>)
 template<typename S>
 constexpr auto const_map<FirstType, SecondType, N, BidirectionalFlag>::contains(const S& second) const -> bool
   requires(detail::comparable_with<S, second_type, first_type, BidirectionalFlag> && BidirectionalFlag)
@@ -224,7 +224,7 @@ constexpr auto const_map<FirstType, SecondType, N, BidirectionalFlag>::contains(
 ///
 ///
 template<typename FirstType, typename SecondType, std::size_t N, bool BidirectionalFlag>
-  requires detail::mappable_types<FirstType, SecondType, BidirectionalFlag>
+  requires(detail::mappable_types<FirstType, SecondType, BidirectionalFlag>)
 template<typename F>
 constexpr auto const_map<FirstType, SecondType, N, BidirectionalFlag>::at(const F& first) const -> const second_type&
   requires(detail::comparable_with<F, first_type, second_type, BidirectionalFlag>)
@@ -240,7 +240,7 @@ constexpr auto const_map<FirstType, SecondType, N, BidirectionalFlag>::at(const 
 ///
 ///
 template<typename FirstType, typename SecondType, std::size_t N, bool BidirectionalFlag>
-  requires detail::mappable_types<FirstType, SecondType, BidirectionalFlag>
+  requires(detail::mappable_types<FirstType, SecondType, BidirectionalFlag>)
 template<typename S>
 constexpr auto const_map<FirstType, SecondType, N, BidirectionalFlag>::at(const S& second) const -> const first_type&
   requires(detail::comparable_with<S, second_type, first_type, BidirectionalFlag> && BidirectionalFlag)
@@ -256,7 +256,7 @@ constexpr auto const_map<FirstType, SecondType, N, BidirectionalFlag>::at(const 
 ///
 ///
 template<typename FirstType, typename SecondType, std::size_t N, bool BidirectionalFlag>
-  requires detail::mappable_types<FirstType, SecondType, BidirectionalFlag>
+  requires(detail::mappable_types<FirstType, SecondType, BidirectionalFlag>)
 constexpr auto const_map<FirstType, SecondType, N, BidirectionalFlag>::size() const -> size_type
 {
   return map_.size();
@@ -265,7 +265,7 @@ constexpr auto const_map<FirstType, SecondType, N, BidirectionalFlag>::size() co
 ///
 ///
 template<typename FirstType, typename SecondType, std::size_t N, bool BidirectionalFlag>
-  requires detail::mappable_types<FirstType, SecondType, BidirectionalFlag>
+  requires(detail::mappable_types<FirstType, SecondType, BidirectionalFlag>)
 constexpr auto const_map<FirstType, SecondType, N, BidirectionalFlag>::is_equal(const auto& lhs, const auto& rhs) const -> bool
 {
   return static_cast<comparable_type<decltype(lhs)>>(lhs) == static_cast<comparable_type<decltype(rhs)>>(rhs);
