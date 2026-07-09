@@ -41,7 +41,7 @@ public: // Variables
   const setting_validator<value_type> validator;
 
 public: // Structors
-  setting(const std::string& path, property<value_type>&& value, setting_validator<value_type>&& validator);
+  setting(std::string path, property<value_type> value, setting_validator<value_type> validator);
 
 public: // Accessors
   ///
@@ -64,9 +64,9 @@ private: // Helpers
 ///
 ///
 template<underlying_setting_type T>
-setting<T>::setting(const std::string& path_, property<value_type>&& value, setting_validator<value_type>&& validator_)
+setting<T>::setting(std::string path_, property<value_type> value, setting_validator<value_type> validator_)
   : value_{std::move(value)}
-  , path{path_}
+  , path{std::move(path_)}
   , validator{std::move(validator_)}
 {
   std::visit(

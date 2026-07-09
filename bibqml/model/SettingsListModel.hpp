@@ -25,11 +25,11 @@ class SettingsListModel final : public QAbstractListModel
   Q_OBJECT
   QML_ELEMENT
 
-  // Typedefs
+public: // Typedefs
   ///
   /// Enum for the setting value type.
   ///
-  enum ValueType_
+  enum ValueType
   {
     BoolValueType,
     IntValueType,
@@ -38,27 +38,31 @@ class SettingsListModel final : public QAbstractListModel
     TimeValueType,
     PathValueType
   };
+  Q_ENUM(ValueType)
 
   ///
   /// Enum for the setting value wrapper type (none, optional, vector).
   ///
-  enum WrapperType_
+  enum WrapperType
   {
     NoneWrapperType,
     OptionalWrapperType,
     ListWrapperType,
   };
+  Q_ENUM(WrapperType)
 
   ///
   /// Enum for the setting validator type (unbound, range, list).
   ///
-  enum ValidatorType_
+  enum ValidatorType
   {
     UnboundValidatorType,
     RangeValidatorType,
     ListValidatorType,
   };
+  Q_ENUM(ValidatorType)
 
+private: // Typedefs
   ///
   /// ListModel Entry
   ///
@@ -66,9 +70,9 @@ class SettingsListModel final : public QAbstractListModel
   {
     // Role Variables
     std::string path;
-    ValueType_ valueType;
-    WrapperType_ wrapperType;
-    ValidatorType_ validatorType;
+    ValueType valueType;
+    WrapperType wrapperType;
+    ValidatorType validatorType;
     bibstd::workflow::workflow_settings::setting_type_erased_non_owning_ptr_variant_type setting;
   };
 
@@ -78,13 +82,6 @@ class SettingsListModel final : public QAbstractListModel
   bibstd::signal::synchronized_executor executor_;
 
 public: // Typedefs
-  using ValueType = ValueType_;
-  Q_ENUM(ValueType)
-  using WrapperType = WrapperType_;
-  Q_ENUM(WrapperType)
-  using ValidatorType = ValidatorType_;
-  Q_ENUM(ValidatorType)
-
   enum Role
   {
     PathRole = Qt::UserRole + 1,

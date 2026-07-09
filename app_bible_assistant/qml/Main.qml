@@ -144,7 +144,7 @@ QtObject
 
       anchors.fill: parent
       expandable: true
-      expandAreaWidth: root.margin
+      expandAreaWidth: Metrics.spacingMedium
       movable: true
 
       onReleased: (mouse) => { root.show() }

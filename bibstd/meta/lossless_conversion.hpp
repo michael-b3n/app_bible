@@ -183,6 +183,62 @@ struct lossless_common_type<T1, T2, T...> final
   using type = typename lossless_common_type<double, T...>::type;
 };
 
+namespace detail
+{
+
+///
+/// Helper for lossless integral common type.
+/// \see lossless_common_type
+///
+template<typename T1, typename T2>
+struct integral_common_type
+{
+private: // Typedefs
+  using T1_ = std::remove_cvref_t<T1>;
+  using T2_ = std::remove_cvref_t<T2>;
+
+  template<typename I1, typename I2>
+  using unsigned_common_type = std::conditional_t<
+    is_lossless_conversion_v<I1, std::uint8_t> && is_lossless_conversion_v<I2, std::uint8_t>,
+    std::uint8_t,
+    std::conditional_t<
+      is_lossless_conversion_v<I1, std::uint16_t> && is_lossless_conversion_v<I2, std::uint16_t>,
+      std::uint16_t,
+      std::conditional_t<
+        is_lossless_conversion_v<I1, std::uint32_t> && is_lossless_conversion_v<I2, std::uint32_t>,
+        std::uint32_t,
+        std::conditional_t<
+          is_lossless_conversion_v<I1, std::uint64_t> && is_lossless_conversion_v<I2, std::uint64_t>,
+          std::uint64_t,
+          void>>>>;
+
+  template<typename I1, typename I2>
+  using signed_common_type = std::conditional_t<
+    is_lossless_conversion_v<I1, std::int8_t> && is_lossless_conversion_v<I2, std::int8_t>,
+    std::int8_t,
+    std::conditional_t<
+      is_lossless_conversion_v<I1, std::int16_t> && is_lossless_conversion_v<I2, std::int16_t>,
+      std::int16_t,
+      std::conditional_t<
+        is_lossless_conversion_v<I1, std::int32_t> && is_lossless_conversion_v<I2, std::int32_t>,
+        std::int32_t,
+        std::conditional_t<
+          is_lossless_conversion_v<I1, std::int64_t> && is_lossless_conversion_v<I2, std::int64_t>,
+          std::int64_t,
+          void>>>>;
+
+public: // Typedefs
+  using type = std::conditional_t<
+    std::is_unsigned_v<T1_> && std::is_unsigned_v<T2_>,
+    unsigned_common_type<T1_, T2_>,
+    signed_common_type<T1_, T2_>>;
+};
+
+template<typename T1, typename T2>
+using integral_common_type_t = typename integral_common_type<T1, T2>::type;
+
+} // namespace detail
+
 ///
 /// \see lossless_common_type
 ///
@@ -190,48 +246,14 @@ template<std::integral T1, std::integral T2, typename... T>
   requires(!std::is_same_v<std::remove_cvref_t<T1>, std::remove_cvref_t<T2>>)
 struct lossless_common_type<T1, T2, T...> final
 {
-private: // Constants
-  static constexpr auto check_unsigned = std::is_unsigned_v<T1> && std::is_unsigned_v<T2>;
-  template<std::integral I1, std::integral I2, std::integral I>
-  static constexpr auto common_lossless_conversion = is_lossless_conversion_v<I1, I> && is_lossless_conversion_v<I2, I>;
-
-private: // Typedefs
-  template<std::integral I1, std::integral I2>
-  using deduce_unsigned_type = std::conditional_t<
-    common_lossless_conversion<I1, I2, std::uint8_t>,
-    std::uint8_t,
-    std::conditional_t<
-      common_lossless_conversion<I1, I2, std::uint16_t>,
-      std::uint16_t,
-      std::conditional_t<
-        common_lossless_conversion<I1, I2, std::uint32_t>,
-        std::uint32_t,
-        std::conditional_t<common_lossless_conversion<I1, I2, std::uint64_t>, std::uint64_t, void>>>>;
-  template<std::integral I1, std::integral I2>
-  using deduce_signed_type = std::conditional_t<
-    common_lossless_conversion<I1, I2, std::int8_t>,
-    std::int8_t,
-    std::conditional_t<
-      common_lossless_conversion<I1, I2, std::int16_t>,
-      std::int16_t,
-      std::conditional_t<
-        common_lossless_conversion<I1, I2, std::int32_t>,
-        std::int32_t,
-        std::conditional_t<common_lossless_conversion<I1, I2, std::int64_t>, std::int64_t, void>>>>;
-
 public: // Typedefs
   using type = typename lossless_common_type<
     std::conditional_t<
       is_lossless_conversion_v<T1, T2>,
       std::remove_cvref_t<T2>,
-      std::conditional_t<
-        is_lossless_conversion_v<T2, T1>,
-        std::remove_cvref_t<T1>,
-        std::conditional_t<check_unsigned, deduce_unsigned_type<T1, T2>, deduce_signed_type<T1, T2>>>>,
+      std::conditional_t<is_lossless_conversion_v<T2, T1>, std::remove_cvref_t<T1>, detail::integral_common_type_t<T1, T2>>>,
     T...>::type;
 };
-
-// Checks
 
 ///
 /// Helper type to directly extract the lossless common type.

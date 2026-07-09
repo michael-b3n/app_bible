@@ -29,13 +29,18 @@ class Colors final : public QObject
   QML_ELEMENT
   QML_SINGLETON
 
+  Q_PROPERTY(QColor green MEMBER green_ CONSTANT)
+  Q_PROPERTY(QColor greenDarker MEMBER greenDarker_ CONSTANT)
+  Q_PROPERTY(QColor red MEMBER red_ CONSTANT)
+
   Q_PROPERTY(QColor backgroundTransparent MEMBER backgroundTransparent_ NOTIFY backgroundTransparentChanged)
   Q_PROPERTY(QColor backgroundSolid MEMBER backgroundSolid_ NOTIFY backgroundSolidChanged)
   Q_PROPERTY(QColor border MEMBER border_ NOTIFY borderChanged)
-  Q_PROPERTY(QColor text MEMBER text_ NOTIFY textChanged)
+  Q_PROPERTY(QColor borderDarker MEMBER borderDarker_ NOTIFY borderDarkerChanged)
   Q_PROPERTY(QColor hover MEMBER hover_ NOTIFY hoverChanged)
   Q_PROPERTY(QColor pressed MEMBER pressed_ NOTIFY pressedChanged)
 
+  Q_PROPERTY(QColor text MEMBER text_ NOTIFY textChanged)
   Q_PROPERTY(QColor verseBox MEMBER verseBox_ NOTIFY verseBoxChanged)
   Q_PROPERTY(QColor verseText MEMBER verseText_ NOTIFY verseTextChanged)
   Q_PROPERTY(QColor chapterText MEMBER chapterText_ NOTIFY chapterTextChanged)
@@ -50,10 +55,11 @@ signals:
   void backgroundTransparentChanged();
   void backgroundSolidChanged();
   void borderChanged();
-  void textChanged();
+  void borderDarkerChanged();
   void hoverChanged();
   void pressedChanged();
 
+  void textChanged();
   void verseBoxChanged();
   void verseTextChanged();
   void chapterBoxChanged();
@@ -62,13 +68,20 @@ signals:
   void bookHeaderTextChanged();
 
 private: // Variables
+  // Base colors
+  QColor green_{detail::toQColor("#80ef80ff")};
+  QColor greenDarker_{detail::toQColor("#18bd18ff")};
+
+  QColor red_{detail::toQColor("#ff6963ff")};
+  // Layout colors
   QColor backgroundTransparent_{detail::toQColor("#fef5deed")};
   QColor backgroundSolid_{detail::toQColor("#fef5deff")};
   QColor border_{detail::toQColor("#937a7aff")};
-  QColor text_{detail::toQColor("#000000ff")};
+  QColor borderDarker_{detail::toQColor("#7f6a6aff")};
   QColor hover_{detail::toQColor("#eabca8ff")};
   QColor pressed_{detail::toQColor("#937a7aff")};
-
+  // TextColors
+  QColor text_{detail::toQColor("#000000ff")};
   QColor verseBox_{detail::toQColor("#937a7aff")};
   QColor verseText_{detail::toQColor("#FFFFFFff")};
   QColor chapterText_{detail::toQColor("#F0E6FFff")};

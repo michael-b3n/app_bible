@@ -3,7 +3,9 @@
 #include "bibstd/framework/property_tree.hpp"
 #include "bibstd/framework/setting_type_erased.hpp"
 #include "bibstd/meta/for_each.hpp"
+#include "bibstd/meta/type_traits.hpp"
 #include "bibstd/util/contains.hpp"
+#include "bibstd/util/enum.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/non_owning_ptr.hpp"
 
@@ -14,6 +16,31 @@
 
 namespace bibstd::workflow
 {
+namespace detail
+{
+
+///
+/// Conditionally creates the default validator of a new setting.
+/// For enum values, optional or list enums, a list validator is created
+/// \return default validator types
+///
+template<framework::underlying_setting_type T>
+auto conditional_default_validator() -> framework::setting_validator<T>
+{
+  // Unpacks a type from its wrapper. std::vector<T> and std::optional<T>
+  // will return T, which is checked for enum type.
+  if constexpr(std::is_enum_v<meta::remove_wrapper_t<T>>)
+  {
+    using enum_type = meta::remove_wrapper_t<T>;
+    return std::make_shared<framework::setting_validator_list<T>>(util::enum_values<enum_type>());
+  }
+  else
+  {
+    return std::make_shared<framework::setting_validator_unbound>();
+  }
+}
+
+} // namespace detail
 
 ///
 /// Workflow setting. This class owns setting objects. This workflow is thread safe and static.
@@ -100,7 +127,7 @@ public: // Modifiers
   [[nodiscard]] auto create_setting(
     const std::string& path,
     T&& default_value,
-    framework::setting_validator<T>&& validator = std::make_shared<framework::setting_validator_unbound>()
+    framework::setting_validator<T>&& validator = detail::conditional_default_validator<T>()
   ) -> setting_non_owning_ptr_type<T>;
 };
 

@@ -97,7 +97,7 @@ signals:
 
 private: // Implementation
   QString fetchPassage(const bibstd::bible::reference& ref) const;
-  Entry makeEntry(const bibstd::bible::reference& ref) const;
+  void addEntry(const bibstd::bible::reference& ref);
 };
 
 } // namespace bibqml

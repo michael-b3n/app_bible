@@ -17,8 +17,15 @@ public: // Structors
   ~workflow_template_settings() noexcept = default;
 
 public: // Variables
-  const setting_type<std::optional<std::string>> text;
-  const setting_type<bool> flag;
+  const setting_type<bool> plain_bool;
+  const setting_type<int> plain_int;
+  const setting_type<double> plain_double;
+  const setting_type<std::string> plain_string;
+  const setting_type<std::optional<bool>> optional_bool;
+  const setting_type<std::optional<int>> optional_int;
+  const setting_type<std::optional<double>> optional_double;
+  const setting_type<std::optional<std::string>> optional_string;
+  const setting_type<std::vector<std::string>> vector_string;
 };
 
 ///

@@ -5,8 +5,10 @@ TabButtonBase
 {
   id: root
 
+  // Properties
   required property bool runningState
 
+  // Components
   VectorImage
   {
     visible: root.runningState

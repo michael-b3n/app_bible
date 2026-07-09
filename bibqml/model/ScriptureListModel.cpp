@@ -119,7 +119,7 @@ void ScriptureListModel::resetWithReference(const QString& bookId, const int cha
 
   beginResetModel();
   entries_.clear();
-  entries_.push_back(makeEntry(*ref));
+  addEntry(*ref);
   endResetModel();
   // load some context around the initial verse
   loadNext(10);
@@ -152,7 +152,7 @@ void ScriptureListModel::loadPrevious(const int count)
       prev = versification.prev(ref);
       if(prev)
       {
-        newEntries.push_back(makeEntry(*prev));
+        addEntry(*prev);
         ref = *prev;
       }
       return prev.has_value();
@@ -191,7 +191,7 @@ void ScriptureListModel::loadNext(const int count)
       next = versification.next(ref);
       if(next)
       {
-        newEntries.push_back(makeEntry(*next));
+        addEntry(*next);
         ref = *next;
       }
       return next.has_value();
@@ -229,19 +229,27 @@ QString ScriptureListModel::fetchPassage(const bibstd::bible::reference& ref) co
 
 ///
 ///
-ScriptureListModel::Entry ScriptureListModel::makeEntry(const bibstd::bible::reference& ref) const
+void ScriptureListModel::addEntry(const bibstd::bible::reference& ref)
 {
+  if(entries_.size() >= static_cast<std::size_t>(std::numeric_limits<int>::max()))
+  {
+    LOG_ERROR("max entries count exceeded: reference=\"{}\" not added", ref);
+    return;
+  }
+
   const auto& prettyName = bibstd::bible::reference_formatter_de::pretty_names.at(ref.book());
   const auto bookName = QString::fromUtf8(prettyName.data(), static_cast<qsizetype>(prettyName.size()));
 
-  return Entry{
-    .ref = ref,
-    .verseText = fetchPassage(ref),
-    .bookName = bookName,
-    .chapterNumber = ref.chapter().value,
-    .verseNumber = ref.verse().value,
-    .isHeader = ref.verse() == decltype(ref.verse()){1},
-  };
+  entries_.emplace_back(
+    Entry{
+      .ref = ref,
+      .verseText = fetchPassage(ref),
+      .bookName = bookName,
+      .chapterNumber = ref.chapter().value,
+      .verseNumber = ref.verse().value,
+      .isHeader = ref.verse() == decltype(ref.verse()){1},
+    }
+  );
 }
 
 } // namespace bibqml

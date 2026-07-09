@@ -11,6 +11,8 @@
 #include <bibstd/util/numeric_cast.hpp>
 #include <bibstd/util/visit_helper.hpp>
 
+#include <QJSValue>
+
 #include <algorithm>
 #include <chrono>
 #include <concepts>
@@ -208,6 +210,23 @@ auto toVariant(const std::vector<T>& list) -> QVariant
 }
 
 ///
+/// Try to convert a QJSValue type inside a QVariant to a proper QVariant type.
+/// This is needed since QML might provide special Java script types that do
+/// not belong to a non user meta type.
+/// \returns QVariant type that is converted to QVariant if it was a user type.
+///
+auto tryNormalizeQVariant(const QVariant& variant) -> QVariant
+{
+  const auto typeId = variant.metaType().id();
+  if(typeId >= QMetaType::User && variant.canConvert<QJSValue>())
+  {
+    // came through as a JS array wrapped in QJSValue — unwrap it properly
+    return variant.value<QJSValue>().toVariant();
+  }
+  return variant;
+}
+
+///
 /// Deduce the validator type enum value from the settings validator variant.
 /// \return enum value describing the validator type
 ///
@@ -271,7 +290,7 @@ auto setValueConvertibleVec(const auto setting, const auto& value) -> bool
 auto setValueInteger(const auto setting, const auto& value) -> bool
 {
   static_assert(std::integral<setting_raw_value_type<decltype(setting)>>);
-  if constexpr(std::integral<decltype(value)>)
+  if constexpr(std::integral<std::remove_cvref_t<decltype(value)>>)
   {
     const auto v = integer_cast<setting_raw_value_type<decltype(setting)>>(value);
     return v ? setting->value(*v) : false;
@@ -379,8 +398,9 @@ SettingsListModel::SettingsListModel(
           const auto row_index = bibstd::math::arithmetic::subtract(entries_.size(), decltype(entries_.size()){1}).value();
           setting->signal_adapter.connect_queued(
             &bibstd::framework::setting_signals::value_changed,
-            [this, row_index]()
+            [this, path = setting_data.path, row_index]()
             {
+              LOG_DEBUG("notify setting value changed: path=\"{}\", row={}", path, row_index)
               QMetaObject::invokeMethod(
                 this,
                 [this, row_index]() { emit dataChanged(index(row_index), index(row_index), {Role::ValueRole}); },
@@ -391,15 +411,16 @@ SettingsListModel::SettingsListModel(
           );
           setting->signal_adapter.connect_queued(
             &bibstd::framework::setting_signals::validator_changed,
-            [this, setting, row_index]()
+            [this, setting, path = setting_data.path, row_index]()
             {
               using value_type = std::remove_pointer_t<std::remove_cvref_t<decltype(setting)>>::value_type;
               bibstd::util::visit_lambdas(
                 setting->validator,
                 []([[maybe_unused]] const validator_unbound_sptr&) { /*noop*/ },
                 []([[maybe_unused]] const validator_range_sptr<value_type>&) { /*noop*/ },
-                [this, row_index]([[maybe_unused]] const validator_list_sptr<value_type>&)
+                [this, path, row_index]([[maybe_unused]] const validator_list_sptr<value_type>&)
                 {
+                  LOG_DEBUG("notify setting validator changed: path=\"{}\", row={}", path, row_index)
                   QMetaObject::invokeMethod(
                     this,
                     [this, row_index]()
@@ -472,144 +493,82 @@ QHash<int, QByteArray> SettingsListModel::roleNames() const
 ///
 bool SettingsListModel::setData(const QModelIndex& index, const QVariant& value, const int role)
 {
+  if(role != ValueRole)
+  {
+    return false; // all other roles are immutable and cannot be set
+  }
   if(!index.isValid() || index.row() < 0 || static_cast<decltype(entries_.size())>(index.row()) >= entries_.size())
   {
     return false;
   }
-  [[maybe_unused]] const auto& entry = entries_.at(static_cast<std::size_t>(index.row()));
-
-  const auto set_plain = [&entry](const auto& v) -> bool
+  static constexpr auto toVector = [](const auto& v, auto&& converter)
   {
-    return bibstd::util::visit_lambdas(
+    const auto& list = v.toList();
+    auto vec = std::vector<std::invoke_result_t<decltype(converter), QVariant>>{};
+    vec.reserve(static_cast<std::size_t>(list.size()));
+    std::ranges::for_each(list, [&](const auto& variant) { vec.emplace_back(converter(variant)); });
+    return vec;
+  };
+
+  try
+  {
+    const auto& entry = entries_.at(static_cast<std::size_t>(index.row()));
+    const auto v = tryNormalizeQVariant(value);
+    // clang-format off
+    const auto is_value_set = bibstd::util::visit_lambdas(
       entry.setting,
-      [&](const setting_ptr<bool> setting) { return setValueConvertible(setting, v); },
-      [&](const setting_ptr<std::int32_t> setting) { return setValueInteger(setting, v); },
-      [&](const setting_ptr<std::int64_t> setting) { return setValueInteger(setting, v); },
-      [&](const setting_ptr<std::uint32_t> setting) { return setValueInteger(setting, v); },
-      [&](const setting_ptr<std::uint64_t> setting) { return setValueInteger(setting, v); },
-      [&](const setting_ptr<double> setting) { return setValueConvertible(setting, v); },
-      [&](const setting_ptr<std::string> setting) { return setValueConvertible(setting, v); },
-      [&](const setting_ptr<std::chrono::milliseconds> setting) { return setValueDuration(setting, v); },
-      [&](const setting_ptr<std::chrono::seconds> setting) { return setValueDuration(setting, v); },
-      [&](const setting_ptr<std::chrono::minutes> setting) { return setValueDuration(setting, v); },
-      [&](const setting_ptr<std::filesystem::path> setting) { return setValueConvertible(setting, v); },
-      [&](const setting_ptr<std::optional<bool>> setting) { return setValueConvertible(setting, v); },
-      [&](const setting_ptr<std::optional<std::int32_t>> setting) { return setValueInteger(setting, v); },
-      [&](const setting_ptr<std::optional<std::int64_t>> setting) { return setValueInteger(setting, v); },
-      [&](const setting_ptr<std::optional<std::uint32_t>> setting) { return setValueInteger(setting, v); },
-      [&](const setting_ptr<std::optional<std::uint64_t>> setting) { return setValueInteger(setting, v); },
-      [&](const setting_ptr<std::optional<double>> setting) { return setValueConvertible(setting, v); },
-      [&](const setting_ptr<std::optional<std::string>> setting) { return setValueConvertible(setting, v); },
-      [&](const setting_ptr<std::optional<std::chrono::milliseconds>> setting) { return setValueDuration(setting, v); },
-      [&](const setting_ptr<std::optional<std::chrono::seconds>> setting) { return setValueDuration(setting, v); },
-      [&](const setting_ptr<std::optional<std::chrono::minutes>> setting) { return setValueDuration(setting, v); },
-      [&](const setting_ptr<std::optional<std::filesystem::path>> setting) { return setValueConvertible(setting, v); },
-      /*vectors types not supported*/ [&](const auto setting) { return throw_type_mismatch_error(setting, v); }
+      [&](const setting_ptr<bool> setting) { return setValueConvertible(setting, v.toBool()); },
+      [&](const setting_ptr<std::int32_t> setting) { return setValueInteger(setting, v.toInt()); },
+      [&](const setting_ptr<std::int64_t> setting) { return setValueInteger(setting, v.toInt()); },
+      [&](const setting_ptr<std::uint32_t> setting) { return setValueInteger(setting, v.toInt()); },
+      [&](const setting_ptr<std::uint64_t> setting) { return setValueInteger(setting, v.toInt()); },
+      [&](const setting_ptr<double> setting) { return setValueConvertible(setting, v.toDouble()); },
+      [&](const setting_ptr<std::string> setting) { return setValueConvertible(setting, v.toString().toStdString()); },
+      [&](const setting_ptr<std::chrono::milliseconds> setting) { return setValueDuration(setting, v.toDouble()); },
+      [&](const setting_ptr<std::chrono::seconds> setting) { return setValueDuration(setting, v.toDouble()); },
+      [&](const setting_ptr<std::chrono::minutes> setting) { return setValueDuration(setting, v.toDouble()); },
+      [&](const setting_ptr<std::filesystem::path> setting) { return setValueConvertible(setting, v.toString().toStdString()); },
+      [&](const setting_ptr<std::optional<bool>> setting) { return setValueConvertible(setting, v.toBool()); },
+      [&](const setting_ptr<std::optional<std::int32_t>> setting) { return setValueInteger(setting, v.toInt()); },
+      [&](const setting_ptr<std::optional<std::int64_t>> setting) { return setValueInteger(setting, v.toInt()); },
+      [&](const setting_ptr<std::optional<std::uint32_t>> setting) { return setValueInteger(setting, v.toInt()); },
+      [&](const setting_ptr<std::optional<std::uint64_t>> setting) { return setValueInteger(setting, v.toInt()); },
+      [&](const setting_ptr<std::optional<double>> setting) { return setValueConvertible(setting, v.toDouble()); },
+      [&](const setting_ptr<std::optional<std::string>> setting) { return setValueConvertible(setting, v.toString().toStdString()); },
+      [&](const setting_ptr<std::optional<std::chrono::milliseconds>> setting) { return setValueDuration(setting, v.toDouble()); },
+      [&](const setting_ptr<std::optional<std::chrono::seconds>> setting) { return setValueDuration(setting, v.toDouble()); },
+      [&](const setting_ptr<std::optional<std::chrono::minutes>> setting) { return setValueDuration(setting, v.toDouble()); },
+      [&](const setting_ptr<std::optional<std::filesystem::path>> setting) { return setValueConvertible(setting, v.toString().toStdString()); },
+      [&](const setting_ptr<std::vector<std::int32_t>> setting) { return setValueIntegerVec(setting, toVector(v, [](const auto& v) { return v.toInt(); })); },
+      [&](const setting_ptr<std::vector<std::int64_t>> setting) { return setValueIntegerVec(setting, toVector(v, [](const auto& v) { return v.toInt(); })); },
+      [&](const setting_ptr<std::vector<std::uint32_t>> setting) { return setValueIntegerVec(setting, toVector(v, [](const auto& v) { return v.toInt(); })); },
+      [&](const setting_ptr<std::vector<std::uint64_t>> setting) { return setValueIntegerVec(setting, toVector(v, [](const auto& v) { return v.toInt(); })); },
+      [&](const setting_ptr<std::vector<double>> setting) { return setValueConvertibleVec(setting, toVector(v, [](const auto& v) { return v.toDouble(); })); },
+      [&](const setting_ptr<std::vector<std::string>> setting) { return setValueConvertibleVec(setting, toVector(v, [](const auto& v) { return v.toString().toStdString(); })); },
+      [&](const setting_ptr<std::vector<std::chrono::milliseconds>> setting) { return setValueDurationVec(setting, toVector(v, [](const auto& v) { return v.toDouble(); })); },
+      [&](const setting_ptr<std::vector<std::chrono::seconds>> setting) { return setValueDurationVec(setting, toVector(v, [](const auto& v) { return v.toDouble(); })); },
+      [&](const setting_ptr<std::vector<std::chrono::minutes>> setting) { return setValueDurationVec(setting, toVector(v, [](const auto& v) { return v.toDouble(); })); },
+      [&](const setting_ptr<std::vector<std::filesystem::path>> setting) { return setValueConvertibleVec(setting, toVector(v, [](const auto& v) { return v.toString().toStdString(); })); }
     );
-  };
-
-  const auto set_vec = [&entry](const auto& v) -> bool
-  {
-    return bibstd::util::visit_lambdas(
-      entry.setting,
-      /*plain and optional types not supported*/ [&](const auto setting) { return throw_type_mismatch_error(setting, v); },
-      [&](const setting_ptr<std::vector<std::int32_t>> setting) { return setValueIntegerVec(setting, v); },
-      [&](const setting_ptr<std::vector<std::int64_t>> setting) { return setValueIntegerVec(setting, v); },
-      [&](const setting_ptr<std::vector<std::uint32_t>> setting) { return setValueIntegerVec(setting, v); },
-      [&](const setting_ptr<std::vector<std::uint64_t>> setting) { return setValueIntegerVec(setting, v); },
-      [&](const setting_ptr<std::vector<double>> setting) { return setValueConvertibleVec(setting, v); },
-      [&](const setting_ptr<std::vector<std::string>> setting) { return setValueConvertibleVec(setting, v); },
-      [&](const setting_ptr<std::vector<std::chrono::milliseconds>> setting) { return setValueDurationVec(setting, v); },
-      [&](const setting_ptr<std::vector<std::chrono::seconds>> setting) { return setValueDurationVec(setting, v); },
-      [&](const setting_ptr<std::vector<std::chrono::minutes>> setting) { return setValueDurationVec(setting, v); },
-      [&](const setting_ptr<std::vector<std::filesystem::path>> setting) { return setValueConvertibleVec(setting, v); }
-    );
-  };
-
-  const auto set_null = [&entry]() -> bool
-  {
-    return std::visit(
-      [&](const auto setting)
-      {
-        using value_type = std::remove_pointer_t<std::remove_cvref_t<decltype(setting)>>::value_type;
-        using raw_value_type = setting_raw_value_type<std::remove_cvref_t<decltype(setting)>>;
-        static_assert(std::is_same_v<std::remove_cvref_t<value_type>, value_type>);
-        static_assert(std::is_same_v<std::remove_cvref_t<raw_value_type>, raw_value_type>);
-        if constexpr(std::is_same_v<value_type, raw_value_type>)
-        {
-          LOG_ERROR("type mismatch: failed to set null value on plain types");
-          return false;
-        }
-        else
-        {
-          return setting->value({});
-        }
-      },
-      entry.setting
-    );
-  };
-
-  switch(role)
-  {
-  case PathRole: return false;          // immutable
-  case ValueTypeRole: return false;     // immutable
-  case WrapperTypeRole: return false;   // immutable
-  case ValidatorTypeRole: return false; // immutable
-  case ValueRole:
-  {
-    try
+    // clang-format on
+    if(!is_value_set)
     {
-      const auto is_value_set = [&]
-      {
-        const auto typeId = value.metaType().id();
-        switch(typeId)
-        {
-        case QMetaType::Bool: return set_plain(value.toBool());
-        case QMetaType::Int: return set_plain(value.toInt());
-        case QMetaType::Double: return set_plain(value.toDouble());
-        case QMetaType::QString: return set_plain(value.toString().toStdString());
-        case QMetaType::QVariantList:
-        {
-          const auto& list = value.toList();
-          const auto to_vector = [&](auto&& converter)
-          {
-            auto vec = std::vector<std::invoke_result_t<decltype(converter), QVariant>>(list.size());
-            std::ranges::for_each(list, [&](const auto& variant) { vec.emplace_back(converter(variant)); });
-            return vec;
-          };
-          if(!list.empty())
-          {
-            const auto frontTypeId = list.front().metaType().id();
-            switch(frontTypeId)
-            {
-              // boolean not supported due to forbidden std::vector<bool>
-            case QMetaType::Int: return set_vec(to_vector([](const auto& v) { return v.toInt(); }));
-            case QMetaType::Double: return set_vec(to_vector([](const auto& v) { return v.toDouble(); }));
-            case QMetaType::QString: return set_vec(to_vector([](const auto& v) { return v.toString().toStdString(); }));
-            }
-          }
-          return set_null();
-        }
-        default: return set_null();
-        };
-      }();
-      if(!is_value_set)
-      {
-        // Emit dataChanged signal to notify that the value
-        // could not be set such that the UI can be reset.
-        emit dataChanged(index, index, {role});
-      }
-      return is_value_set;
-    }
-    catch(...)
-    {
-      LOG_ERROR("exception writing setting value: {}", bibstd::util::exception_report());
+      // Emit dataChanged signal to notify that the value
+      // could not be set such that the UI can be reset.
+      // The setting itself will also emit a dataChanged signal
+      // if the value of the setting changed successfully.
+      // If settings fails but the value still changed,
+      // the signal is emitted twice.
       emit dataChanged(index, index, {role});
-      return false;
     }
+    LOG_DEBUG("write setting: path=\"{}\", row={}", entry.path, index.row());
+    return is_value_set;
   }
-  case ListValidatorDataRole: return false; // immutable
-  default: return false;
+  catch(...)
+  {
+    LOG_ERROR("exception writing setting value: {}", bibstd::util::exception_report());
+    emit dataChanged(index, index, {role});
+    return false;
   }
 }
 
@@ -631,6 +590,11 @@ void SettingsListModel::disconnect()
 ///
 void SettingsListModel::addEntry(std::string path, const auto& setting)
 {
+  if(entries_.size() >= static_cast<std::size_t>(std::numeric_limits<int>::max()))
+  {
+    LOG_ERROR("max entries count exceeded: path=\"{}\" not added", path);
+    return;
+  }
   entries_.emplace_back(
     Entry{
       .path = std::move(path),

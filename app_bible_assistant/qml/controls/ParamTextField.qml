@@ -1,0 +1,130 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import QtQuick.Controls
+import BibQml
+
+///
+/// Input for string or double value types.
+/// All input types must be convertible to string.
+/// For boolean value types the ParamSwitch object shall be used.
+///
+ParamBase
+{
+  id: root
+
+  // Components
+  contentItem: TextField
+  {
+    id: input
+
+    // Properties
+    text: root.value.toString()
+    font.pointSize: Metrics.fontSizeParam
+    color: Colors.text
+    renderType: Text.CurveRendering
+    verticalAlignment: Text.AlignVCenter
+
+    // Properties
+    padding: Metrics.paddingParamContent
+    width: root.availableWidth
+    implicitHeight: contentHeight + 2 * padding
+
+    inputMethodHints:
+    {
+      switch(root.valueType)
+      {
+      case SettingsListModel.IntValueType: return Qt.ImhDigitsOnly
+      case SettingsListModel.DoubleValueType:
+      case SettingsListModel.TimeValueType: return Qt.ImhFormattedNumbersOnly
+      case SettingsListModel.StringValueType:
+      case SettingsListModel.PathValueType:
+      case SettingsListModel.BoolValueType:
+      default: return Qt.ImhNone
+      }
+    }
+
+    // Connections
+    onTextEdited: debounceTimer.restart()
+
+    Connections
+    {
+      target: root
+      function onValueChanged()
+      {
+        if(root.value !== undefined)
+        {
+          input.text = root.value.toString()
+        }
+        else
+        {
+          input.text = ""
+        }
+      }
+    }
+
+    // Timer
+    Timer
+    {
+      id: debounceTimer
+
+      // Properties
+      interval: 500 // ms
+      repeat: false // single-shot
+
+      // Connections
+      onTriggered: { input.handleTextChange() }
+    }
+
+    // Style
+    background: ParamBackground
+    {
+      color: input.activeFocus ? Colors.hover : Colors.backgroundSolid
+    }
+
+    // Functions
+    function handleTextChange()
+    {
+      switch(root.valueType)
+      {
+      case SettingsListModel.BoolValueType:
+        BridgeLogger.error("unsupported SettingsListModel::BoolValueType used in ParamTextField")
+        return
+      case SettingsListModel.IntValueType:
+      {
+        let v =  parseInt(input.text)
+        if(isNaN(v))
+        {
+          input.text = root.value ? root.value.toString() : ""
+        }
+        else
+        {
+          root.paramValueChanged(v)
+        }
+        return
+      }
+      case SettingsListModel.DoubleValueType: // fallthrough
+      case SettingsListModel.TimeValueType:
+      {
+        let v =  parseFloat(input.text)
+        if(isNaN(v))
+        {
+          input.text = root.value ? root.value.toString() : ""
+        }
+        else
+        {
+          root.paramValueChanged(v)
+        }
+        return
+      }
+      case SettingsListModel.StringValueType: // fallthrough
+      case SettingsListModel.PathValueType:
+        root.paramValueChanged(input.text)
+        return
+      default:
+        BridgeLogger.error("unsupported SettingsListModel::ValueType value")
+        return
+      }
+    }
+  }
+}
