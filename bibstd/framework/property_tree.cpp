@@ -56,14 +56,20 @@ property_tree::property_tree(const std::filesystem::path& tree_file_path)
   {
     throw util::exception(std::format("invalid file extension: file={}", tree_file_path.generic_string()));
   }
-  if(!std::filesystem::exists(tree_file_path))
+
+  static constexpr auto create_new_file = [](const auto& path)
   {
-    std::filesystem::create_directories(tree_file_path.parent_path());
-    if(auto file = std::ofstream{tree_file_path})
+    std::filesystem::create_directories(path.parent_path());
+    if(auto file = std::ofstream{path})
     {
       file << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
       file.close();
     }
+  };
+
+  if(!std::filesystem::exists(tree_file_path))
+  {
+    create_new_file(tree_file_path);
   }
   try
   {
@@ -72,6 +78,8 @@ property_tree::property_tree(const std::filesystem::path& tree_file_path)
   catch(const boost::property_tree::xml_parser_error& e)
   {
     LOG_ERROR("failed to read property file: file={}, exception={}", tree_file_path_.generic_string(), e.what());
+    std::filesystem::remove(tree_file_path);
+    create_new_file(tree_file_path);
   }
 }
 

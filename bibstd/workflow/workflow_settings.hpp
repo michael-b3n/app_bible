@@ -89,6 +89,7 @@ public: // Typedefs
 
 public: // Constants
   static constexpr std::string_view settings_file_name = "settings.xml";
+  static constexpr std::string_view settings_root_name = "settings";
 
 public: // Static interface
   ///
@@ -139,7 +140,10 @@ auto workflow_settings::create_setting(const std::string& path, T&& default_valu
 {
   const auto setting = std::make_shared<framework::setting<T>>(
     path,
-    std::move(tree_->create_property(framework::property_tree::path_type{path}, std::move(default_value))),
+    std::move(tree_->create_property(
+      framework::property_tree::path_type{std::string(settings_root_name)} / framework::property_tree::path_type{path},
+      std::move(default_value)
+    )),
     std::move(validator)
   );
   const auto setting_ptr = setting.get();
