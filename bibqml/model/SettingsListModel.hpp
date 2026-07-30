@@ -115,6 +115,8 @@ public: // Modifiers
   void disconnect();
 
 private: // Implementation
+  void appendSetting(const std::string& path);
+  void addSetting(const std::string& path, const auto& setting);
   void addEntry(std::string path, const auto& setting);
 };
 

@@ -20,6 +20,9 @@ ParamBase
     // Properties
     model: SimpleListModel{}
 
+    // Note the language is passed to reevaluate this binding on a language change.
+    displayText: control.currentIndex < 0 ? "" : Translations.name(control.currentText, Translations.language)
+
     padding: Metrics.paddingParamContent
     spacing: Metrics.spacingTiny
     width: root.availableWidth
@@ -140,7 +143,13 @@ ParamBase
         id: textContent
 
         // Properties
-        text: itemDelegate.modelData !== undefined && itemDelegate.modelData !== null ? String(itemDelegate.modelData) : ""
+        // Note the language is passed to reevaluate this binding on a language change.
+        text:
+        {
+          const valid = itemDelegate.modelData !== undefined && itemDelegate.modelData !== null
+          return valid ? Translations.name(String(itemDelegate.modelData), Translations.language) : ""
+        }
+
         elide: Text.ElideRight
         width: itemDelegate.width
       }

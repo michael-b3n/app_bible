@@ -1,0 +1,34 @@
+#
+# Pretty names of the application in all available languages.
+# Keys without an entry, and entries without a pretty name, are displayed as the raw
+# identifier provided by the backend. Values that only exist at runtime, e.g. the names of
+# the installed scriptures or OCR engines, are always displayed as provided by the backend.
+#
+key,german,english
+dbu,DBU,DBU
+elb,Elberfelder Bibel,Elberfelder Bibel
+english,Englisch,English
+esv,English Standard Version,English Standard Version
+eu,Einheitsübersetzung,Einheitsübersetzung
+german,Deutsch,German
+gnb,Gute Nachricht Bibel,Gute Nachricht Bibel
+hfa,Hoffnung für alle,Hoffnung für alle
+kjv,King James Version,King James Version
+lookup.translations,Übersetzungen,Translations
+lut,Lutherbibel,Lutherbibel
+meng,Menge Bibel,Menge Bibel
+neu,Neue evangelistische Übersetzung,Neue evangelistische Übersetzung
+ngu,Neue Genfer Übersetzung,Neue Genfer Übersetzung
+nirv,New International Reader's Version,New International Reader's Version
+niv,New International Version,New International Version
+nlb,Neues Leben. Die Bibel,Neues Leben. Die Bibel
+ocr.character_recognition_ocr_engine,Texterkennung,Character recognition
+ocr.fallback_versification_name,Ersatz-Verszählung,Fallback versification
+ocr.language,Sprache der Texterkennung,Text recognition language
+ocr.layout_recognition_ocr_engine,Layouterkennung,Layout recognition
+ocr.tessdata_path,Tesseract Datenverzeichnis,Tesseract data folder
+scripture.name,Bibelausgabe,Scripture
+slt,Schlachter,Schlachter
+ui.language,Sprache,Language
+vxb,Volxbibel,Volxbibel
+zb,Zürcher Bibel,Zürcher Bibel

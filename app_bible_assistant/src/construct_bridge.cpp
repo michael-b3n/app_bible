@@ -7,6 +7,7 @@
 #include <bibstd/workflow/workflow_settings.hpp>
 
 #include <bibqml/bridge/BridgeBibleRefOcr.hpp>
+#include <bibqml/bridge/BridgeSettings.hpp>
 #include <bibqml/model/ScriptureListModel.hpp>
 #include <bibqml/model/SettingsListModel.hpp>
 
@@ -39,6 +40,7 @@ auto construct_bridge(QGuiApplication& app, backend_instance& backend) -> bridge
   auto workflow_scripture = std::static_pointer_cast<bibstd::workflow::workflow_scripture>(backend.workflow_scripture);
   // clang-format on
   return bridge_instance{
+    .bridge_settings{std::make_unique<bibqml::BridgeSettings>(workflow_settings)},
     .settings_list_model{std::make_unique<bibqml::SettingsListModel>(workflow_settings)},
     .bridge_bible_ref_ocr{std::make_unique<bibqml::BridgeBibleRefOcr>(workflow_bible_ref_ocr, workflow_hotkey)},
     .scripture_list_model{std::make_unique<bibqml::ScriptureListModel>(workflow_scripture)}

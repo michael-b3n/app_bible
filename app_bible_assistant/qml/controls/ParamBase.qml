@@ -45,7 +45,8 @@ Control
     id: title
 
     // Properties
-    text: root.path
+    // Note the language is passed to reevaluate this binding on a language change.
+    text: Translations.name(root.path, Translations.language)
 
     visible: root.showTitle
     width: root.width

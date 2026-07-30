@@ -9,6 +9,7 @@
 namespace bibqml
 {
 class BridgeBibleRefOcr;
+class BridgeSettings;
 class ScriptureListModel;
 class SettingsListModel;
 } // namespace bibqml
@@ -22,6 +23,7 @@ struct bridge_instance final
   ~bridge_instance() noexcept;
 
   // Variables
+  std::unique_ptr<bibqml::BridgeSettings> bridge_settings;
   std::unique_ptr<bibqml::SettingsListModel> settings_list_model;
   std::unique_ptr<bibqml::BridgeBibleRefOcr> bridge_bible_ref_ocr;
   std::unique_ptr<bibqml::ScriptureListModel> scripture_list_model;
