@@ -121,7 +121,9 @@ auto setting<T>::value(const value_type& v) -> bool
     },
     [&](const setting_validator_list<value_type>::sptr_type& validator_list) -> bool
     {
-      const auto contains = validator_list->contains(v);
+      // check if the value is contained in the list or if the list is empty (special case).
+      // Empty list means the validator is not initialized, so validation is ignored.
+      const auto contains = validator_list->contains(v) || validator_list->empty();
       if(contains)
       {
         decltype(auto) old_value = value_.exchange(v);
@@ -154,7 +156,9 @@ auto setting<T>::validate() -> void
     },
     [&](const setting_validator_list<value_type>::sptr_type& validator_list)
     {
-      const auto contains = validator_list->contains(value_.value());
+      // Check if the value is contained in the list or if the list is empty (special case).
+      // Empty list means the validator is not initialized, so validation is ignored.
+      const auto contains = validator_list->contains(value_.value()) || validator_list->empty();
       if(!contains)
       {
         const auto changed = [&]

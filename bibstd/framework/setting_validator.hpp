@@ -257,6 +257,12 @@ public: // Structors
 
 public: // Accessors
   ///
+  /// Check if the validator has any available values.
+  /// \return true if no available values are set, false otherwise
+  ///
+  [[nodiscard]] auto empty() const -> bool;
+
+  ///
   /// Get all available values.
   /// \return list of all available values
   ///
@@ -296,6 +302,7 @@ class setting_validator_list_type_erased final
   using plain_underlying_type_ = detail::remove_optional_or_vector_t<T>;
 
   // Variables
+  const std::function<bool()> empty_;
   const std::function<std::vector<plain_underlying_type_>()> available_;
   const std::function<bool(const T&)> contains_;
   const std::function<bool(const plain_underlying_type_&)> plain_contains_;
@@ -313,6 +320,11 @@ public: // Structors
     requires(detail::type_erased_validator_param_requirement<T, setting_validator_list, decltype(validator)>);
 
 public: // Accessors
+  ///
+  /// \see setting_validator_list::empty
+  ///
+  [[nodiscard]] auto empty() const -> bool;
+
   ///
   /// \see setting_validator_list::available
   ///
@@ -588,13 +600,6 @@ setting_validator_list<T>::setting_validator_list(std::vector<plain_underlying_t
             return list;
           }()}
 {
-  if constexpr(!is_optional_type)
-  {
-    if(list_.empty())
-    {
-      throw util::exception{"invalid empty list argument"};
-    }
-  }
 }
 
 ///
@@ -605,6 +610,15 @@ setting_validator_list<T>::setting_validator_list(const R& range)
   requires(std::is_same_v<std::ranges::range_value_t<R>, plain_underlying_type>)
   : setting_validator_list<T>({std::ranges::begin(range), std::ranges::end(range)})
 {
+}
+
+///
+///
+template<underlying_setting_type T>
+auto setting_validator_list<T>::empty() const -> bool
+{
+  const auto lock = std::scoped_lock{mtx_};
+  return list_.empty();
 }
 
 ///
@@ -687,7 +701,8 @@ auto setting_validator_list<T>::contains(const plain_underlying_type& value) con
 template<underlying_setting_type_erased_type T>
 setting_validator_list_type_erased<T>::setting_validator_list_type_erased(const auto& validator)
   requires(detail::type_erased_validator_param_requirement<T, setting_validator_list, decltype(validator)>)
-  : available_{[validator]()
+  : empty_{[validator]() { return validator->empty(); }}
+  , available_{[validator]()
                {
                  using type = typename detail::validator_t<decltype(validator)>::plain_underlying_type;
                  static constexpr auto to_type_erased_value =
@@ -719,6 +734,14 @@ setting_validator_list_type_erased<T>::setting_validator_list_type_erased(const 
                     }}
   , connector{validator}
 {
+}
+
+///
+///
+template<underlying_setting_type_erased_type T>
+auto setting_validator_list_type_erased<T>::empty() const -> bool
+{
+  return empty_();
 }
 
 ///

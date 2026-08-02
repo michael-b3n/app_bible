@@ -155,16 +155,19 @@ auto workflow_scripture::init() -> void
     std::get<framework::setting_validator_list<std::optional<std::string>>::sptr_type>(settings().scripture_name->validator);
   std::ignore = scripture_name_validator->available(scripture_names);
 
-  static constexpr auto has_kjv_versification = [](const auto& s)
-  { return s.second->versification() == bible::versification_kjv; };
+  if(!settings().scripture_name->value().has_value())
+  {
+    static constexpr auto has_kjv_versification = [](const auto& s)
+    { return s.second->versification() == bible::versification_kjv; };
 
-  if(const auto it = std::ranges::find_if(scriptures, has_kjv_versification); it != std::ranges::cend(scriptures))
-  {
-    settings().scripture_name->value(it->first);
-  }
-  else if(!scripture_names.empty())
-  {
-    settings().scripture_name->value(scripture_names.front());
+    if(const auto it = std::ranges::find_if(scriptures, has_kjv_versification); it != std::ranges::cend(scriptures))
+    {
+      settings().scripture_name->value(it->first);
+    }
+    else if(!scripture_names.empty())
+    {
+      settings().scripture_name->value(scripture_names.front());
+    }
   }
 }
 
