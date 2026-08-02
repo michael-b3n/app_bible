@@ -19,7 +19,7 @@ ScrollBar
     radius: Metrics.radiusMedium
     opacity: control.active ? 1.0 : 0.0
 
-    Behavior on opacity { NumberAnimation { duration: 200 } }
+    Behavior on opacity { NumberAnimation { duration: Metrics.durationShort } }
   }
   contentItem: Rectangle
   {
@@ -29,6 +29,6 @@ ScrollBar
     color: control.pressed ? Colors.pressed : Colors.border
     opacity: control.active ? 1.0 : 0.0
 
-    Behavior on opacity { NumberAnimation { duration: 200 } }
+    Behavior on opacity { NumberAnimation { duration: Metrics.durationShort } }
   }
 }

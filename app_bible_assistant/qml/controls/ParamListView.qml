@@ -34,6 +34,11 @@ ParamBase
       anchors.fill: parent
 
       // Connections
+      Connections
+      {
+        target: root
+        function onValueChanged() { listView.model.replace(root.value) }
+      }
       Component.onCompleted: { listView.model.replace(root.value) }
 
       // Components
@@ -52,7 +57,7 @@ ParamBase
         Loader
         {
           // Properties
-          sourceComponent: delegateRoot.index == 0 ? plusButton : dragArea
+          sourceComponent: delegateRoot.index === 0 ? plusButton : dragArea
 
           // Components
           Component
@@ -71,7 +76,7 @@ ParamBase
               ButtonIconSimple
               {
                 // Properties
-                svgSource: "qrc:/qt/qml/ui/qml/res/add_to_queue.svg"
+                svgSource: Icons.addToQueue
 
                 anchors.verticalCenter: parent.verticalCenter
                 width: parent.width
@@ -97,7 +102,7 @@ ParamBase
               // Components
               VectorImage
               {
-                source: "qrc:/qt/qml/ui/qml/res/drag_handle.svg"
+                source: Icons.dragHandle
                 preferredRendererType: VectorImage.CurveRenderer
 
                 anchors.verticalCenter: parent.verticalCenter
@@ -140,6 +145,8 @@ ParamBase
             // Components
             ParamSwitch
             {
+              id: switchControl
+
               // Properties
               path: root.path
               valueType: root.valueType
@@ -155,24 +162,13 @@ ParamBase
               onParamValueChanged: (value) => { listView.updateItem(delegateRoot.index, value) }
 
               // Components
-              ButtonIconSimple
+              ButtonRemoveElement
               {
                 // Properties
-                svgSource: "qrc:/qt/qml/ui/qml/res/remove.svg"
-
-                anchors.right: parent.contentItem.right
-                anchors.rightMargin: Metrics.paddingParamContent
-                anchors.verticalCenter: parent.contentItem.verticalCenter
-                height: Metrics.controlHeight - Metrics.spacingTiny
-                width: Metrics.controlHeight - Metrics.spacingTiny
-                visible: parent.hovered
-                opacity: visible ? 1 : 0
+                paramControl: switchControl
 
                 // Connections
                 onClicked: listView.removeVar(delegateRoot.index)
-
-                // Animations
-                Behavior on opacity { NumberAnimation{ duration: 300 } }
               }
             }
           }
@@ -183,6 +179,8 @@ ParamBase
             // Components
             ParamTextField
             {
+              id: textFieldControl
+
               // Properties
               path: root.path
               valueType: root.valueType
@@ -198,24 +196,13 @@ ParamBase
               onParamValueChanged: (value) => { listView.updateItem(delegateRoot.index, value) }
 
               // Components
-              ButtonIconSimple
+              ButtonRemoveElement
               {
                 // Properties
-                svgSource: "qrc:/qt/qml/ui/qml/res/remove.svg"
-
-                anchors.right: parent.contentItem.right
-                anchors.rightMargin: Metrics.paddingParamContent
-                anchors.verticalCenter: parent.contentItem.verticalCenter
-                height: Metrics.controlHeight - Metrics.spacingTiny
-                width: Metrics.controlHeight - Metrics.spacingTiny
-                visible: parent.hovered
-                opacity: visible ? 1 : 0
+                paramControl: textFieldControl
 
                 // Connections
                 onClicked: listView.removeVar(delegateRoot.index)
-
-                // Animations
-                Behavior on opacity { NumberAnimation{ duration: 300 } }
               }
             }
           }
@@ -226,6 +213,8 @@ ParamBase
             // Components
             ParamComboBox
             {
+              id: comboBoxControl
+
               // Properties
               path: root.path
               valueType: root.valueType
@@ -241,24 +230,13 @@ ParamBase
               onParamValueChanged: (value) => { listView.updateItem(delegateRoot.index, value) }
 
               // Components
-              ButtonIconSimple
+              ButtonRemoveElement
               {
                 // Properties
-                svgSource: "qrc:/qt/qml/ui/qml/res/remove.svg"
-
-                anchors.right: parent.contentItem.right
-                anchors.rightMargin: Metrics.paddingParamContent
-                anchors.verticalCenter: parent.contentItem.verticalCenter
-                height: Metrics.controlHeight - Metrics.spacingTiny
-                width: Metrics.controlHeight - Metrics.spacingTiny
-                visible: parent.hovered
-                opacity: visible ? 1 : 0
+                paramControl: comboBoxControl
 
                 // Connections
                 onClicked: listView.removeVar(delegateRoot.index)
-
-                // Animations
-                Behavior on opacity { NumberAnimation{ duration: 300 } }
               }
             }
           }

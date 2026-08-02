@@ -19,13 +19,13 @@ ParamBase
     id: input
 
     // Properties
-    text: root.value.toString()
+    // Note optional params may hold no value at all.
+    text: root.value === undefined ? "" : root.value.toString()
     font.pointSize: Metrics.fontSizeParam
     color: Colors.text
     renderType: Text.CurveRendering
     verticalAlignment: Text.AlignVCenter
 
-    // Properties
     padding: Metrics.paddingParamContent
     width: root.availableWidth
     implicitHeight: contentHeight + 2 * padding
@@ -63,13 +63,13 @@ ParamBase
       }
     }
 
-    // Timer
+    // Components
     Timer
     {
       id: debounceTimer
 
       // Properties
-      interval: 500 // ms
+      interval: Metrics.durationDebounce
       repeat: false // single-shot
 
       // Connections
@@ -79,7 +79,7 @@ ParamBase
     // Style
     background: ParamBackground
     {
-      color: input.activeFocus ? Colors.hover : Colors.backgroundSolid
+      color: input.activeFocus ? Colors.selection : Colors.backgroundSolidDarker
     }
 
     // Functions

@@ -20,14 +20,14 @@ ParamBase
     id: control
 
     // Properties
-    property bool isUndefined: root.value === undefined
+    // Note optional params may hold no value at all.
     checked: root.value === undefined ? false : root.value
 
     implicitWidth: root.availableWidth
     implicitHeight: root.titleHeight
 
     // Signals
-    onClicked: root.paramValueChanged(checked)
+    onClicked: root.paramValueChanged(control.checked)
 
     // Connections
     Connections
@@ -55,7 +55,7 @@ ParamBase
       x: Math.min(control.leftPadding, control.leftPadding + (control.availableWidth - width) / 3)
       y: control.topPadding + (control.availableHeight - height) / 2
       radius: height / 2
-      color: control.checked ? Colors.hover : Colors.backgroundSolid
+      color: control.checked ? Colors.selection : Colors.backgroundSolidDarker
       border.color: control.checked ? Colors.borderDarker : Colors.border
 
       // Components

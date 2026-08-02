@@ -52,7 +52,7 @@ Item
       anchors.bottom: parent.bottom
       anchors.left: parent.left
       anchors.right: parent.right
-      height: 1
+      height: Metrics.border
       color: Colors.border
     }
   }
@@ -65,6 +65,12 @@ Item
     id: listView
 
     // Properties
+    // Number of verses that are requested from the model whenever
+    // an end of the already loaded scripture range is reached.
+    readonly property int pageSize: 10
+    // Pixels of delegates kept alive outside the visible area.
+    readonly property int cachedPixels: 600
+
     property string currentBook: ""
     property int currentChapter: 0
 
@@ -75,17 +81,17 @@ Item
     clip: true
     model: root.listModelScripture
     spacing: Metrics.spacingTiny
-    cacheBuffer: 600
+    cacheBuffer: listView.cachedPixels
 
     // Connections
-    onContentYChanged: updateHeader()
-    onCountChanged: updateHeader()
-    onAtYBeginningChanged: loadPrevious(10)
+    onContentYChanged: listView.updateHeader()
+    onCountChanged: listView.updateHeader()
+    onAtYBeginningChanged: listView.loadPrevious(listView.pageSize)
     onAtYEndChanged:
     {
-      if(atYEnd && model && model.rowCount() > 0)
+      if(listView.atYEnd && listView.model && listView.model.rowCount() > 0)
       {
-        model.loadNext(10)
+        listView.model.loadNext(listView.pageSize)
       }
     }
     Connections
@@ -203,32 +209,32 @@ Item
     // Functions
     function updateHeader()
     {
-      if(!model || model.rowCount() === 0)
+      if(!listView.model || listView.model.rowCount() === 0)
       {
-        currentBook = ""
-        currentChapter = 0
+        listView.currentBook = ""
+        listView.currentChapter = 0
         return
       }
-      let row = indexAt(contentX, contentY)
+      let row = listView.indexAt(listView.contentX, listView.contentY)
       if(row >= 0)
       {
-        let idx = model.index(row, 0)
-        currentBook = model.data(idx, ScriptureListModel.BookNameRole)
-        currentChapter = Number(model.data(idx, ScriptureListModel.ChapterNumberRole))
+        let idx = listView.model.index(row, 0)
+        listView.currentBook = listView.model.data(idx, ScriptureListModel.BookNameRole)
+        listView.currentChapter = Number(listView.model.data(idx, ScriptureListModel.ChapterNumberRole))
       }
     }
 
     function loadPrevious(count)
     {
-      if(atYBeginning && model && model.rowCount() > 0)
+      if(listView.atYBeginning && listView.model && listView.model.rowCount() > 0)
       {
-        let prevCount = model.rowCount()
-        model.loadPrevious(count)
+        let prevCount = listView.model.rowCount()
+        listView.model.loadPrevious(count)
         // Maintain scroll position after prepending
-        let addedCount = model.rowCount() - prevCount
+        let addedCount = listView.model.rowCount() - prevCount
         if(addedCount > 0)
         {
-          positionViewAtIndex(addedCount, ListView.Beginning)
+          listView.positionViewAtIndex(addedCount, ListView.Beginning)
         }
       }
     }

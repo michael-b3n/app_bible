@@ -43,6 +43,12 @@ class Metrics final : public QObject
   Q_PROPERTY(int borderThick MEMBER borderThick_ CONSTANT)
   Q_PROPERTY(int controlHeight MEMBER controlHeight_ CONSTANT)
 
+  // Durations
+  Q_PROPERTY(int durationShort MEMBER durationShort_ CONSTANT)
+  Q_PROPERTY(int durationMedium MEMBER durationMedium_ CONSTANT)
+  Q_PROPERTY(int durationLong MEMBER durationLong_ CONSTANT)
+  Q_PROPERTY(int durationDebounce MEMBER durationDebounce_ CONSTANT)
+
 public: // Structors
   explicit Metrics(bibstd::util::non_owning_ptr<QObject> parent = nullptr);
   ~Metrics() noexcept override;
@@ -72,6 +78,12 @@ private: // Variables
   int border_{1};
   int borderThick_{2};
   int controlHeight_{24};
+
+  // Durations in milliseconds
+  int durationShort_{200};
+  int durationMedium_{300};
+  int durationLong_{3000};
+  int durationDebounce_{500};
 };
 
 } // namespace aba::qml

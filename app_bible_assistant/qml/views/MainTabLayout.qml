@@ -88,7 +88,7 @@ Item
         Layout.fillWidth: false
         Layout.preferredWidth: Metrics.controlHeight
         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-        svgSource: "qrc:/qt/qml/ui/qml/res/close.svg"
+        svgSource: Icons.close
 
         // Connections
         onClicked: { root.closeClicked() }

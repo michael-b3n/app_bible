@@ -35,9 +35,10 @@ class Colors final : public QObject
 
   Q_PROPERTY(QColor backgroundTransparent MEMBER backgroundTransparent_ NOTIFY backgroundTransparentChanged)
   Q_PROPERTY(QColor backgroundSolid MEMBER backgroundSolid_ NOTIFY backgroundSolidChanged)
+  Q_PROPERTY(QColor backgroundSolidDarker MEMBER backgroundSolidDarker_ NOTIFY backgroundSolidDarkerChanged)
   Q_PROPERTY(QColor border MEMBER border_ NOTIFY borderChanged)
   Q_PROPERTY(QColor borderDarker MEMBER borderDarker_ NOTIFY borderDarkerChanged)
-  Q_PROPERTY(QColor hover MEMBER hover_ NOTIFY hoverChanged)
+  Q_PROPERTY(QColor selection MEMBER selection_ NOTIFY selectionChanged)
   Q_PROPERTY(QColor pressed MEMBER pressed_ NOTIFY pressedChanged)
 
   Q_PROPERTY(QColor text MEMBER text_ NOTIFY textChanged)
@@ -54,9 +55,10 @@ public: // Structors
 signals:
   void backgroundTransparentChanged();
   void backgroundSolidChanged();
+  void backgroundSolidDarkerChanged();
   void borderChanged();
   void borderDarkerChanged();
-  void hoverChanged();
+  void selectionChanged();
   void pressedChanged();
 
   void textChanged();
@@ -69,24 +71,27 @@ signals:
 
 private: // Variables
   // Base colors
-  QColor green_{detail::toQColor("#80ef80ff")};
-  QColor greenDarker_{detail::toQColor("#18bd18ff")};
+  QColor green_{detail::toQColor("#7db356ff")};
+  QColor greenDarker_{detail::toQColor("#5a8a38ff")};
 
-  QColor red_{detail::toQColor("#ff6963ff")};
+  QColor red_{detail::toQColor("#c8503cff")};
+
   // Layout colors
   QColor backgroundTransparent_{detail::toQColor("#fef5deed")};
   QColor backgroundSolid_{detail::toQColor("#fef5deff")};
-  QColor border_{detail::toQColor("#937a7aff")};
-  QColor borderDarker_{detail::toQColor("#7f6a6aff")};
-  QColor hover_{detail::toQColor("#eabca8ff")};
-  QColor pressed_{detail::toQColor("#937a7aff")};
+  QColor backgroundSolidDarker_{detail::toQColor("#f0ddb2ff")};
+  QColor border_{detail::toQColor("#a3835cff")};
+  QColor borderDarker_{detail::toQColor("#7e6444ff")};
+  QColor selection_{detail::toQColor("#f0cea8ff")};
+  QColor pressed_{detail::toQColor("#d5a16dff")};
+
   // TextColors
-  QColor text_{detail::toQColor("#000000ff")};
-  QColor verseBox_{detail::toQColor("#937a7aff")};
-  QColor verseText_{detail::toQColor("#FFFFFFff")};
-  QColor chapterText_{detail::toQColor("#F0E6FFff")};
-  QColor bookHeader_{detail::toQColor("#c2ada7ff")};
-  QColor bookHeaderText_{detail::toQColor("#FFFFFFff")};
+  QColor text_{detail::toQColor("#2e2319ff")};
+  QColor verseBox_{detail::toQColor("#7b5f42ff")};
+  QColor verseText_{detail::toQColor("#fef5deff")};
+  QColor chapterText_{detail::toQColor("#f3e3c0ff")};
+  QColor bookHeader_{detail::toQColor("#8f633dff")};
+  QColor bookHeaderText_{detail::toQColor("#fef5deff")};
 };
 
 } // namespace aba::qml

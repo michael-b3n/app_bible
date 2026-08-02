@@ -6,7 +6,7 @@ import QtQuick
 Rectangle
 {
   // Properties
-  color: Colors.backgroundSolid
+  color: Colors.backgroundSolidDarker
   border.color: Colors.border
   radius: Metrics.radiusSmall
   border.width: 0

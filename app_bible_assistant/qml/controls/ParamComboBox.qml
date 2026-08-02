@@ -66,6 +66,7 @@ ParamBase
       // Properties
       text: control.displayText
       elide: Text.ElideRight
+      rightPadding: Metrics.paddingParamContent * 2
       // width and height properties of combobox
       // content item is ignored.
     }
@@ -157,10 +158,13 @@ ParamBase
       // Style
       background: ParamBackground
       {
-        color: itemDelegate.highlighted ? Colors.hover : Colors.backgroundSolid
+        color: itemDelegate.highlighted ? Colors.selection : Colors.backgroundSolidDarker
         width: itemDelegate.width
       }
     }
+
+    // Style
+    background: ParamBackground { color: control.activeFocus ? Colors.selection : Colors.backgroundSolidDarker }
 
     // Functions
     ///
@@ -192,9 +196,6 @@ ParamBase
 
       control.currentIndex = -1
     }
-
-    // Style
-    background: ParamBackground { color: control.activeFocus ? Colors.hover : Colors.backgroundSolid }
   }
 }
 
