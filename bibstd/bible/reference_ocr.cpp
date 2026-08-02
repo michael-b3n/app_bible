@@ -339,7 +339,7 @@ auto run_paragraph_recognition(
       }
       else
       {
-        LOG_DEBUG("paragraph recognition returns with emtpy rect");
+        LOG_DEBUG("paragraph recognition returns with empty rect");
         return util::screen_rect_type{math::coordinates(0, 0), 0u, 0u};
       }
     }

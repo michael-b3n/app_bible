@@ -5,13 +5,15 @@ TabButtonBase
 {
   id: root
 
+  // Properties
   required property bool runningState
 
+  // Components
   VectorImage
   {
     visible: root.runningState
     anchors.fill: parent
-    source: "qrc:/qt/qml/ui/qml/res/loading.svg"
+    source: Icons.loading
     preferredRendererType: VectorImage.CurveRenderer
 
     RotationAnimator on rotation
@@ -20,7 +22,7 @@ TabButtonBase
       loops: Animation.Infinite
       from: 0
       to: 360
-      duration: 3000
+      duration: Metrics.durationLong
     }
   }
 
@@ -28,7 +30,7 @@ TabButtonBase
   {
     visible: !root.runningState
     anchors.fill: parent
-    source: "qrc:/qt/qml/ui/qml/res/check_mark.svg"
+    source: Icons.checkMark
     preferredRendererType: VectorImage.CurveRenderer
   }
 }

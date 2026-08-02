@@ -36,6 +36,9 @@ concept executor_kind = requires(
 template<std::default_initializable T>
 class adapter
 {
+  // Variables
+  mutable T sigs_; // mutable to be able to fire and connect from constant members
+
 public: // Typedefs
   using signals_type = T;
 
@@ -50,7 +53,7 @@ public: // Modifiers
   /// \param slot Slot to connect
   /// \return scoped connection corresponding to connected slot
   ///
-  [[nodiscard]] auto connect(auto sig_projection, auto&& slot) -> scoped_connection_type;
+  [[nodiscard]] auto connect(auto sig_projection, auto&& slot) const -> scoped_connection_type;
 
   ///
   /// Connect a slot to the signal specified by the projection, allowing extended functionality.
@@ -58,7 +61,7 @@ public: // Modifiers
   /// \param slot Slot to connect
   /// \return connection corresponding to connected slot
   ///
-  auto connect_extended(auto sig_projection, auto&& slot) -> connection_type;
+  auto connect_extended(auto sig_projection, auto&& slot) const -> connection_type;
 
   ///
   ///  Connect a slot to the signal specified by the projection, ensuring the slot is called
@@ -68,7 +71,7 @@ public: // Modifiers
   /// \param slot Slot to connect
   /// \param executor Executor to use for the slot
   ///
-  auto connect_queued(auto sig_projection, auto&& slot, executor_kind auto& executor) -> void;
+  auto connect_queued(auto sig_projection, auto&& slot, executor_kind auto& executor) const -> void;
 
   ///
   /// Connect a slot to the signal specified by the projection, allowing extended functionality and ensuring
@@ -78,7 +81,7 @@ public: // Modifiers
   /// \param slot Slot to connect
   /// \param executor Executor to use for the slot
   ///
-  auto connect_queued_extended(auto sig_projection, auto&& slot, executor_kind auto& executor) -> void;
+  auto connect_queued_extended(auto sig_projection, auto&& slot, executor_kind auto& executor) const -> void;
 
 protected: // Accessors
   ///
@@ -88,15 +91,12 @@ protected: // Accessors
   /// \return result of the signal call, if any
   ///
   auto notify(auto sig_projection, auto&&... args) -> auto;
-
-private: // Variables
-  T sigs_;
 };
 
 ///
 ///
 template<std::default_initializable T>
-auto adapter<T>::connect(auto sig_projection, auto&& slot) -> scoped_connection_type
+auto adapter<T>::connect(auto sig_projection, auto&& slot) const -> scoped_connection_type
 {
   return std::invoke(sig_projection, sigs_).connect(std::forward<decltype(slot)>(slot));
 }
@@ -104,7 +104,7 @@ auto adapter<T>::connect(auto sig_projection, auto&& slot) -> scoped_connection_
 ///
 ///
 template<std::default_initializable T>
-auto adapter<T>::connect_extended(auto sig_projection, auto&& slot) -> connection_type
+auto adapter<T>::connect_extended(auto sig_projection, auto&& slot) const -> connection_type
 {
   return std::invoke(sig_projection, sigs_).connect_extended(std::forward<decltype(slot)>(slot));
 }
@@ -112,7 +112,7 @@ auto adapter<T>::connect_extended(auto sig_projection, auto&& slot) -> connectio
 ///
 ///
 template<std::default_initializable T>
-auto adapter<T>::connect_queued(auto sig_projection, auto&& slot, executor_kind auto& executor) -> void
+auto adapter<T>::connect_queued(auto sig_projection, auto&& slot, executor_kind auto& executor) const -> void
 {
   executor.connect(std::invoke(sig_projection, sigs_), std::forward<decltype(slot)>(slot));
 }
@@ -120,7 +120,7 @@ auto adapter<T>::connect_queued(auto sig_projection, auto&& slot, executor_kind 
 ///
 ///
 template<std::default_initializable T>
-auto adapter<T>::connect_queued_extended(auto sig_projection, auto&& slot, executor_kind auto& executor) -> void
+auto adapter<T>::connect_queued_extended(auto sig_projection, auto&& slot, executor_kind auto& executor) const -> void
 {
   executor.connect_extended(std::invoke(sig_projection, sigs_), std::forward<decltype(slot)>(slot));
 }

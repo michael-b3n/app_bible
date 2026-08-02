@@ -15,9 +15,12 @@ class uid final
   // Friends
   friend struct std::formatter<uid<Tag>>;
 
+  // Variables
+  std::uint64_t value_;
+
 public: // Typedefs
   using tag_type = Tag;
-  using underlying_type = std::uint64_t;
+  using underlying_type = decltype(value_);
 
 public: // Static helpers
   ///
@@ -34,9 +37,6 @@ public: // Operators
 
 private: // Structors
   constexpr uid(underlying_type value);
-
-private: // Variables
-  underlying_type value_;
 };
 
 ///

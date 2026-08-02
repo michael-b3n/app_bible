@@ -50,6 +50,11 @@ auto to_language_tag(const util::language language) -> winrt::hstring
 ///
 class ocr_engine_windows final : public txt::ocr_engine<txt::ocr_engine_tag_plain>
 {
+  // Variables
+  winrt_ocr::OcrEngine engine_{nullptr};
+  std::optional<winrt_imaging::SoftwareBitmap> bitmap_;
+  mutable recognition_data recognition_data_;
+
 public: // Structors
   explicit ocr_engine_windows(util::language language);
 
@@ -79,11 +84,6 @@ public: // Overrides$
 private: // Implementation
   auto create_bitmap(pixel_plane_view_type image, std::optional<pixel_plane_view_type::area_type> subarea) -> void;
   auto compute_line_bounding_box(const std::vector<word>& words) const -> bounding_box_type;
-
-private: // Variables
-  winrt_ocr::OcrEngine engine_{nullptr};
-  std::optional<winrt_imaging::SoftwareBitmap> bitmap_;
-  mutable recognition_data recognition_data_;
 };
 
 ///

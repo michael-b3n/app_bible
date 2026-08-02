@@ -17,9 +17,16 @@ namespace bibstd::framework
 ///
 class property_tree final : public std::enable_shared_from_this<property_tree>
 {
+  // Variables
+  inline static std::mutex trees_mtx_{};
+  inline static std::vector<std::weak_ptr<property_tree>> trees_{};
+  mutable std::mutex mtx_;
+  std::filesystem::path tree_file_path_;
+  property_tree_type tree_;
+
 public: // Typedefs
   using sptr_type = std::shared_ptr<property_tree>;
-  using tree_type = property_tree_type;
+  using tree_type = decltype(tree_);
   using path_type = property_path_type;
 
 public: // Creator
@@ -46,13 +53,6 @@ public: // Modifiers
   ///
   template<typename T>
   [[nodiscard]] auto create_property(const property_path_type& path, T&& default_value) -> property<T>;
-
-private: // Variables
-  inline static std::mutex trees_mtx_{};
-  inline static std::vector<std::weak_ptr<property_tree>> trees_{};
-  mutable std::mutex mtx_;
-  std::filesystem::path tree_file_path_;
-  property_tree_type tree_;
 };
 
 ///

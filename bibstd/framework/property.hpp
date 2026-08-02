@@ -13,6 +13,13 @@ namespace bibstd::framework
 template<typename T>
 class property final
 {
+  friend class property_tree;
+
+  // Variables
+  mutable std::mutex mtx_;
+  T value_;
+  std::function<void(const T&)> property_tree_update_;
+
 public: // Typedefs
   using value_type = T;
 
@@ -48,14 +55,6 @@ public: // Modifiers
   /// \return old property value
   ///
   auto exchange(const value_type& new_value) -> value_type;
-
-private: // Implementation
-  friend class property_tree;
-
-private: // Variables
-  mutable std::mutex mtx_;
-  value_type value_;
-  std::function<void(const value_type&)> property_tree_update_;
 };
 
 ///

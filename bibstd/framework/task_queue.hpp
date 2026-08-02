@@ -13,8 +13,15 @@ namespace bibstd::framework
 ///
 class task_queue final
 {
+  // Variables
+  bool shutdown_{false};
+  mutable std::mutex queue_mtx_;
+  mutable std::mutex task_mtx_;
+  std::condition_variable task_cv_;
+  std::queue<std::move_only_function<void()>> task_queue_;
+
 public: // Typedefs
-  using task_type = std::move_only_function<void()>;
+  using task_type = decltype(task_queue_)::value_type;
 
 public: // Constructor
   ///
@@ -61,13 +68,6 @@ public: // Modifiers
 
 private: // Implementation
   auto do_task_impl(std::unique_lock<std::mutex>& queue_lock) -> void;
-
-private: // Variables
-  bool shutdown_{false};
-  mutable std::mutex queue_mtx_;
-  mutable std::mutex task_mtx_;
-  std::condition_variable task_cv_;
-  std::queue<task_type> task_queue_;
 };
 
 } // namespace bibstd::framework

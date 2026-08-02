@@ -25,7 +25,7 @@ constexpr auto contains(const std::ranges::range auto& container, const auto& el
 /// \return bool true if element is found in container, false otherwise
 ///
 constexpr auto contains(const std::ranges::range auto& container, const auto& pred) -> bool
-  requires std::predicate<decltype(pred), std::ranges::range_value_t<decltype(container)>>
+  requires(std::predicate<decltype(pred), std::ranges::range_value_t<decltype(container)>>)
 {
   return std::ranges::find_if(container, pred) != std::ranges::cend(container);
 }
@@ -37,7 +37,7 @@ constexpr auto contains(const std::ranges::range auto& container, const auto& pr
 /// \return bool true if element is found in container, false otherwise
 ///
 constexpr auto contains(std::ranges::view auto view, const auto& pred) -> bool
-  requires std::predicate<decltype(pred), std::ranges::range_value_t<decltype(view)>>
+  requires(std::predicate<decltype(pred), std::ranges::range_value_t<decltype(view)>>)
 {
   return std::ranges::find_if(view, pred) != std::ranges::cend(view);
 }

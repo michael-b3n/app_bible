@@ -22,8 +22,9 @@ namespace bibstd::workflow
 
 ///
 ///
-workflow_bible_ref_ocr_settings::workflow_bible_ref_ocr_settings()
-  : tessdata_path{workflow_settings_->create_setting("ocr.tessdata_path", txt::ocr_engine_tesseract::tessdata_folder_finder())}
+workflow_bible_ref_ocr_settings::workflow_bible_ref_ocr_settings(std::shared_ptr<workflow_settings> workflow_settings)
+  : framework::settings_base{std::move(workflow_settings)}
+  , tessdata_path{workflow_settings_->create_setting("ocr.tessdata_path", txt::ocr_engine_tesseract::tessdata_folder_finder())}
   , character_recognition_ocr_engine{workflow_settings_->create_setting(
       "ocr.character_recognition_ocr_engine",
       setting_value_t<decltype(character_recognition_ocr_engine)>{},
@@ -53,8 +54,11 @@ workflow_bible_ref_ocr_settings::workflow_bible_ref_ocr_settings()
 
 ///
 ///
-workflow_bible_ref_ocr::workflow_bible_ref_ocr(std::shared_ptr<workflow_scripture> workflow_scripture)
-  : core_bible_ref_finder_{std::make_unique<core::core_bible_ref_finder>()}
+workflow_bible_ref_ocr::workflow_bible_ref_ocr(
+  std::shared_ptr<workflow_settings> workflow_settings, std::shared_ptr<workflow_scripture> workflow_scripture
+)
+  : workflow_base{std::move(workflow_settings)}
+  , core_bible_ref_finder_{std::make_unique<core::core_bible_ref_finder>()}
   , workflow_scripture_{std::move(workflow_scripture)}
 {
   init();
@@ -72,7 +76,7 @@ auto workflow_bible_ref_ocr::find(const params& params) -> result
   {
     const auto lock = std::scoped_lock{mtx_};
 
-    const auto character_recognition_ocr_engine = settings->character_recognition_ocr_engine->value();
+    const auto character_recognition_ocr_engine = settings().character_recognition_ocr_engine->value();
     if(!character_recognition_ocr_engine.has_value() || ocr_engines_.empty())
     {
       LOG_WARN("failed to start bible reference ocr search: no ocr engines initialized");
@@ -80,8 +84,8 @@ auto workflow_bible_ref_ocr::find(const params& params) -> result
     }
     const auto local_settings = settings_t{
       .character_recognition_ocr_engine = *character_recognition_ocr_engine,
-      .layout_recognition_ocr_engine = settings->layout_recognition_ocr_engine->value(),
-      .language = settings->language->value(),
+      .layout_recognition_ocr_engine = settings().layout_recognition_ocr_engine->value(),
+      .language = settings().language->value(),
       .versification = versification()
     };
     LOG_INFO(
@@ -140,24 +144,24 @@ auto workflow_bible_ref_ocr::find(const params& params) -> result
 auto workflow_bible_ref_ocr::init() -> void
 {
   const auto lock = std::scoped_lock{mtx_};
-  auto ocr_engine_system = system::ocr::create(settings->language->value());
+  auto ocr_engine_system = system::ocr::create(settings().language->value());
   if(!std::holds_alternative<std::monostate>(ocr_engine_system))
   {
     ocr_engines_.emplace_back(std::move(ocr_engine_system));
   }
-  if(!settings->tessdata_path->value() || !std::filesystem::exists(*settings->tessdata_path->value()))
+  if(!settings().tessdata_path->value() || !std::filesystem::exists(*settings().tessdata_path->value()))
   {
     if(const auto found_tessdata_folder = txt::ocr_engine_tesseract::tessdata_folder_finder())
     {
       LOG_WARN("tessdata path setting invalid: used_alternative_folder=\"{}\"", found_tessdata_folder->generic_string());
-      settings->tessdata_path->value(*found_tessdata_folder);
+      settings().tessdata_path->value(*found_tessdata_folder);
     }
   }
-  const auto path = settings->tessdata_path->value();
+  const auto path = settings().tessdata_path->value();
   if(path && std::filesystem::exists(*path))
   {
     txt::ocr_engine_tesseract::uptr_type ocr_engine_tesseract =
-      std::make_unique<txt::ocr_engine_tesseract>(*path, settings->language->value());
+      std::make_unique<txt::ocr_engine_tesseract>(*path, settings().language->value());
     ocr_engines_.emplace_back(std::move(ocr_engine_tesseract));
   }
 
@@ -181,17 +185,17 @@ auto workflow_bible_ref_ocr::init() -> void
     }
   );
   using validator_type = framework::setting_validator_list<std::optional<std::string>>::sptr_type;
-  decltype(auto) cr_validator = std::get<validator_type>(settings->character_recognition_ocr_engine->validator);
+  decltype(auto) cr_validator = std::get<validator_type>(settings().character_recognition_ocr_engine->validator);
   std::ignore = cr_validator->available(character_recognition_engines);
   if(!character_recognition_engines.empty())
   {
-    settings->character_recognition_ocr_engine->value(character_recognition_engines.front());
+    settings().character_recognition_ocr_engine->value(character_recognition_engines.front());
   }
-  decltype(auto) lr_validator = std::get<validator_type>(settings->layout_recognition_ocr_engine->validator);
+  decltype(auto) lr_validator = std::get<validator_type>(settings().layout_recognition_ocr_engine->validator);
   std::ignore = lr_validator->available(layout_recognition_engines);
   if(!layout_recognition_engines.empty())
   {
-    settings->layout_recognition_ocr_engine->value(layout_recognition_engines.front());
+    settings().layout_recognition_ocr_engine->value(layout_recognition_engines.front());
   }
 }
 
@@ -208,7 +212,7 @@ auto workflow_bible_ref_ocr::versification() const -> decltype(settings_t::versi
   {
     LOG_WARN("failed to get versification from selected default scripture: using fallback versification");
     return decltype(settings_t::versification){bible::scripture::versification_type{
-      workflow_scripture::default_versifications.at(settings->fallback_versification_name->value())
+      workflow_scripture::default_versifications.at(settings().fallback_versification_name->value())
     }};
   }
 }

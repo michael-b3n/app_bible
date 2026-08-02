@@ -4,6 +4,7 @@ project(libs_external)
 
 add_subdirectory(incbin)
 add_subdirectory(magic_enum)
+add_subdirectory(rapidcsv)
 add_subdirectory(traypp)
 
 add_library(libs_external_all INTERFACE IMPORTED GLOBAL)
@@ -11,6 +12,7 @@ target_link_libraries(libs_external_all
   INTERFACE
   incbin::incbin
   magic_enum::magic_enum
+  rapidcsv::rapidcsv
   tray::tray
 )
 

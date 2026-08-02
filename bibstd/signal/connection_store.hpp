@@ -13,6 +13,10 @@ namespace bibstd::signal
 ///
 class connection_store final
 {
+  // Variables
+  mutable std::mutex mtx_;
+  std::vector<scoped_connection_type> connections_;
+
 public: // Constructor
   connection_store() = default;
   ~connection_store() noexcept;
@@ -28,10 +32,6 @@ public: // Modifiers
   /// Clear connection store and disconnect all connections.
   ///
   auto clear() -> void;
-
-private: // Variables
-  mutable std::mutex mtx_;
-  std::vector<scoped_connection_type> connections_;
 };
 
 } // namespace bibstd::signal

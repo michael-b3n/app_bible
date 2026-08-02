@@ -4,5 +4,6 @@ TabButtonIconSimple
 {
   id: root
 
-  svgSource: "qrc:/qt/qml/ui/qml/res/settings.svg"
+  // Properties
+  svgSource: Icons.settings
 }

@@ -17,6 +17,21 @@ namespace bibstd::util
 template<enum_type E>
 class bitflags final
 {
+  // clang-format off
+  static_assert(
+    util::enum_count<E>() > 0,
+    "requires at least one enum value");
+  static_assert(
+    [] { return std::ranges::all_of(util::enum_values<E>(), [c = 0](const auto v) mutable { return to_integral(v) == c++; }); }(),
+    "requires that the enum values are sequential starting from 0");
+  // clang-format on
+
+  // Typedefs
+  using bitset_type = std::bitset<util::enum_count<E>()>;
+
+  // Variables
+  bitset_type flags_{};
+
 public: // Constructor
   constexpr bitflags() = default;
   template<typename... Flags>
@@ -123,24 +138,8 @@ public: // Operators
   constexpr auto operator^=(E flag) -> bitflags&;
   constexpr auto operator~() const -> bitflags;
 
-private: // Constants
-  // clang-format off
-  static_assert(
-    util::enum_count<E>() > 0,
-    "requires at least one enum value");
-  static_assert(
-    [] { return std::ranges::all_of(util::enum_values<E>(), [c = 0](const auto v) mutable { return to_integral(v) == c++; }); }(),
-    "requires that the enum values are sequential starting from 0");
-  // clang-format on
-
-private: // Typedefs
-  using bitset_type = std::bitset<util::enum_count<E>()>;
-
 private: // Constructors
   constexpr explicit bitflags(bitset_type bits);
-
-private: // Variables
-  bitset_type flags_{};
 };
 
 ///

@@ -3,7 +3,6 @@
 #include "bibstd/framework/property.hpp"
 #include "bibstd/framework/setting_common.hpp"
 #include "bibstd/framework/setting_validator.hpp"
-#include "bibstd/meta/type_traits.hpp"
 #include "bibstd/signal/adapter.hpp"
 #include "bibstd/util/visit_helper.hpp"
 
@@ -30,12 +29,19 @@ struct setting_signals final
 template<underlying_setting_type T>
 class setting final : public signal::adapter<setting_signals>
 {
+  // Variables
+  property<T> value_;
+
 public: // Typedefs
   using value_type = T;
   using sptr_type = std::shared_ptr<setting<value_type>>;
 
+public: // Variables
+  const std::string path;
+  const setting_validator<value_type> validator;
+
 public: // Structors
-  setting(const std::string& path, property<value_type>&& value, setting_validator<value_type>&& validator);
+  setting(std::string path, property<value_type> value, setting_validator<value_type> validator);
 
 public: // Accessors
   ///
@@ -53,22 +59,15 @@ public: // Setters
 
 private: // Helpers
   auto validate() -> void;
-
-public: // Variables
-  const std::string path;
-  const setting_validator<value_type> validator;
-
-private: // Variables
-  property<value_type> value_;
 };
 
 ///
 ///
 template<underlying_setting_type T>
-setting<T>::setting(const std::string& path_, property<value_type>&& value, setting_validator<value_type>&& validator_)
-  : path{path_}
+setting<T>::setting(std::string path_, property<value_type> value, setting_validator<value_type> validator_)
+  : value_{std::move(value)}
+  , path{std::move(path_)}
   , validator{std::move(validator_)}
-  , value_{std::move(value)}
 {
   std::visit(
     [this](const auto& v)
@@ -97,7 +96,7 @@ auto setting<T>::value() const -> T
 ///
 ///
 template<underlying_setting_type T>
-auto setting<T>::value(const T& v) -> bool
+auto setting<T>::value(const value_type& v) -> bool
 {
   return util::visit_lambdas(
     validator,
@@ -122,7 +121,9 @@ auto setting<T>::value(const T& v) -> bool
     },
     [&](const setting_validator_list<value_type>::sptr_type& validator_list) -> bool
     {
-      const auto contains = validator_list->contains(v);
+      // check if the value is contained in the list or if the list is empty (special case).
+      // Empty list means the validator is not initialized, so validation is ignored.
+      const auto contains = validator_list->contains(v) || validator_list->empty();
       if(contains)
       {
         decltype(auto) old_value = value_.exchange(v);
@@ -155,12 +156,21 @@ auto setting<T>::validate() -> void
     },
     [&](const setting_validator_list<value_type>::sptr_type& validator_list)
     {
-      const auto contains = validator_list->contains(value_.value());
+      // Check if the value is contained in the list or if the list is empty (special case).
+      // Empty list means the validator is not initialized, so validation is ignored.
+      const auto contains = validator_list->contains(value_.value()) || validator_list->empty();
       if(!contains)
       {
         const auto changed = [&]
         {
-          if constexpr(meta::is_optional_v<T>)
+          if constexpr(setting_validator_list<value_type>::is_vector_type)
+          {
+            auto new_value = value_.value();
+            std::erase_if(new_value, [&](const auto& v) { return !validator_list->contains(v); });
+            decltype(auto) old_value = value_.exchange(std::move(new_value));
+            return old_value != new_value;
+          }
+          else if constexpr(setting_validator_list<value_type>::is_optional_type)
           {
             decltype(auto) old_value = value_.exchange(std::nullopt);
             return old_value != std::nullopt;

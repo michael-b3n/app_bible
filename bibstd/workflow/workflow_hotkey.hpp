@@ -16,9 +16,9 @@ namespace bibstd::workflow
 ///
 /// Workflow hotkey. This workflow manages the registration of a hotkey and the corresponding callback.
 ///
-class workflow_hotkey final : public workflow_base<workflow_hotkey>
+class workflow_hotkey final : public workflow_base<void>
 {
-private: // Typedefs
+  // Typedefs
   ///
   /// Hotkey parameters to assign a registered callback to a specific hotkey.
   ///
@@ -37,10 +37,16 @@ private: // Typedefs
     hotkey_type::key key;
   };
 
+  // Variables
+  const util::shared_scope_guard thread_pool_guard_;
+  const util::shared_scope_guard hotkey_guard_;
+  mutable std::mutex mtx_;
+  std::unordered_map<assign_params_t::path_type, std::shared_ptr<signal::signal_type<void()>>> shared_sigs_;
+
 public: // Typedefs
   using path_type = assign_params_t::path_type;
   using assign_params = framework::process_params<assign_params_t>;
-  using shared_sig_type = std::shared_ptr<signal::signal_type<void()>>;
+  using shared_sig_type = decltype(shared_sigs_)::mapped_type;
 
 public: // Structors
   workflow_hotkey();
@@ -67,12 +73,6 @@ public: // Modifiers
   /// \return The shared signal associated with the path
   ///
   [[nodiscard]] auto register_callback(const path_type& path) -> shared_sig_type;
-
-private: // Variables
-  const util::shared_scope_guard thread_pool_guard_;
-  const util::shared_scope_guard hotkey_guard_;
-  mutable std::mutex mtx_;
-  std::unordered_map<path_type, shared_sig_type> shared_sigs_;
 };
 
 } // namespace bibstd::workflow

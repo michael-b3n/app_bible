@@ -32,7 +32,7 @@ constexpr auto is_equal(const T v1, const T v2, const T epsilon = std::numeric_l
 /// \return true, if first value is equal to second value
 ///
 template<std::integral T1, std::integral T2>
-  requires std::equality_comparable_with<T1, T2>
+  requires(std::equality_comparable_with<T1, T2>)
 constexpr auto is_equal(
   const T1 v1,
   const T2 v2,

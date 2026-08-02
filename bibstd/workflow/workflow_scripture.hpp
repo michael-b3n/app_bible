@@ -3,20 +3,21 @@
 #include "bibstd/bible/scripture.hpp"
 #include "bibstd/framework/process_params.hpp"
 #include "bibstd/framework/settings_base.hpp"
-#include "bibstd/framework/settings_owner.hpp"
 #include "bibstd/util/const_map.hpp"
 #include "bibstd/workflow/workflow_base.hpp"
+#include "bibstd/workflow/workflow_settings.hpp"
 
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <variant>
 
+// Forward declarations
 namespace bibstd::core
 {
-// Forward declarations
 class core_scripture_store;
 } // namespace bibstd::core
+
 namespace bibstd::workflow
 {
 
@@ -26,7 +27,7 @@ namespace bibstd::workflow
 class workflow_scripture_settings final : public framework::settings_base
 {
 public: // Structors
-  workflow_scripture_settings();
+  workflow_scripture_settings(std::shared_ptr<workflow_settings> workflow_settings);
   ~workflow_scripture_settings() noexcept = default;
 
 public: // Variables
@@ -36,11 +37,9 @@ public: // Variables
 ///
 /// Workflow for scripture.
 ///
-class workflow_scripture final
-  : public workflow_base<workflow_scripture>
-  , public framework::settings_owner<workflow_scripture_settings>
+class workflow_scripture final : public workflow_base<workflow_scripture_settings>
 {
-private: // Typedefs
+  // Typedefs
   ///
   /// Wrapper for bible scripture versification.
   /// This wrapper is needed to provide access to the versification
@@ -97,6 +96,10 @@ private: // Typedefs
     bible::scripture::passage_html_type passage;
   };
 
+  // Variables
+  mutable std::mutex mtx_;
+  const std::unique_ptr<core::core_scripture_store> core_scripture_store_;
+
 public: // Constants
   static constexpr auto default_versifications = []()
   {
@@ -119,7 +122,7 @@ public: // Typedefs
   using passage_result = framework::process_result<passage_result_t>;
 
 public: // Structors
-  workflow_scripture();
+  workflow_scripture(std::shared_ptr<workflow_settings> workflow_settings);
   ~workflow_scripture() noexcept;
 
 public: // Accessors
@@ -141,10 +144,6 @@ public: // Accessors
 
 private: // Implementation
   auto init() -> void;
-
-private: // Variables
-  mutable std::mutex mtx_;
-  const std::unique_ptr<core::core_scripture_store> core_scripture_store_;
 };
 
 } // namespace bibstd::workflow

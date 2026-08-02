@@ -17,6 +17,14 @@ namespace bibstd::system
 ///
 class hotkey_impl final
 {
+  // Variables
+  inline static std::unique_ptr<framework::active_worker> worker_{};
+  inline static std::atomic_bool listen_to_msg_{true};
+  inline static std::atomic<std::optional<unsigned long /*WORD*/>> windows_thread_id_{std::nullopt};
+  inline static framework::task_queue register_queue_{};
+  inline static std::map<int, std::function<void()>> callback_map_{};
+  inline static std::map<std::pair<hotkey_common::key, hotkey_common::key_modifier>, int> id_map_{};
+
 public: // Static modifiers
   ///
   /// \see hotkey::init
@@ -36,14 +44,6 @@ public: // Static modifiers
 
 private: // Static helpers
   static auto get_message() -> void;
-
-private:
-  inline static std::unique_ptr<framework::active_worker> worker_{};
-  inline static std::atomic_bool listen_to_msg_{true};
-  inline static std::atomic<std::optional<unsigned long /*WORD*/>> windows_thread_id_{std::nullopt};
-  inline static framework::task_queue register_queue_{};
-  inline static std::map<int, std::function<void()>> callback_map_{};
-  inline static std::map<std::pair<hotkey_common::key, hotkey_common::key_modifier>, int> id_map_{};
 };
 
 } // namespace bibstd::system

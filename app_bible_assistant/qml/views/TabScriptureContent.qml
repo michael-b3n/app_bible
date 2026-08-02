@@ -4,18 +4,27 @@ import QtQuick
 import QtQuick.Controls
 import BibQml
 
+///
+/// This objects describes the content of the scripture tab.
+/// A list view lists dynamically loaded verses from the listModelScripture.
+///
 Item
 {
   id: root
 
+  // Properties
+  required property ScriptureListModel listModelScripture
   required property BridgeBibleRefOcr bridgeBibleRefOcr
-  required property ScriptureListModel listModelPassage
 
-  // Sticky header showing current book and chapter
+  // Components
+  ///
+  /// Sticky header showing current book and chapter
+  ///
   Rectangle
   {
     id: stickyHeader
 
+    // Properties
     anchors.top: parent.top
     anchors.left: parent.left
     anchors.right: parent.right
@@ -23,10 +32,12 @@ Item
     color: Colors.backgroundSolid
     z: 1
 
+    // Components
     Text
     {
       id: stickyHeaderText
 
+      // Properties
       anchors.centerIn: parent
       text: listView.currentBook + (listView.currentChapter > 0 ? " " + listView.currentChapter : "")
       font.pointSize: Metrics.fontSizeBody
@@ -37,17 +48,28 @@ Item
 
     Rectangle
     {
+      // Properties
       anchors.bottom: parent.bottom
       anchors.left: parent.left
       anchors.right: parent.right
-      height: 1
+      height: Metrics.border
       color: Colors.border
     }
   }
 
+  ///
+  /// List view with the scripture content.
+  ///
   ListView
   {
     id: listView
+
+    // Properties
+    // Number of verses that are requested from the model whenever
+    // an end of the already loaded scripture range is reached.
+    readonly property int pageSize: 10
+    // Pixels of delegates kept alive outside the visible area.
+    readonly property int cachedPixels: 600
 
     property string currentBook: ""
     property int currentChapter: 0
@@ -57,96 +79,66 @@ Item
     anchors.right: parent.right
     anchors.bottom: parent.bottom
     clip: true
-    model: root.listModelPassage
+    model: root.listModelScripture
     spacing: Metrics.spacingTiny
-    cacheBuffer: 600
+    cacheBuffer: listView.cachedPixels
 
-    onContentYChanged: updateHeader()
-    onCountChanged: updateHeader()
-
-    function updateHeader()
+    // Connections
+    onContentYChanged: listView.updateHeader()
+    onCountChanged: listView.updateHeader()
+    onAtYBeginningChanged: listView.loadPrevious(listView.pageSize)
+    onAtYEndChanged:
     {
-      if(!model || model.rowCount() === 0)
+      if(listView.atYEnd && listView.model && listView.model.rowCount() > 0)
       {
-        currentBook = ""
-        currentChapter = 0
-        return
-      }
-      let idx = indexAt(0, contentY + 1)
-      if(idx >= 0)
-      {
-        currentBook = model.bookName(idx)
-        currentChapter = model.chapterNumber(idx)
+        listView.model.loadNext(listView.pageSize)
       }
     }
-
-    function loadPrevious(count)
-    {
-      if(atYBeginning && model && model.rowCount() > 0)
-      {
-        let prevCount = model.rowCount()
-        model.loadPrevious(count)
-        // Maintain scroll position after prepending
-        let addedCount = model.rowCount() - prevCount
-        if(addedCount > 0)
-        {
-          positionViewAtIndex(addedCount, ListView.Beginning)
-        }
-      }
-    }
-
     Connections
     {
-      target: root.listModelPassage
+      target: root.listModelScripture
       function onRefreshed() { Qt.callLater(function() { listView.loadPrevious(1) }) }
     }
 
-    // Dynamic loading on scroll
-    onAtYBeginningChanged:
-    {
-      loadPrevious(10)
-    }
-
-    onAtYEndChanged:
-    {
-      if(atYEnd && model && model.rowCount() > 0)
-      {
-        model.loadNext(10)
-      }
-    }
-
+    // Components
     delegate: Column
     {
       id: delegateRoot
 
+      // Properties
       required property int index
       required property string verseText
       required property string bookName
-      required property int chapter
+      required property int chapterNumber
       required property int verseNumber
-      required property bool isBookHeader
-      required property bool isChapterHeader
+      required property bool isHeader
+      width: listView.width - scrollBar.width
 
-      width: listView.width - vScrollBar.width
-
-      // Book header
+      // Components
+      ///
+      /// Book header
+      ///
       Loader
       {
-        active: delegateRoot.isBookHeader
+        // Properties
+        active: delegateRoot.isHeader
         width: parent.width
         sourceComponent: Rectangle
         {
+          // Properties
           width: parent.width
-          height: bookTitle.implicitHeight + Metrics.spacingXLarge
+          height: bookTitle.implicitHeight + Metrics.spacingLarge
           color: Colors.bookHeader
           radius: Metrics.radiusMedium
 
+          // Components
           Text
           {
             id: bookTitle
 
+            // Properties
             anchors.centerIn: parent
-            text: delegateRoot.bookName
+            text: delegateRoot.bookName + " %1".arg(delegateRoot.chapterNumber)
             font.pointSize: Metrics.fontSizeHeading
             font.bold: true
             color: Colors.bookHeaderText
@@ -155,52 +147,25 @@ Item
         }
       }
 
-      // Chapter header
-      Loader
-      {
-        active: delegateRoot.isChapterHeader
-        width: parent.width
-        sourceComponent: Item
-        {
-          width: parent.width
-          height: chapterBadge.height + Metrics.spacingMedium
-
-          Rectangle
-          {
-            id: chapterBadge
-            anchors.left: parent.left
-            anchors.leftMargin: Metrics.spacingSmall
-            anchors.verticalCenter: parent.verticalCenter
-            width: chapterLabel.implicitWidth + Metrics.spacingXLarge
-            height: chapterLabel.implicitHeight + Metrics.spacingMedium
-            radius: Metrics.radiusMedium
-            color: Colors.chapterBox
-
-            Text
-            {
-              id: chapterLabel
-
-              anchors.centerIn: parent
-              text: qsTr("Kapitel %1").arg(delegateRoot.chapter)
-              font.pointSize: Metrics.fontSizeBody
-              font.bold: true
-              color: Colors.chapterText
-              renderType: Text.CurveRendering
-            }
-          }
-        }
-      }
-
-      // Verse row: badge + text
+      ///
+      /// Verse row: badge + text
+      ///
       Row
       {
+        // Properties
         width: parent.width
         leftPadding: Metrics.spacingSmall
         spacing: Metrics.spacingMedium
 
+        // Components
+        ///
+        /// Badge with verse number
+        ///
         Rectangle
         {
           id: verseBadge
+
+          // Properties
           width: verseNum.implicitWidth + Metrics.spacingLarge
           height: verseNum.implicitHeight + Metrics.spacingSmall
           radius: Metrics.radiusMedium
@@ -212,6 +177,7 @@ Item
           {
             id: verseNum
 
+            // Properties
             anchors.centerIn: parent
             text: delegateRoot.verseNumber
             font.pointSize: Metrics.fontSizeSmall
@@ -221,8 +187,12 @@ Item
           }
         }
 
+        ///
+        /// Scripture text
+        ///
         Text
         {
+          // Properties
           width: parent.width - verseBadge.width - parent.spacing - parent.leftPadding
           text: delegateRoot.verseText
           textFormat: Text.RichText
@@ -234,26 +204,38 @@ Item
       }
     }
 
-    ScrollBar.vertical: ScrollBar
+    ScrollBar.vertical: ScrollBarSimple{ id: scrollBar }
+
+    // Functions
+    function updateHeader()
     {
-      id: vScrollBar
-      policy: ScrollBar.AsNeeded
-
-      background: Rectangle
+      if(!listView.model || listView.model.rowCount() === 0)
       {
-        implicitWidth: 10
-        color: Colors.backgroundSolid
-        radius: 5
+        listView.currentBook = ""
+        listView.currentChapter = 0
+        return
       }
-
-      contentItem: Rectangle
+      let row = listView.indexAt(listView.contentX, listView.contentY)
+      if(row >= 0)
       {
-        implicitWidth: 6
-        radius: 3
-        color: vScrollBar.pressed ? Colors.pressed : Colors.border
-        opacity: vScrollBar.active ? 1.0 : 0.0
+        let idx = listView.model.index(row, 0)
+        listView.currentBook = listView.model.data(idx, ScriptureListModel.BookNameRole)
+        listView.currentChapter = Number(listView.model.data(idx, ScriptureListModel.ChapterNumberRole))
+      }
+    }
 
-        Behavior on opacity { NumberAnimation { duration: 200 } }
+    function loadPrevious(count)
+    {
+      if(listView.atYBeginning && listView.model && listView.model.rowCount() > 0)
+      {
+        let prevCount = listView.model.rowCount()
+        listView.model.loadPrevious(count)
+        // Maintain scroll position after prepending
+        let addedCount = listView.model.rowCount() - prevCount
+        if(addedCount > 0)
+        {
+          listView.positionViewAtIndex(addedCount, ListView.Beginning)
+        }
       }
     }
   }

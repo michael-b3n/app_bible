@@ -1,44 +1,49 @@
 import QtQuick
-import QtQuick.Controls.Universal
 import BibQml
 
-
+///
+/// Application root object.
+/// It owns the transparent background window carrying the speech bubble
+/// shape and the main window carrying the actual content. Both windows are
+/// positioned relative to the cursor position reported by the ocr bridge.
+///
+/// Note the /*no binding*/ marker below flags imperative assignments that
+/// deliberately overwrite a binding.
+///
 QtObject
 {
   id: root
 
+  // Properties
+  required property SettingsListModel listModelSettings
+  required property ScriptureListModel listModelScripture
   required property BridgeBibleRefOcr bridgeBibleRefOcr
-  required property ScriptureListModel listModelPassage
 
   // Constants
-  /*no binding*/ readonly property real goldenRatio: 1.618
-  /*no binding*/ readonly property int margin: Metrics.spacingSmall
-  /*no binding*/ readonly property int radius : Metrics.radiusLarge
-  /*no binding*/ readonly property int opacityDuration: 200
-  /*no binding*/ readonly property int minimalWidth: Metrics.controlHeight * goldenRatio * 3
-  /*no binding*/ readonly property int minimalHeight: Metrics.controlHeight + 2 * margin
+  readonly property real goldenRatio: 1.618
+  readonly property int margin: Metrics.spacingSmall
+  readonly property int radius: Metrics.radiusLarge
+  readonly property int minimalWidth: Metrics.controlHeight * root.goldenRatio * 3
+  readonly property int minimalHeight: Metrics.controlHeight + 2 * root.margin
 
   // Screen geometry
-  /*no binding*/ property var screenGeometry: ScreenGeometryHelper.screenGeometryAt({ x: 0, y: 0 })
-  /*no binding*/ readonly property int screenLeftBorder: screenGeometry.x
-  /*no binding*/ readonly property int screenRightBorder: screenGeometry.x + screenGeometry.width
-  /*no binding*/ readonly property int screenTopBorder: screenGeometry.y
-  /*no binding*/ readonly property int screenBottomBorder: screenGeometry.y + screenGeometry.height
+  property var screenGeometry: ScreenGeometryHelper.screenGeometryAt({ x: 0, y: 0 })
+  readonly property int screenLeftBorder: root.screenGeometry.x
+  readonly property int screenRightBorder: root.screenGeometry.x + root.screenGeometry.width
+  readonly property int screenTopBorder: root.screenGeometry.y
+  readonly property int screenBottomBorder: root.screenGeometry.y + root.screenGeometry.height
 
   // Cursor position
-  /*no binding*/ property int cursorX: 0
-  /*no binding*/ property int cursorY: 0
+  property int cursorX: 0
+  property int cursorY: 0
 
   // Bubble offset and size
-  /*no binding*/ property int userOffsetToCursorX: -minimalWidth / goldenRatio
-  /*no binding*/ property int userOffsetToCursorY: -(minimalHeight * 10 + Metrics.spacingLarge)
-  /*no binding*/ property int offsetToCursorX: -Metrics.controlHeight * goldenRatio
-  /*no binding*/ property int offsetToCursorY: -100
-  /*no binding*/ property int mainWidth: minimalWidth * 2
-  /*no binding*/ property int mainHeight: minimalHeight * 10
-
-  Universal.theme: Universal.Dark
-  Universal.accent: Universal.Violet
+  property int userOffsetToCursorX: -root.minimalWidth / root.goldenRatio
+  property int userOffsetToCursorY: -(root.minimalHeight * 10 + Metrics.spacingLarge)
+  property int offsetToCursorX: -Metrics.controlHeight * root.goldenRatio
+  property int offsetToCursorY: -100
+  property int mainWidth: root.minimalWidth * 2
+  property int mainHeight: root.minimalHeight * 10
 
   // Connections
   property Connections bridgeConnections: Connections
@@ -50,17 +55,7 @@ QtObject
       root.cursorX = cursorPosition.x
       root.cursorY = cursorPosition.y
       root.screenGeometry = ScreenGeometryHelper.screenGeometryAt(cursorPosition)
-      Qt.callLater(function()
-      {
-        let constrained = root.constrainOffset(
-            root.userOffsetToCursorX,
-            root.userOffsetToCursorY,
-            root.mainWidth,
-            root.mainHeight
-          )
-        /*no binding*/ root.offsetToCursorX = constrained.x
-        /*no binding*/ root.offsetToCursorY = constrained.y
-      })
+      Qt.callLater(function() { root.applyConstrainedOffset() })
     }
 
     function onRunningChanged(running)
@@ -74,7 +69,8 @@ QtObject
         }
         else if(!mouseAreaHelper.containsMouse)
         {
-          // root.hide()
+          // TODO hiding on a stopped ocr run is disabled until the
+          // auto hide behaviour is settled, see root.hide().
         }
       })
     }
@@ -85,7 +81,7 @@ QtObject
   {
     id: background
 
-    // Object properties
+    // Properties
     visible: speechBubble.opacity > 0
     color: "transparent"
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowTransparentForInput
@@ -94,13 +90,15 @@ QtObject
     width: root.screenGeometry.width
     height: root.screenGeometry.height
 
-    onVisibleChanged: (visible) => { if(visible) { Qt.callLater(function() { main.raise() }) } }
+    // Connections
+    onVisibleChanged: { if(background.visible) { Qt.callLater(function() { main.raise() }) } }
 
-    // Children
+    // Components
     SpeechBubbleShape
     {
       id: speechBubble
 
+      // Properties
       opacity: 0
       radius: root.radius
       tailPositionX: root.cursorX - background.x
@@ -112,11 +110,12 @@ QtObject
       strokeColor: Colors.border
       fillColor: Colors.backgroundTransparent
 
+      // Animations
       Behavior on opacity
       {
         NumberAnimation
         {
-          duration: root.opacityDuration
+          duration: Metrics.durationShort
           easing.type: Easing.InOutQuad
         }
       }
@@ -128,6 +127,7 @@ QtObject
   {
     id: main
 
+    // Properties
     color: "transparent"
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     opacity: speechBubble.opacity
@@ -137,28 +137,25 @@ QtObject
     width: root.mainWidth
     height: root.mainHeight
 
-    MouseAreaHelper // Mouse area for interaction
+    // Components
+    // Mouse area for interaction
+    MouseAreaHelper
     {
       id: mouseAreaHelper
 
+      // Properties
       anchors.fill: parent
       expandable: true
-      expandAreaWidth: root.margin
+      expandAreaWidth: Metrics.spacingMedium
       movable: true
 
-      onReleased: (mouse) => { root.show() }
+      // Connections
+      onReleased: { root.show() }
       onMoveRequested: (deltaX, deltaY) =>
       {
         root.userOffsetToCursorX = root.offsetToCursorX + deltaX
         root.userOffsetToCursorY = root.offsetToCursorY + deltaY
-        let constrained = root.constrainOffset(
-          root.userOffsetToCursorX,
-          root.userOffsetToCursorY,
-          root.mainWidth,
-          root.mainHeight
-        )
-        /*no binding*/ root.offsetToCursorX = constrained.x
-        /*no binding*/ root.offsetToCursorY = constrained.y
+        root.applyConstrainedOffset()
       }
       onExpandRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
       {
@@ -176,15 +173,19 @@ QtObject
         /*no binding*/ root.mainHeight = constrained.height
       }
 
+      // Components
       MainTabLayout
       {
         id: mainTabLayout
 
+        // Properties
+        listModelSettings: root.listModelSettings
+        listModelScripture: root.listModelScripture
         bridgeBibleRefOcr: root.bridgeBibleRefOcr
-        listModelPassage: root.listModelPassage
 
         anchors.fill: parent
 
+        // Connections
         onCloseClicked: () =>
         {
           Qt.callLater(function()
@@ -196,28 +197,46 @@ QtObject
     }
   }
 
-  // Helper functions
-  //
-  // Shows the background shape adjusted to content bounds.
-  //
+  // Functions
+  ///
+  /// Fades both windows in and raises the main window above the background.
+  /// Both windows follow the bubble opacity, so this shows them as well.
+  ///
   function show()
   {
     speechBubble.opacity = 1
     Qt.callLater(function() { main.raise() })
   }
 
-  //
-  // Hides both foreground and background shapes and windows.
-  //
+  ///
+  /// Fades both windows out.
+  /// Both windows follow the bubble opacity, so this hides them as well.
+  ///
   function hide()
   {
     speechBubble.opacity = 0
   }
 
-  //
-  // Constrains the bubble offset to keep it within screen bounds
-  // Returns adjusted offset coordinates that ensure the bubble stays fully visible
-  //
+  ///
+  /// Constrains the user requested offset to the current screen
+  /// and applies it to the offset the windows are positioned by.
+  ///
+  function applyConstrainedOffset()
+  {
+    let constrained = root.constrainOffset(
+      root.userOffsetToCursorX,
+      root.userOffsetToCursorY,
+      root.mainWidth,
+      root.mainHeight
+    )
+    /*no binding*/ root.offsetToCursorX = constrained.x
+    /*no binding*/ root.offsetToCursorY = constrained.y
+  }
+
+  ///
+  /// Constrains the bubble offset to keep it within screen bounds.
+  /// Returns adjusted offset coordinates that ensure the bubble stays fully visible.
+  ///
   function constrainOffset(newOffsetX, newOffsetY, width, height)
   {
     let bubbleLeft = root.cursorX + newOffsetX
@@ -245,11 +264,11 @@ QtObject
     return {x: newOffsetX, y: newOffsetY}
   }
 
-  //
-  // Constrains the bubble size and offset during resize operations
-  // Ensures the bubble stays within screen bounds and maintains minimum size
-  // Returns adjusted offset and size that respect screen boundaries
-  //
+  ///
+  /// Constrains the bubble size and offset during resize operations.
+  /// Ensures the bubble stays within screen bounds and maintains minimum size.
+  /// Returns adjusted offset and size that respect screen boundaries.
+  ///
   function constrainSize(newOffsetX, newOffsetY, newWidth, newHeight)
   {
     let bubbleLeft = root.cursorX + newOffsetX

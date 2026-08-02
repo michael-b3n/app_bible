@@ -1,11 +1,11 @@
 #include "bibqml/model/ScriptureListModel.hpp"
 
-#include "bibstd/util/ranges.hpp"
 #include <bibstd/bible/common.hpp>
 #include <bibstd/bible/reference_formatter_de.hpp>
 #include <bibstd/util/enum.hpp>
 #include <bibstd/util/log.hpp>
 #include <bibstd/util/numeric_cast.hpp>
+#include <bibstd/util/ranges.hpp>
 #include <bibstd/workflow/workflow_scripture.hpp>
 
 #include <algorithm>
@@ -38,7 +38,7 @@ auto default_scripture(bibstd::workflow::workflow_scripture& workflow_scripture)
 ///
 ///
 ScriptureListModel::ScriptureListModel(
-  std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture, QObject* parent
+  std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture, const bibstd::util::non_owning_ptr<QObject> parent
 )
   : QAbstractListModel{parent}
   , workflow_scripture_{std::move(workflow_scripture)}
@@ -51,7 +51,7 @@ ScriptureListModel::~ScriptureListModel() noexcept = default;
 
 ///
 ///
-auto ScriptureListModel::rowCount(const QModelIndex& parent) const -> int
+int ScriptureListModel::rowCount(const QModelIndex& parent) const
 {
   if(parent.isValid())
   {
@@ -62,9 +62,9 @@ auto ScriptureListModel::rowCount(const QModelIndex& parent) const -> int
 
 ///
 ///
-auto ScriptureListModel::data(const QModelIndex& index, const int role) const -> QVariant
+QVariant ScriptureListModel::data(const QModelIndex& index, const int role) const
 {
-  if(!index.isValid() || index.row() < 0 || index.row() >= static_cast<int>(entries_.size()))
+  if(!index.isValid() || index.row() < 0 || static_cast<decltype(entries_.size())>(index.row()) >= entries_.size())
   {
     return {};
   }
@@ -73,59 +73,24 @@ auto ScriptureListModel::data(const QModelIndex& index, const int role) const ->
   {
   case VerseTextRole: return entry.verseText;
   case BookNameRole: return entry.bookName;
-  case ChapterRole: return entry.chapter;
-  case VerseNumberRole: return entry.verse;
-  case IsBookHeaderRole: return entry.isBookHeader;
-  case IsChapterHeaderRole: return entry.isChapterHeader;
+  case ChapterNumberRole: return entry.chapterNumber;
+  case VerseNumberRole: return entry.verseNumber;
+  case IsHeaderRole: return entry.isHeader;
   default: return {};
   }
 }
 
 ///
 ///
-auto ScriptureListModel::roleNames() const -> QHash<int, QByteArray>
+QHash<int, QByteArray> ScriptureListModel::roleNames() const
 {
   return {
-    {      VerseTextRole,       "verseText"},
-    {       BookNameRole,        "bookName"},
-    {        ChapterRole,         "chapter"},
-    {    VerseNumberRole,     "verseNumber"},
-    {   IsBookHeaderRole,    "isBookHeader"},
-    {IsChapterHeaderRole, "isChapterHeader"},
+    {    VerseTextRole,     "verseText"},
+    {     BookNameRole,      "bookName"},
+    {ChapterNumberRole, "chapterNumber"},
+    {  VerseNumberRole,   "verseNumber"},
+    {     IsHeaderRole,      "isHeader"},
   };
-}
-
-///
-///
-QString ScriptureListModel::bookName(const int index)
-{
-  if(index < entries_.size())
-  {
-    return entries_.at(index).bookName;
-  }
-  return QString{""};
-}
-
-///
-///
-int ScriptureListModel::chapterNumber(const int index)
-{
-  if(index < entries_.size())
-  {
-    return numeric_cast<int>(entries_.at(index).chapter);
-  }
-  return 0;
-}
-
-///
-///
-int ScriptureListModel::verseNumber(const int index)
-{
-  if(index < entries_.size())
-  {
-    return numeric_cast<int>(entries_.at(index).verse);
-  }
-  return 0;
 }
 
 ///
@@ -154,7 +119,7 @@ void ScriptureListModel::resetWithReference(const QString& bookId, const int cha
 
   beginResetModel();
   entries_.clear();
-  entries_.push_back(makeEntry(*ref));
+  addEntry(*ref);
   endResetModel();
   // load some context around the initial verse
   loadNext(10);
@@ -187,7 +152,7 @@ void ScriptureListModel::loadPrevious(const int count)
       prev = versification.prev(ref);
       if(prev)
       {
-        newEntries.push_back(makeEntry(*prev));
+        addEntry(*prev);
         ref = *prev;
       }
       return prev.has_value();
@@ -198,16 +163,6 @@ void ScriptureListModel::loadPrevious(const int count)
   beginInsertRows(QModelIndex(), 0, insertCount - 1);
   std::ranges::for_each(newEntries, [&](auto& entry) { entries_.push_front(std::move(entry)); });
   endInsertRows();
-
-  // Trim excess entries from the back to keep model bounded
-  const auto excess = static_cast<int>(entries_.size()) - max_entries_;
-  if(excess > 0)
-  {
-    const auto startRow = static_cast<int>(entries_.size()) - excess;
-    beginRemoveRows(QModelIndex(), startRow, startRow + excess - 1);
-    entries_.erase(entries_.end() - excess, entries_.end());
-    endRemoveRows();
-  }
 }
 
 ///
@@ -236,7 +191,7 @@ void ScriptureListModel::loadNext(const int count)
       next = versification.next(ref);
       if(next)
       {
-        newEntries.push_back(makeEntry(*next));
+        addEntry(*next);
         ref = *next;
       }
       return next.has_value();
@@ -248,15 +203,6 @@ void ScriptureListModel::loadNext(const int count)
   beginInsertRows(QModelIndex(), startRow, startRow + insertCount - 1);
   std::ranges::for_each(newEntries, [&](auto& entry) { entries_.push_back(std::move(entry)); });
   endInsertRows();
-
-  // Trim excess entries from the front to keep model bounded
-  const auto excess = static_cast<int>(entries_.size()) - max_entries_;
-  if(excess > 0)
-  {
-    beginRemoveRows(QModelIndex(), 0, excess - 1);
-    entries_.erase(entries_.begin(), entries_.begin() + excess);
-    endRemoveRows();
-  }
 }
 
 ///
@@ -270,7 +216,7 @@ void ScriptureListModel::clear()
 
 ///
 ///
-auto ScriptureListModel::fetchPassage(const bibstd::bible::reference& ref) -> QString
+QString ScriptureListModel::fetchPassage(const bibstd::bible::reference& ref) const
 {
   auto params = bibstd::workflow::workflow_scripture::passage_params::value_type{ref, std::nullopt};
   auto result = workflow_scripture_->passage(params);
@@ -283,20 +229,27 @@ auto ScriptureListModel::fetchPassage(const bibstd::bible::reference& ref) -> QS
 
 ///
 ///
-auto ScriptureListModel::makeEntry(const bibstd::bible::reference& ref) -> Entry
+void ScriptureListModel::addEntry(const bibstd::bible::reference& ref)
 {
+  if(entries_.size() >= static_cast<std::size_t>(std::numeric_limits<int>::max()))
+  {
+    LOG_ERROR("max entries count exceeded: reference=\"{}\" not added", ref);
+    return;
+  }
+
   const auto& prettyName = bibstd::bible::reference_formatter_de::pretty_names.at(ref.book());
   const auto bookName = QString::fromUtf8(prettyName.data(), static_cast<qsizetype>(prettyName.size()));
 
-  return Entry{
-    .ref = ref,
-    .verseText = fetchPassage(ref),
-    .bookName = bookName,
-    .chapter = ref.chapter().value,
-    .verse = ref.verse().value,
-    .isBookHeader = ref.chapter() == decltype(ref.chapter()){1} && ref.verse() == decltype(ref.verse()){1},
-    .isChapterHeader = ref.verse() == decltype(ref.verse()){1},
-  };
+  entries_.emplace_back(
+    Entry{
+      .ref = ref,
+      .verseText = fetchPassage(ref),
+      .bookName = bookName,
+      .chapterNumber = ref.chapter().value,
+      .verseNumber = ref.verse().value,
+      .isHeader = ref.verse() == decltype(ref.verse()){1},
+    }
+  );
 }
 
 } // namespace bibqml

@@ -18,7 +18,7 @@ namespace bibstd::bible
 ///
 class ocr_book_variants_de final
 {
-private: // Typedefs
+  // Typedefs
   using book_name_type = std::pair<book_id, std::string_view>;
 
 public: // Constants

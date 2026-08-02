@@ -24,6 +24,20 @@ namespace bibstd::bible
 ///
 class versification final
 {
+  // Typedefs
+  using book_start_indices_type = versification_common::book_start_indices_type;
+  struct versification_dynamic final
+  {
+    std::string name;
+    std::vector<reference> data;
+    book_start_indices_type book_start_indices;
+    std::uint32_t reference_count;
+  };
+  using data_type = std::variant<versification_dynamic, versification_default_esv, versification_default_kjv>;
+
+  // Variables
+  const data_type data_;
+
 public: // Typedefs
   using default_esv = versification_default_esv;
   using default_kjv = versification_default_kjv;
@@ -125,17 +139,6 @@ public: // Operations
   ///
   constexpr auto prev(const reference& ref) const -> std::optional<reference>;
 
-private: // Typedefs
-  using book_start_indices_type = versification_common::book_start_indices_type;
-  struct versification_dynamic final
-  {
-    std::string name;
-    std::vector<reference> data;
-    book_start_indices_type book_start_indices;
-    std::uint32_t reference_count;
-  };
-  using data_type = meta::add_to_pack_t<versification_dynamic, all_defaults_variant>;
-
 private: // Helpers
   static constexpr auto visit_size(const data_type& data) -> std::size_t;
   static constexpr auto visit_last_reference(const data_type& data, std::size_t index) -> std::optional<reference>;
@@ -144,9 +147,6 @@ private: // Helpers
 private: // Implementation
   constexpr auto containing_index(const reference& ref) const -> std::optional<std::size_t>;
   constexpr auto containing_index(book_id book, reference::chapter_type chapter) const -> std::optional<std::size_t>;
-
-private: // Variables
-  const data_type data_;
 };
 
 ///

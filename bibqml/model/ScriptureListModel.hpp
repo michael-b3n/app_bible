@@ -1,8 +1,10 @@
 #pragma once
 
 #include <bibstd/bible/reference.hpp>
+#include <bibstd/util/non_owning_ptr.hpp>
 
 #include <QAbstractListModel>
+#include <QMetaEnum>
 #include <QObject>
 #include <QtQml/qqmlregistration.h>
 
@@ -14,6 +16,7 @@ namespace bibstd::workflow
 // Forward declaration
 class workflow_scripture;
 } // namespace bibstd::workflow
+
 namespace bibqml
 {
 
@@ -26,43 +29,46 @@ class ScriptureListModel final : public QAbstractListModel
   Q_OBJECT
   QML_ELEMENT
 
+  // Typedefs
+  ///
+  /// ListModel Entry
+  ///
+  struct Entry final
+  {
+    bibstd::bible::reference ref;
+    QString verseText;
+    QString bookName;
+    std::uint32_t chapterNumber;
+    std::uint32_t verseNumber;
+    bool isHeader;
+  };
+
+  // Variables
+  std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture_;
+  std::deque<Entry> entries_;
+
 public: // Typedefs
   enum Role
   {
     VerseTextRole = Qt::UserRole + 1,
     BookNameRole,
-    ChapterRole,
+    ChapterNumberRole,
     VerseNumberRole,
-    IsBookHeaderRole,
-    IsChapterHeaderRole,
+    IsHeaderRole,
   };
+  Q_ENUM(Role)
 
 public: // Structors
   explicit ScriptureListModel(
-    std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture, QObject* parent = nullptr
+    std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture,
+    bibstd::util::non_owning_ptr<QObject> parent = nullptr
   );
   ~ScriptureListModel() noexcept override;
 
 public: // Overrides
-  auto rowCount(const QModelIndex& parent = QModelIndex()) const -> int override;
-  auto data(const QModelIndex& index, int role = Qt::DisplayRole) const -> QVariant override;
-  auto roleNames() const -> QHash<int, QByteArray> override;
-
-public: // Accessors
-  ///
-  /// Access the name of a book of the element at a specific index.
-  ///
-  Q_INVOKABLE QString bookName(int index);
-
-  ///
-  /// Access the chapter number of the element at a specific index.
-  ///
-  Q_INVOKABLE int chapterNumber(int index);
-
-  ///
-  /// Access the verse number of the element at a specific index.
-  ///
-  Q_INVOKABLE int verseNumber(int index);
+  int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+  QVariant data(const QModelIndex& index, int role) const override;
+  QHash<int, QByteArray> roleNames() const override;
 
 public: // Modifiers
   ///
@@ -89,28 +95,9 @@ public: // Modifiers
 signals:
   void refreshed();
 
-private: // Typedefs
-  struct Entry final
-  {
-    bibstd::bible::reference ref;
-    QString verseText;
-    QString bookName;
-    std::uint32_t chapter;
-    std::uint32_t verse;
-    bool isBookHeader;
-    bool isChapterHeader;
-  };
-
-private: // Constants
-  static constexpr int max_entries_{200};
-
 private: // Implementation
-  auto fetchPassage(const bibstd::bible::reference& ref) -> QString;
-  auto makeEntry(const bibstd::bible::reference& ref) -> Entry;
-
-private: // Variables
-  std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture_;
-  std::deque<Entry> entries_;
+  QString fetchPassage(const bibstd::bible::reference& ref) const;
+  void addEntry(const bibstd::bible::reference& ref);
 };
 
 } // namespace bibqml

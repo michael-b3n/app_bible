@@ -14,7 +14,7 @@ task_queue::~task_queue() noexcept
     std::swap(task_queue_, empty_queue);
   }
   task_cv_.notify_all();
-  const auto lock = std::scoped_lock{queue_mtx_}; // wait until lock is freed
+  const auto lock = std::scoped_lock{queue_mtx_, task_mtx_}; // wait until lock is freed
 }
 
 ///

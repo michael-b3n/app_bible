@@ -4,6 +4,7 @@
 #include "res/version.hpp"
 #include "src/construct_backend.hpp"
 #include "src/construct_bridge.hpp"
+#include "src/construct_translations.hpp"
 
 #include <bibstd/system/filesystem.hpp>
 #include <bibstd/system/open_browser.hpp>
@@ -50,9 +51,12 @@ int main(int argc, char** argv)
   QQuickWindow::setTextRenderType(QQuickWindow::CurveTextRendering);
   QGuiApplication app(argc, argv);
 
-  // Note bridge must be declared before engine so it outlives QML objects
+  // Note bridge and translations must be declared before engine so they outlive QML objects
   auto bridge = aba::construct_bridge(app, backend);
   aba::connect_bridge(bridge);
+
+  // Init the pretty names of the frontend. The backend deals with identifiers only.
+  auto translations = aba::construct_translations(backend);
 
   QQmlApplicationEngine engine;
 
@@ -62,6 +66,7 @@ int main(int argc, char** argv)
   const auto do_on_exit = [&]()
   {
     aba::disconnect_bridge(bridge);
+    translations.disconnect();
     QMetaObject::invokeMethod(&app, [&app] { app.quit(); }, Qt::QueuedConnection);
   };
   const auto open_github = []() { bibstd::system::open_browser::open("https://github.com/michael-b3n/app_bible"); };

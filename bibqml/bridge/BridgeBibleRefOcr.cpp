@@ -101,19 +101,15 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(
         {image_data->image, image_data->relative_cursor_pos}
       });
       const auto valid = result.has_value() && result->passage.has_value();
-      auto passage_content = valid ? result->passage->content : std::string{"..."};
-      auto reference_ranges = valid ? result->reference_ranges : std::vector<bibstd::bible::reference_range>{};
       auto first_reference = valid ? result->first_reference : std::optional<bibstd::bible::reference>{};
 
       QMetaObject::invokeMethod(
         this,
-        [this, process_id, passage_content, reference_ranges, first_reference]()
+        [this, process_id, first_reference]()
         {
           if(processId_ == process_id)
           {
             running_ = false;
-            htmlPassage_ = QString::fromStdString(passage_content);
-            Q_EMIT htmlPassageChanged(htmlPassage_);
             Q_EMIT runningChanged(running_);
 
             if(first_reference.has_value())

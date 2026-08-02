@@ -1,7 +1,6 @@
 #pragma once
 
 #include <concepts>
-#include <optional>
 #include <type_traits>
 
 namespace bibstd::meta
@@ -20,26 +19,29 @@ template<typename T>
 inline constexpr auto is_templated_v = is_templated<std::remove_cvref_t<T>>::value;
 
 ///
-/// Type trait that removes the optional wrapper from a type if it is an optional, otherwise returns the type itself.
+/// Type trait that removes the optional wrapper from a type if it is an optional,
+/// otherwise returns the type itself.
 ///
 template<typename T>
-struct remove_optional final : std::false_type
+struct remove_wrapper final : std::false_type
 {
-  using type = T;
-};
-template<typename T>
-struct remove_optional<std::optional<T>> final : std::true_type
-{
-  using type = T;
-};
-template<typename T>
-using remove_optional_t = typename remove_optional<T>::type;
+private:
+  template<typename T_>
+  struct remove_wrapper_helper final : std::false_type
+  {
+    using type = T_;
+  };
+  template<template<typename...> typename W_, typename T_>
+  struct remove_wrapper_helper<W_<T_>> final : std::true_type
+  {
+    using type = T_;
+  };
 
-///
-/// Type trait to check if a type is an optional.
-///
+public:
+  using type = typename remove_wrapper_helper<std::decay_t<T>>::type;
+};
 template<typename T>
-inline constexpr bool is_optional_v = remove_optional<T>::value;
+using remove_wrapper_t = typename remove_wrapper<T>::type;
 
 ///
 /// Are same type trait. Checks variadic pack on same type.

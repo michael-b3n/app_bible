@@ -50,6 +50,10 @@ signals:
   void strokeColorChanged();
   void fillColorChanged();
 
+private: // Constants
+  static constexpr int strokeWidth_{2};
+  static constexpr int padding_{4}; // extra padding around bounding box
+
 private: // Implementation
   void markDirty();
   void rebuildPath();
@@ -67,9 +71,6 @@ private: // Variables
 
   QPainterPath path_;
   bool pathDirty_{true};
-
-  static constexpr int strokeWidth_{2};
-  static constexpr int padding_{4}; // extra padding around bounding box
 };
 
 } // namespace aba::qml

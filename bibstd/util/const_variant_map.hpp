@@ -65,13 +65,16 @@ using remove_duplicates_t = remove_duplicates<P>::type;
 template<detail::const_variant_mappable... P>
 class const_variant_map
 {
-private: // Helper Typedefs
+  // Typedefs
   template<detail::const_variant_mappable E>
   using pairs_first_type = typename E::first_type;
   template<detail::const_variant_mappable E>
   using pairs_second_type = typename E::second_type;
   using first_types = meta::for_each_t<std::variant<P...>, pairs_first_type>;
   using second_types = meta::for_each_t<std::variant<P...>, pairs_second_type>;
+
+  // Variables
+  const std::tuple<P...> elements_;
 
 public: // Typedefs
   using key_variant_type = detail::remove_duplicates_t<first_types>;
@@ -131,9 +134,6 @@ public: // Operations
   template<typename F>
   constexpr auto visit_until(F&& f) const -> void
     requires(std::is_invocable_r_v<bool, F, key_variant_type, value_variant_type>);
-
-private:
-  const tuple_type elements_;
 };
 
 ///

@@ -45,6 +45,36 @@ function(copy_files target dst src)
 endfunction(copy_files)
 
 #
+# Function to add resources that are compiled into a source file using incbin.
+# The object file of the source is rebuilt whenever one of its resources changes.
+# Relative paths are resolved relative to the current source directory.
+# \param source the source file compiling the resources in via INC_RESOURCE
+# \param ARGN the resource files that are compiled into the source file
+#
+function(add_incbin_resources source)
+  cmake_path(ABSOLUTE_PATH source BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} NORMALIZE OUTPUT_VARIABLE source_path)
+  if(NOT EXISTS ${source_path})
+    message(FATAL_ERROR "add_incbin_resources: source file not found: ${source_path}")
+  endif()
+
+  if(NOT ARGN)
+    message(FATAL_ERROR "add_incbin_resources: no resources given: ${source_path}")
+  endif()
+
+  unset(resource_paths)
+  foreach(resource ${ARGN})
+    cmake_path(ABSOLUTE_PATH resource BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} NORMALIZE OUTPUT_VARIABLE resource_path)
+    if(NOT EXISTS ${resource_path})
+      message(FATAL_ERROR "add_incbin_resources: resource file not found: ${resource_path}")
+    endif()
+    list(APPEND resource_paths ${resource_path})
+  endforeach()
+
+  message(STATUS "incbin resources of ${source}: ${ARGN}")
+  set_property(SOURCE ${source_path} APPEND PROPERTY OBJECT_DEPENDS ${resource_paths})
+endfunction(add_incbin_resources)
+
+#
 # Set mingw path variables
 # \param root directory (usually called MINGW_ROOT_DIRECTORY)
 # \param share directory (usually called MINGW_SHARE_DIRECTORY)

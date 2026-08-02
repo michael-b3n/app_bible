@@ -2,6 +2,7 @@
 
 #include "bibstd/workflow/workflow_settings.hpp"
 
+#include <memory>
 #include <type_traits>
 
 namespace bibstd::framework
@@ -12,8 +13,16 @@ namespace bibstd::framework
 ///
 class settings_base
 {
+  // Structors
+  settings_base(const settings_base&) = delete;
+  settings_base(settings_base&&) = delete;
+
+  // Operators
+  auto operator==(const settings_base&) -> settings_base& = delete;
+  auto operator==(settings_base&&) -> settings_base& = delete;
+
 public: // Structors
-  settings_base();
+  settings_base(std::shared_ptr<workflow::workflow_settings> workflow_settings);
   virtual ~settings_base() noexcept;
 
 protected: // Typedefs
@@ -24,7 +33,7 @@ protected: // Typedefs
   using setting_type = workflow::workflow_settings::setting_non_owning_ptr_type<T>;
 
 protected: // Variables
-  std::unique_ptr<workflow::workflow_settings> workflow_settings_;
+  std::shared_ptr<workflow::workflow_settings> workflow_settings_;
 };
 
 } // namespace bibstd::framework
