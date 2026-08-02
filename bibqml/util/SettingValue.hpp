@@ -4,6 +4,8 @@
 
 #include <QVariant>
 
+#include <optional>
+
 namespace bibqml
 {
 
@@ -11,6 +13,17 @@ namespace bibqml
 /// Variant holding a non owning pointer to a type erased setting of any supported value type.
 ///
 using SettingVariantType = bibstd::workflow::workflow_settings::setting_type_erased_non_owning_ptr_variant_type;
+
+///
+/// Deduce the default value of a new setting from a QML provided value. The alternative of the
+/// returned variant defines the value type a setting declared in QML is created with. Reading
+/// and writing an existing setting is defined by the value type of that setting.
+/// Supported are boolean, integral, floating point, string and color values.
+/// Colors are converted to "#AARRGGBB" strings.
+/// \return default setting value, std::nullopt if the value type is not supported
+///
+[[nodiscard]] auto toDefaultSettingValue(const QVariant& value)
+  -> std::optional<bibstd::framework::setting_type_erased_variant>;
 
 ///
 /// Convert the value of a type erased setting to a QML value.

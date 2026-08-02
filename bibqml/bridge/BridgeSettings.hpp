@@ -1,12 +1,16 @@
 #pragma once
 
+#include "bibqml/bridge/SettingBinding.hpp"
+
 #include <bibstd/util/non_owning_ptr.hpp>
 
 #include <QObject>
 #include <QString>
 #include <QtQml/qqmlengine.h>
 #include <QtQmlIntegration/qqmlintegration.h>
+#include <QVariant>
 
+#include <map>
 #include <memory>
 
 // Forward declarations
@@ -20,10 +24,10 @@ namespace bibqml
 
 ///
 /// QML settings registry.
-/// This provides the settings workflow all setting bindings operate on. The instance is
-/// created and owned by the application, the QML engine only accesses it as a singleton.
-/// It must be created before the QML engine loads a component that declares a setting
-/// binding, and it must outlive the QML engine.
+/// This provides the settings workflow all setting bindings operate on and creates the
+/// bindings the QML layer uses. The instance is created and owned by the application, the
+/// QML engine only accesses it as a singleton. It must be created before the QML engine
+/// loads a component that requests a setting binding, and it must outlive the QML engine.
 /// \see SettingBinding
 ///
 class BridgeSettings final : public QObject
@@ -34,6 +38,7 @@ class BridgeSettings final : public QObject
 
   // Variables
   const std::shared_ptr<bibstd::workflow::workflow_settings> workflowSettings_;
+  std::map<QString, std::unique_ptr<SettingBinding>> bindings_{};
 
 public: // Static interface
   ///
@@ -67,6 +72,16 @@ public: // Accessors
   /// \return true if the setting exists, false otherwise
   ///
   Q_INVOKABLE bool contains(const QString& path) const;
+
+public: // Modifiers
+  ///
+  /// Access the setting binding of the specified path, creating it on first access. The
+  /// setting itself is created from the default value if it does not exist yet. All callers
+  /// of a path share one binding, therefore the default value of the first call wins. The
+  /// returned binding is owned by this registry and stays valid as long as it exists.
+  /// \return setting binding, nullptr if no binding could be created
+  ///
+  Q_INVOKABLE SettingBinding* binding(const QString& path, const QVariant& defaultValue);
 };
 
 } // namespace bibqml

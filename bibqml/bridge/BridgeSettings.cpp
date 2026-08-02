@@ -1,8 +1,10 @@
 #include "bibqml/bridge/BridgeSettings.hpp"
+#include "bibqml/bridge/SettingBinding.hpp"
 
 #include <bibstd/util/log.hpp>
 #include <bibstd/workflow/workflow_settings.hpp>
 
+#include <memory>
 #include <utility>
 
 namespace bibqml
@@ -78,6 +80,29 @@ auto BridgeSettings::workflowSettings() const -> const std::shared_ptr<bibstd::w
 bool BridgeSettings::contains(const QString& path) const
 {
   return workflowSettings_ && workflowSettings_->type_erased_setting(path.toStdString()).has_value();
+}
+
+///
+///
+SettingBinding* BridgeSettings::binding(const QString& path, const QVariant& defaultValue)
+{
+  if(path.isEmpty())
+  {
+    LOG_ERROR("access setting binding failed: no path provided");
+    return nullptr;
+  }
+  if(const auto it = bindings_.find(path); it != bindings_.cend())
+  {
+    if(it->second->defaultValue() != defaultValue)
+    {
+      LOG_WARN("setting binding exists with a different default value: path=\"{}\"", path.toStdString());
+    }
+    return it->second.get();
+  }
+  auto binding = std::make_unique<SettingBinding>(path, defaultValue);
+  // The binding is owned by this registry, the QML engine must not delete it.
+  QJSEngine::setObjectOwnership(binding.get(), QJSEngine::CppOwnership);
+  return bindings_.emplace(path, std::move(binding)).first->second.get();
 }
 
 } // namespace bibqml

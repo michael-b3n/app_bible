@@ -10,11 +10,14 @@
 #include <bibstd/util/numeric_cast.hpp>
 #include <bibstd/util/visit_helper.hpp>
 
+#include <QColor>
 #include <QJSValue>
+#include <QMetaType>
 
 #include <algorithm>
 #include <chrono>
 #include <concepts>
+#include <cstdint>
 #include <format>
 #include <optional>
 #include <ranges>
@@ -314,6 +317,26 @@ auto setValueDurationVec(const auto setting, const auto& value) -> bool
 }
 
 } // anonymous namespace
+
+///
+///
+auto toDefaultSettingValue(const QVariant& value) -> std::optional<bibstd::framework::setting_type_erased_variant>
+{
+  const auto v = tryNormalizeQVariant(value);
+  switch(v.metaType().id())
+  {
+  case QMetaType::Bool: return v.toBool();
+  case QMetaType::Int: [[fallthrough]];
+  case QMetaType::UInt: [[fallthrough]];
+  case QMetaType::LongLong: [[fallthrough]];
+  case QMetaType::ULongLong: return static_cast<std::int64_t>(v.toLongLong());
+  case QMetaType::Float: [[fallthrough]];
+  case QMetaType::Double: return v.toDouble();
+  case QMetaType::QString: return v.toString().toStdString();
+  case QMetaType::QColor: return v.value<QColor>().name(QColor::HexArgb).toStdString();
+  default: return std::nullopt;
+  }
+}
 
 ///
 ///
