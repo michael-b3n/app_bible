@@ -9,12 +9,18 @@
 #include <bibstd/workflow/workflow_scripture.hpp>
 
 #include <algorithm>
+#include <limits>
 #include <tuple>
 
 namespace bibqml
 {
 namespace detail
 {
+
+///
+/// Maximum number of entries the model can hold, limited by the row index type of QAbstractListModel.
+///
+constexpr auto max_entries = static_cast<std::size_t>(std::numeric_limits<int>::max());
 
 ///
 /// Get the default scripture from the workflow scripture.
@@ -147,22 +153,31 @@ void ScriptureListModel::loadPrevious(const int count)
 
   std::ignore = std::ranges::all_of(
     bibstd::util::ranges::index_view_to(count),
-    [&, prev = std::optional<decltype(ref)>{}]([[maybe_unused]] auto) mutable
+    [&]([[maybe_unused]] auto) mutable
     {
-      prev = versification.prev(ref);
-      if(prev)
+      const auto prev = versification.prev(ref);
+      if(!prev)
       {
-        addEntry(*prev);
-        ref = *prev;
+        return false;
       }
-      return prev.has_value();
+      if(entries_.size() + newEntries.size() >= detail::max_entries)
+      {
+        LOG_ERROR("max entries count exceeded: reference=\"{}\" not added", *prev);
+        return false;
+      }
+      newEntries.push_back(makeEntry(*prev));
+      ref = *prev;
+      return true;
     }
   );
 
-  const auto insertCount = static_cast<int>(newEntries.size());
-  beginInsertRows(QModelIndex(), 0, insertCount - 1);
-  std::ranges::for_each(newEntries, [&](auto& entry) { entries_.push_front(std::move(entry)); });
-  endInsertRows();
+  if(!newEntries.empty())
+  {
+    const auto insertCount = static_cast<int>(newEntries.size());
+    beginInsertRows(QModelIndex(), 0, insertCount - 1);
+    std::ranges::for_each(newEntries, [&](auto& entry) { entries_.push_front(std::move(entry)); });
+    endInsertRows();
+  }
 }
 
 ///
@@ -186,23 +201,32 @@ void ScriptureListModel::loadNext(const int count)
 
   std::ignore = std::ranges::all_of(
     bibstd::util::ranges::index_view_to(count),
-    [&, next = std::optional<decltype(ref)>{}]([[maybe_unused]] auto) mutable
+    [&]([[maybe_unused]] auto) mutable
     {
-      next = versification.next(ref);
-      if(next)
+      const auto next = versification.next(ref);
+      if(!next)
       {
-        addEntry(*next);
-        ref = *next;
+        return false;
       }
-      return next.has_value();
+      if(entries_.size() + newEntries.size() >= detail::max_entries)
+      {
+        LOG_ERROR("max entries count exceeded: reference=\"{}\" not added", *next);
+        return false;
+      }
+      newEntries.push_back(makeEntry(*next));
+      ref = *next;
+      return true;
     }
   );
 
-  const auto insertCount = static_cast<int>(newEntries.size());
-  const auto startRow = static_cast<int>(entries_.size());
-  beginInsertRows(QModelIndex(), startRow, startRow + insertCount - 1);
-  std::ranges::for_each(newEntries, [&](auto& entry) { entries_.push_back(std::move(entry)); });
-  endInsertRows();
+  if(!newEntries.empty())
+  {
+    const auto insertCount = static_cast<int>(newEntries.size());
+    const auto startRow = static_cast<int>(entries_.size());
+    beginInsertRows(QModelIndex(), startRow, startRow + insertCount - 1);
+    std::ranges::for_each(newEntries, [&](auto& entry) { entries_.push_back(std::move(entry)); });
+    endInsertRows();
+  }
 }
 
 ///
@@ -229,27 +253,31 @@ QString ScriptureListModel::fetchPassage(const bibstd::bible::reference& ref) co
 
 ///
 ///
+ScriptureListModel::Entry ScriptureListModel::makeEntry(const bibstd::bible::reference& ref) const
+{
+  const auto& prettyName = bibstd::bible::reference_formatter_de::pretty_names.at(ref.book());
+  const auto bookName = QString::fromUtf8(prettyName.data(), static_cast<qsizetype>(prettyName.size()));
+
+  return Entry{
+    .ref = ref,
+    .verseText = fetchPassage(ref),
+    .bookName = bookName,
+    .chapterNumber = ref.chapter().value,
+    .verseNumber = ref.verse().value,
+    .isHeader = ref.verse() == decltype(ref.verse()){1},
+  };
+}
+
+///
+///
 void ScriptureListModel::addEntry(const bibstd::bible::reference& ref)
 {
-  if(entries_.size() >= static_cast<std::size_t>(std::numeric_limits<int>::max()))
+  if(entries_.size() >= detail::max_entries)
   {
     LOG_ERROR("max entries count exceeded: reference=\"{}\" not added", ref);
     return;
   }
-
-  const auto& prettyName = bibstd::bible::reference_formatter_de::pretty_names.at(ref.book());
-  const auto bookName = QString::fromUtf8(prettyName.data(), static_cast<qsizetype>(prettyName.size()));
-
-  entries_.emplace_back(
-    Entry{
-      .ref = ref,
-      .verseText = fetchPassage(ref),
-      .bookName = bookName,
-      .chapterNumber = ref.chapter().value,
-      .verseNumber = ref.verse().value,
-      .isHeader = ref.verse() == decltype(ref.verse()){1},
-    }
-  );
+  entries_.emplace_back(makeEntry(ref));
 }
 
 } // namespace bibqml
