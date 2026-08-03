@@ -8,6 +8,7 @@
 // Forward declarations
 namespace bibqml
 {
+class BridgeBibleRefLookup;
 class BridgeBibleRefOcr;
 class BridgeSettings;
 class ScriptureListModel;
@@ -26,6 +27,7 @@ struct bridge_instance final
   std::unique_ptr<bibqml::BridgeSettings> bridge_settings;
   std::unique_ptr<bibqml::SettingsListModel> settings_list_model;
   std::unique_ptr<bibqml::BridgeBibleRefOcr> bridge_bible_ref_ocr;
+  std::unique_ptr<bibqml::BridgeBibleRefLookup> bridge_bible_ref_lookup;
   std::unique_ptr<bibqml::ScriptureListModel> scripture_list_model;
 };
 

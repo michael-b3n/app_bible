@@ -1,6 +1,5 @@
 #pragma once
 
-#include "bibstd/bible/reference.hpp"
 #include "bibstd/bible/reference_ocr.hpp"
 #include "bibstd/bible/reference_range.hpp"
 #include "bibstd/bible/scripture.hpp"
@@ -55,15 +54,25 @@ class workflow_bible_ref_ocr final : public workflow_base<workflow_bible_ref_ocr
   };
 
   ///
-  /// Result of bible reference ocr process.
-  /// This contains the found reference ranges, the first reference found
-  /// and the passage content for the first reference found.
+  /// Result of bible reference OCR process. This contains the found reference ranges ordered
+  /// canonically, the passage content of the first reference of the first range and the
+  /// bounding box of the recognized reference text within the image.
   ///
   struct result_t final
   {
     std::vector<bible::reference_range> reference_ranges;
-    std::optional<bible::reference> first_reference;
     std::optional<bible::scripture::passage_html_type> passage;
+    std::optional<util::screen_rect_type> reference_bounding_box;
+  };
+
+  ///
+  /// Result of a reference search on an image. Besides the found reference ranges this
+  /// contains the bounding box of the recognized reference text within the image.
+  ///
+  struct find_references_result_t final
+  {
+    std::vector<bible::reference_range> ranges;
+    std::optional<util::screen_rect_type> bounding_box;
   };
 
   ///
@@ -110,7 +119,7 @@ private: // Implementation
   auto init() -> void;
   [[nodiscard]] auto versification() const -> decltype(settings_t::versification);
   [[nodiscard]] auto find_references(const auto& params, const settings_t& settings, auto algorithm)
-    -> framework::process_result<std::vector<bible::reference_range>>;
+    -> framework::process_result<find_references_result_t>;
 };
 
 } // namespace bibstd::workflow

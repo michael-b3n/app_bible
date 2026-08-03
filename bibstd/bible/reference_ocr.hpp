@@ -4,6 +4,9 @@
 #include "bibstd/util/screen_types.hpp"
 
 #include <expected>
+#include <optional>
+#include <string>
+#include <vector>
 
 namespace bibstd::bible
 {
@@ -21,13 +24,21 @@ struct reference_ocr final
 
   ///
   /// This struct contains OCR data for recognized reference position:
-  /// Text of the relevant part of the recognized area and an index
-  /// belonging to the character data closest to the reference position.
+  /// Text of the relevant part of the recognized area, an index belonging to the
+  /// character data closest to the reference position and the bounding box of every
+  /// character of the text. The bounding boxes are given in the coordinate system of
+  /// the recognized image. For characters no bounding box could be determined for,
+  /// std::nullopt is set.
   ///
   struct reference_position_data final
   {
+    // Typedefs
+    using bounding_box_type = util::screen_rect_type;
+
+    // Variables
     std::string text{""};
     std::size_t cursor_character_index{0};
+    std::vector<std::optional<bounding_box_type>> character_bounding_boxes{};
   };
 
   ///

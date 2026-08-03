@@ -216,13 +216,41 @@ auto find_index(const auto& recognition_data, const reference_ocr::position_type
         text.subview(std::min(static_cast<std::size_t>(distance + 1), text.size() - 1), distance)
       );
     }
-    return reference_ocr::reference_position_data{text, static_cast<std::size_t>(distance)};
+    auto boxes = character_bounding_boxes |
+                 std::views::transform([](const auto& p) { return p ? std::make_optional(p->second) : std::nullopt; }) |
+                 std::ranges::to<std::vector>();
+    return reference_ocr::reference_position_data{text, static_cast<std::size_t>(distance), std::move(boxes)};
   }
   else
   {
     LOG_DEBUG("returns empty: position is not contained in any word bounding box");
     return reference_ocr::reference_position_data{};
   }
+}
+
+///
+/// Shift all character bounding boxes of the position data by the specified offset.
+/// This is needed to convert bounding boxes that are relative to a recognition
+/// subarea into the coordinate system of the whole image.
+/// \return position data with shifted character bounding boxes
+///
+auto shift_character_bounding_boxes(
+  std::expected<reference_ocr::reference_position_data, reference_ocr::unexpected_ocr_result> position_data,
+  const reference_ocr::position_type offset
+) -> std::expected<reference_ocr::reference_position_data, reference_ocr::unexpected_ocr_result>
+{
+  if(position_data)
+  {
+    std::ranges::for_each(
+      position_data->character_bounding_boxes | std::views::filter([](const auto& box) { return box.has_value(); }),
+      [&](auto& box)
+      {
+        using box_type = typename std::remove_reference_t<decltype(box)>::value_type;
+        box = box_type{box->origin() + offset, math::size(box->horizontal_range()), math::size(box->vertical_range())};
+      }
+    );
+  }
+  return position_data;
 }
 
 ///
@@ -375,13 +403,13 @@ auto recognize_with_paragraph_recognition(
           {
             SCOPED_TIMER_LOG();
             e->initialize(image, *area);
-            return find_index(e->recognize(), relative_position);
+            return shift_character_bounding_boxes(find_index(e->recognize(), relative_position), area->origin());
           },
           [&](const txt::ocr_engine<txt::ocr_engine_tag_layout_analysis>::uptr_type& e) -> return_type
           {
             SCOPED_TIMER_LOG();
             e->initialize(image, *area);
-            return find_index(e->recognize(), relative_position);
+            return shift_character_bounding_boxes(find_index(e->recognize(), relative_position), area->origin());
           }
         );
       }

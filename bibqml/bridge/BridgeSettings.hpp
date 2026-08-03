@@ -65,7 +65,7 @@ public: // Accessors
   /// Access the settings workflow all setting bindings operate on.
   /// \return settings workflow
   ///
-  [[nodiscard]] auto workflowSettings() const -> const std::shared_ptr<bibstd::workflow::workflow_settings>&;
+  [[nodiscard]] const std::shared_ptr<bibstd::workflow::workflow_settings>& workflowSettings() const;
 
   ///
   /// Check if a setting with the specified path exists.

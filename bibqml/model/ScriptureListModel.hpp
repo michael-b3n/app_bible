@@ -37,6 +37,7 @@ class ScriptureListModel final : public QAbstractListModel
   {
     bibstd::bible::reference ref;
     QString verseText;
+    QString bookId;
     QString bookName;
     std::uint32_t chapterNumber;
     std::uint32_t verseNumber;
@@ -44,13 +45,14 @@ class ScriptureListModel final : public QAbstractListModel
   };
 
   // Variables
-  std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture_;
+  std::shared_ptr<bibstd::workflow::workflow_scripture> workflowScripture_;
   std::deque<Entry> entries_;
 
 public: // Typedefs
   enum Role
   {
     VerseTextRole = Qt::UserRole + 1,
+    BookIdRole,
     BookNameRole,
     ChapterNumberRole,
     VerseNumberRole,
@@ -60,7 +62,7 @@ public: // Typedefs
 
 public: // Structors
   explicit ScriptureListModel(
-    std::shared_ptr<bibstd::workflow::workflow_scripture> workflow_scripture,
+    std::shared_ptr<bibstd::workflow::workflow_scripture> workflowScripture,
     bibstd::util::non_owning_ptr<QObject> parent = nullptr
   );
   ~ScriptureListModel() noexcept override;
@@ -97,6 +99,7 @@ signals:
 
 private: // Implementation
   QString fetchPassage(const bibstd::bible::reference& ref) const;
+  Entry makeEntry(const bibstd::bible::reference& ref) const;
   void addEntry(const bibstd::bible::reference& ref);
 };
 

@@ -77,7 +77,7 @@ private: // Typedefs
   };
 
   // Variables
-  std::shared_ptr<bibstd::workflow::workflow_settings> workflow_settings_;
+  std::shared_ptr<bibstd::workflow::workflow_settings> workflowSettings_;
   std::vector<Entry> entries_;
   bibstd::signal::synchronized_executor executor_;
 
@@ -95,7 +95,7 @@ public: // Typedefs
 
 public: // Structors
   explicit SettingsListModel(
-    std::shared_ptr<bibstd::workflow::workflow_settings> workflow_settings,
+    std::shared_ptr<bibstd::workflow::workflow_settings> workflowSettings,
     bibstd::util::non_owning_ptr<QObject> parent = nullptr
   );
   ~SettingsListModel() noexcept override;

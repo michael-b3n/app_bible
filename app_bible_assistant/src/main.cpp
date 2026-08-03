@@ -16,6 +16,7 @@
 #include <QGuiApplication>
 #include <QMetaObject>
 #include <QQmlApplicationEngine>
+#include <QQuickStyle>
 #include <QQuickWindow>
 #include <QtQml/QQmlExtensionPlugin>
 
@@ -50,6 +51,11 @@ int main(int argc, char** argv)
 #endif
   QQuickWindow::setTextRenderType(QQuickWindow::CurveTextRendering);
   QGuiApplication app(argc, argv);
+  // The controls of this application are fully styled by the qml layer. Without an explicit
+  // style, the platform style is used, which draws its own hover and scroll visuals on top of
+  // the custom ones. The basic style is the neutral style that leaves the controls untouched.
+  QQuickStyle::setStyle("Basic");
+  LOG_INFO("qml controls style: \"{}\"", QQuickStyle::name().toStdString());
 
   // Note bridge and translations must be declared before engine so they outlive QML objects
   auto bridge = aba::construct_bridge(app, backend);
