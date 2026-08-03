@@ -72,6 +72,33 @@ auto screen::window_at(const screen_coordinates_type coordinates) -> std::option
 
 ///
 ///
+auto screen::monitor_at(const screen_coordinates_type coordinates) -> std::optional<monitor_type>
+{
+  SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+  const auto monitor = MonitorFromPoint(POINT{coordinates.x(), coordinates.y()}, MONITOR_DEFAULTTONULL);
+  if(monitor == nullptr)
+  {
+    return std::nullopt;
+  }
+  // The ansi variant is used since monitor device names are ascii only.
+  MONITORINFOEXA info;
+  info.cbSize = sizeof(info);
+  if(!GetMonitorInfoA(monitor, &info))
+  {
+    return std::nullopt;
+  }
+  decltype(auto) rect = info.rcMonitor;
+  return monitor_type{
+    .rect = screen_rect_type(
+      math::coordinates{numeric_cast<std::int32_t>(rect.left), numeric_cast<std::int32_t>(rect.top)},
+      math::coordinates{numeric_cast<std::int32_t>(rect.right), numeric_cast<std::int32_t>(rect.bottom)}
+    ),
+    .device_name = std::string{static_cast<const char*>(info.szDevice)}
+  };
+}
+
+///
+///
 auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) -> bool
 {
   static std::mutex mtx;

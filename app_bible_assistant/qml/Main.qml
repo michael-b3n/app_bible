@@ -18,6 +18,7 @@ QtObject
   required property SettingsListModel listModelSettings
   required property ScriptureListModel listModelScripture
   required property BridgeBibleRefOcr bridgeBibleRefOcr
+  required property BridgeBibleRefLookup bridgeBibleRefLookup
 
   // Constants
   readonly property real goldenRatio: 1.618
@@ -25,6 +26,13 @@ QtObject
   readonly property int radius: Metrics.radiusLarge
   readonly property int minimalWidth: Metrics.controlHeight * root.goldenRatio * 3
   readonly property int minimalHeight: Metrics.controlHeight + 2 * root.margin
+  // Time the overlay of a found reference stays on the screen while it is not hovered.
+  readonly property int referenceOverlayTimeout: 10000
+  // Margin the overlay of a found reference adds around the reference text. This makes the
+  // overlay easier to hit than the tight bounding box of the text.
+  readonly property int referenceOverlayMargin: Metrics.spacingMedium
+  // Distance between the cursor and the bubble, this is the length of the bubble tail.
+  readonly property int tailLength: Metrics.spacingLarge * 2
 
   // Screen geometry
   property var screenGeometry: ScreenGeometryHelper.screenGeometryAt({ x: 0, y: 0 })
@@ -37,9 +45,18 @@ QtObject
   property int cursorX: 0
   property int cursorY: 0
 
+  // Reference found on the screen. The rect is the area the reference text
+  // covers on the screen, it is empty if that area is unknown.
+  property string referenceBookId: ""
+  property int referenceChapterBegin: 0
+  property int referenceVerseBegin: 0
+  property int referenceChapterEnd: 0
+  property int referenceVerseEnd: 0
+  property rect referenceRect: Qt.rect(0, 0, 0, 0)
+
   // Bubble offset and size
   property int userOffsetToCursorX: -root.minimalWidth / root.goldenRatio
-  property int userOffsetToCursorY: -(root.minimalHeight * 10 + Metrics.spacingLarge)
+  property int userOffsetToCursorY: -(root.minimalHeight * 10 + root.tailLength)
   property int offsetToCursorX: -Metrics.controlHeight * root.goldenRatio
   property int offsetToCursorY: -100
   property int mainWidth: root.minimalWidth * 2
@@ -58,12 +75,24 @@ QtObject
       Qt.callLater(function() { root.applyConstrainedOffset() })
     }
 
+    function onReferenceRangeFound(bookId, chapterBegin, verseBegin, chapterEnd, verseEnd, boundingBox)
+    {
+      root.referenceBookId = bookId
+      root.referenceChapterBegin = chapterBegin
+      root.referenceVerseBegin = verseBegin
+      root.referenceChapterEnd = chapterEnd
+      root.referenceVerseEnd = verseEnd
+      root.referenceRect = boundingBox
+    }
+
     function onRunningChanged(running)
     {
       Qt.callLater(function()
       {
         if(running)
         {
+          // The reference of the previous run is not valid anymore.
+          root.clearReference()
           background.raise()
           root.show()
         }
@@ -119,6 +148,78 @@ QtObject
           easing.type: Easing.InOutQuad
         }
       }
+    }
+  }
+
+  ///
+  /// Transparent button covering the reference found on the screen. Clicking it
+  /// executes the action the user configured for found references.
+  ///
+  property Window referenceOverlay: Window
+  {
+    id: referenceOverlay
+
+    // Properties
+    color: "transparent"
+    // The overlay must not take the focus away from the window the user is reading.
+    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool | Qt.WindowDoesNotAcceptFocus
+    visible: root.referenceRect.width > 0 && root.referenceRect.height > 0
+    x: root.referenceRect.x - root.referenceOverlayMargin
+    y: root.referenceRect.y - root.referenceOverlayMargin
+    width: root.referenceRect.width + 2 * root.referenceOverlayMargin
+    height: root.referenceRect.height + 2 * root.referenceOverlayMargin
+
+    // Components
+    Rectangle
+    {
+      // Properties
+      anchors.fill: parent
+      // The reference below the overlay shall stay readable, so the area is only
+      // tinted while it is hovered. Note that the opacity never drops to zero:
+      // fully transparent pixels of a translucent window are not hit by mouse
+      // events, which would make the overlay unclickable.
+      color: Colors.selection
+      opacity: overlayMouseArea.containsMouse ? 0.3 : 0.02
+      border.color: Colors.border
+      border.width: overlayMouseArea.containsMouse ? Metrics.border : 0
+      radius: Metrics.radiusLarge
+
+      // Animations
+      Behavior on opacity
+      {
+        NumberAnimation
+        {
+          duration: Metrics.durationShort
+          easing.type: Easing.InOutQuad
+        }
+      }
+    }
+
+    MouseArea
+    {
+      id: overlayMouseArea
+
+      // Properties
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+
+      // Connections
+      onClicked: { root.triggerReferenceClickAction() }
+    }
+
+    ///
+    /// Hides the overlay if it is not used for a while. The content below the
+    /// overlay may have scrolled away or changed in the meantime.
+    ///
+    Timer
+    {
+      // Properties
+      interval: root.referenceOverlayTimeout
+      running: referenceOverlay.visible && !overlayMouseArea.containsMouse
+
+      // Connections
+      onTriggered: { root.clearReference() }
     }
   }
 
@@ -182,6 +283,7 @@ QtObject
         listModelSettings: root.listModelSettings
         listModelScripture: root.listModelScripture
         bridgeBibleRefOcr: root.bridgeBibleRefOcr
+        bridgeBibleRefLookup: root.bridgeBibleRefLookup
 
         anchors.fill: parent
 
@@ -215,6 +317,38 @@ QtObject
   function hide()
   {
     speechBubble.opacity = 0
+    root.clearReference()
+  }
+
+  ///
+  /// Clears the reference found on the screen, which hides its overlay.
+  ///
+  function clearReference()
+  {
+    root.referenceRect = Qt.rect(0, 0, 0, 0)
+  }
+
+  ///
+  /// Executes the action the user configured for a click on a found reference.
+  /// Every action maps to a capability of the frontend, so the dispatch is done here.
+  ///
+  function triggerReferenceClickAction()
+  {
+    switch(root.bridgeBibleRefOcr.clickAction())
+    {
+      case BridgeBibleRefOcr.LookupBrowser:
+      {
+        root.bridgeBibleRefLookup.lookup(
+          root.referenceBookId,
+          root.referenceChapterBegin,
+          root.referenceVerseBegin,
+          root.referenceChapterEnd,
+          root.referenceVerseEnd
+        )
+        break
+      }
+      case BridgeBibleRefOcr.None: break
+    }
   }
 
   ///

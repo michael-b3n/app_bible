@@ -16,6 +16,7 @@ Item
   required property SettingsListModel listModelSettings
   required property ScriptureListModel listModelScripture
   required property BridgeBibleRefOcr bridgeBibleRefOcr
+  required property BridgeBibleRefLookup bridgeBibleRefLookup
 
   readonly property bool runningState : bridgeBibleRefOcr.running
 
@@ -24,6 +25,21 @@ Item
 
   // Signals
   signal closeClicked()
+
+  // Connections
+  ///
+  /// A found reference is shown in the scripture tab, so switch to it. Otherwise the
+  /// scripture of a reference found while another tab is open would stay hidden.
+  ///
+  Connections
+  {
+    target: root.bridgeBibleRefOcr
+
+    function onReferenceFound(bookId, chapter, verse)
+    {
+      bar.setCurrentIndex(0)
+    }
+  }
 
   // Components
   ColumnLayout
@@ -107,6 +123,7 @@ Item
       {
         listModelScripture: root.listModelScripture
         bridgeBibleRefOcr: root.bridgeBibleRefOcr
+        bridgeBibleRefLookup: root.bridgeBibleRefLookup
       }
 
       TabSettingsContent

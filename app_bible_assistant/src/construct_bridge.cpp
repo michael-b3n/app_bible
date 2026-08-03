@@ -1,11 +1,13 @@
 #include "src/construct_bridge.hpp"
 
 #include <bibstd/util/log.hpp>
+#include <bibstd/workflow/workflow_bible_ref_lookup.hpp>
 #include <bibstd/workflow/workflow_bible_ref_ocr.hpp>
 #include <bibstd/workflow/workflow_hotkey.hpp>
 #include <bibstd/workflow/workflow_scripture.hpp>
 #include <bibstd/workflow/workflow_settings.hpp>
 
+#include <bibqml/bridge/BridgeBibleRefLookup.hpp>
 #include <bibqml/bridge/BridgeBibleRefOcr.hpp>
 #include <bibqml/bridge/BridgeSettings.hpp>
 #include <bibqml/model/ScriptureListModel.hpp>
@@ -26,6 +28,8 @@ auto disconnect_bridge(bridge_instance& instance) -> void
 {
   assert(instance.bridge_bible_ref_ocr);
   instance.bridge_bible_ref_ocr->disconnect();
+  assert(instance.bridge_bible_ref_lookup);
+  instance.bridge_bible_ref_lookup->disconnect();
   instance.settings_list_model->disconnect();
 }
 
@@ -37,14 +41,16 @@ auto construct_bridge(QGuiApplication& app, backend_instance& backend) -> bridge
   auto workflow_settings = backend.workflow_settings;
   auto workflow_bible_ref_ocr = std::static_pointer_cast<bibstd::workflow::workflow_bible_ref_ocr>(backend.workflow_bible_ref_ocr);
   auto workflow_hotkey = std::static_pointer_cast<bibstd::workflow::workflow_hotkey>(backend.workflow_hotkey);
+  auto workflow_bible_ref_lookup = std::static_pointer_cast<bibstd::workflow::workflow_bible_ref_lookup>(backend.workflow_bible_ref_lookup);
   auto workflow_scripture = std::static_pointer_cast<bibstd::workflow::workflow_scripture>(backend.workflow_scripture);
-  // clang-format on
   return bridge_instance{
     .bridge_settings{std::make_unique<bibqml::BridgeSettings>(workflow_settings)},
     .settings_list_model{std::make_unique<bibqml::SettingsListModel>(workflow_settings)},
-    .bridge_bible_ref_ocr{std::make_unique<bibqml::BridgeBibleRefOcr>(workflow_bible_ref_ocr, workflow_hotkey)},
+    .bridge_bible_ref_ocr{std::make_unique<bibqml::BridgeBibleRefOcr>(workflow_bible_ref_ocr, workflow_hotkey, workflow_settings)},
+    .bridge_bible_ref_lookup{std::make_unique<bibqml::BridgeBibleRefLookup>(workflow_bible_ref_lookup, workflow_scripture)},
     .scripture_list_model{std::make_unique<bibqml::ScriptureListModel>(workflow_scripture)}
   };
+  // clang-format on
 }
 
 ///
@@ -80,9 +86,10 @@ auto connect_engine(QQmlApplicationEngine& engine, QGuiApplication& app, bridge_
 {
   // Set initial properties for the QML root component
   engine.setInitialProperties({
-    { "listModelSettings",  QVariant::fromValue(bridge.settings_list_model.get())},
-    {"listModelScripture", QVariant::fromValue(bridge.scripture_list_model.get())},
-    { "bridgeBibleRefOcr", QVariant::fromValue(bridge.bridge_bible_ref_ocr.get())},
+    {   "listModelSettings",     QVariant::fromValue(bridge.settings_list_model.get())},
+    {  "listModelScripture",    QVariant::fromValue(bridge.scripture_list_model.get())},
+    {   "bridgeBibleRefOcr",    QVariant::fromValue(bridge.bridge_bible_ref_ocr.get())},
+    {"bridgeBibleRefLookup", QVariant::fromValue(bridge.bridge_bible_ref_lookup.get())},
   });
 
   QObject::connect(

@@ -98,19 +98,19 @@ auto getValidatorType(const auto& setting) -> SettingsListModel::ValidatorType
 ///
 ///
 SettingsListModel::SettingsListModel(
-  std::shared_ptr<bibstd::workflow::workflow_settings> workflow_settings, const bibstd::util::non_owning_ptr<QObject> parent
+  std::shared_ptr<bibstd::workflow::workflow_settings> workflowSettings, const bibstd::util::non_owning_ptr<QObject> parent
 )
   : QAbstractListModel{parent}
-  , workflow_settings_{std::move(workflow_settings)}
+  , workflowSettings_{std::move(workflowSettings)}
 {
   std::ranges::for_each(
-    workflow_settings_->type_erased_settings(),
-    [&](const auto& setting_data)
-    { std::visit([&](const auto setting) { addSetting(setting_data.path, setting); }, setting_data.setting); }
+    workflowSettings_->type_erased_settings(),
+    [&](const auto& settingData)
+    { std::visit([&](const auto setting) { addSetting(settingData.path, setting); }, settingData.setting); }
   );
 
   // Settings may also be created after this model was constructed, e.g. by the QML layer.
-  workflow_settings_->connect_queued(
+  workflowSettings_->connect_queued(
     &bibstd::workflow::workflow_settings_signals::setting_created,
     [this](const std::string& path)
     {
@@ -186,8 +186,8 @@ bool SettingsListModel::setData(const QModelIndex& index, const QVariant& value,
   try
   {
     const auto& entry = entries_.at(static_cast<std::size_t>(index.row()));
-    const auto is_value_set = setQmlValue(entry.setting, value);
-    if(!is_value_set)
+    const auto isValueSet = setQmlValue(entry.setting, value);
+    if(!isValueSet)
     {
       // Emit dataChanged signal to notify that the value
       // could not be set such that the UI can be reset.
@@ -198,7 +198,7 @@ bool SettingsListModel::setData(const QModelIndex& index, const QVariant& value,
       emit dataChanged(index, index, {role});
     }
     LOG_DEBUG("write setting: path=\"{}\", row={}", entry.path, index.row());
-    return is_value_set;
+    return isValueSet;
   }
   catch(...)
   {
@@ -230,8 +230,8 @@ void SettingsListModel::appendSetting(const std::string& path)
   {
     return;
   }
-  const auto setting_data = workflow_settings_->type_erased_setting(path);
-  if(!setting_data)
+  const auto settingData = workflowSettings_->type_erased_setting(path);
+  if(!settingData)
   {
     LOG_ERROR("append setting failed: setting not found: path=\"{}\"", path);
     return;
@@ -243,7 +243,7 @@ void SettingsListModel::appendSetting(const std::string& path)
   }
   const auto row = static_cast<int>(entries_.size());
   beginInsertRows(QModelIndex{}, row, row);
-  std::visit([&](const auto setting) { addSetting(path, setting); }, *setting_data);
+  std::visit([&](const auto setting) { addSetting(path, setting); }, *settingData);
   endInsertRows();
 }
 
@@ -252,15 +252,15 @@ void SettingsListModel::appendSetting(const std::string& path)
 void SettingsListModel::addSetting(const std::string& path, const auto& setting)
 {
   addEntry(path, setting);
-  const auto row_index = bibstd::math::arithmetic::subtract(entries_.size(), decltype(entries_.size()){1}).value();
+  const auto rowIndex = bibstd::math::arithmetic::subtract(entries_.size(), decltype(entries_.size()){1}).value();
   setting->signal_adapter.connect_queued(
     &bibstd::framework::setting_signals::value_changed,
-    [this, path, row_index]()
+    [this, path, rowIndex]()
     {
-      LOG_DEBUG("notify setting value changed: path=\"{}\", row={}", path, row_index)
+      LOG_DEBUG("notify setting value changed: path=\"{}\", row={}", path, rowIndex)
       QMetaObject::invokeMethod(
         this,
-        [this, row_index]() { emit dataChanged(index(row_index), index(row_index), {Role::ValueRole}); },
+        [this, rowIndex]() { emit dataChanged(index(rowIndex), index(rowIndex), {Role::ValueRole}); },
         Qt::QueuedConnection
       );
     },
@@ -268,19 +268,19 @@ void SettingsListModel::addSetting(const std::string& path, const auto& setting)
   );
   setting->signal_adapter.connect_queued(
     &bibstd::framework::setting_signals::validator_changed,
-    [this, setting, path, row_index]()
+    [this, setting, path, rowIndex]()
     {
       using value_type = std::remove_pointer_t<std::remove_cvref_t<decltype(setting)>>::value_type;
       bibstd::util::visit_lambdas(
         setting->validator,
         []([[maybe_unused]] const validator_unbound_sptr&) { /*noop*/ },
         []([[maybe_unused]] const validator_range_sptr<value_type>&) { /*noop*/ },
-        [this, path, row_index]([[maybe_unused]] const validator_list_sptr<value_type>&)
+        [this, path, rowIndex]([[maybe_unused]] const validator_list_sptr<value_type>&)
         {
-          LOG_DEBUG("notify setting validator changed: path=\"{}\", row={}", path, row_index)
+          LOG_DEBUG("notify setting validator changed: path=\"{}\", row={}", path, rowIndex)
           QMetaObject::invokeMethod(
             this,
-            [this, row_index]() { emit dataChanged(index(row_index), index(row_index), {Role::ListValidatorDataRole}); },
+            [this, rowIndex]() { emit dataChanged(index(rowIndex), index(rowIndex), {Role::ListValidatorDataRole}); },
             Qt::QueuedConnection
           );
         }

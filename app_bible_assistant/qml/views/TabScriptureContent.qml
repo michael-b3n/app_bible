@@ -15,6 +15,7 @@ Item
   // Properties
   required property ScriptureListModel listModelScripture
   required property BridgeBibleRefOcr bridgeBibleRefOcr
+  required property BridgeBibleRefLookup bridgeBibleRefLookup
 
   // Components
   ///
@@ -46,6 +47,27 @@ Item
       renderType: Text.CurveRendering
     }
 
+    ///
+    /// Opens the chapter currently shown in the header in the browser.
+    ///
+    ButtonIconSimple
+    {
+      id: openInBrowserButton
+
+      // Properties
+      anchors.right: parent.right
+      anchors.rightMargin: Metrics.spacingSmall
+      anchors.verticalCenter: stickyHeaderText.verticalCenter
+      width: stickyHeaderText.implicitHeight
+      height: stickyHeaderText.implicitHeight
+      visible: listView.currentChapter > 0
+      enabled: openInBrowserButton.visible && !root.bridgeBibleRefLookup.running
+      svgSource: Icons.openInBrowser
+
+      // Connections
+      onClicked: { root.bridgeBibleRefLookup.lookupChapter(listView.currentBookId, listView.currentChapter) }
+    }
+
     Rectangle
     {
       // Properties
@@ -72,6 +94,7 @@ Item
     readonly property int cachedPixels: 600
 
     property string currentBook: ""
+    property string currentBookId: ""
     property int currentChapter: 0
 
     anchors.top: stickyHeader.bottom
@@ -212,6 +235,7 @@ Item
       if(!listView.model || listView.model.rowCount() === 0)
       {
         listView.currentBook = ""
+        listView.currentBookId = ""
         listView.currentChapter = 0
         return
       }
@@ -220,6 +244,7 @@ Item
       {
         let idx = listView.model.index(row, 0)
         listView.currentBook = listView.model.data(idx, ScriptureListModel.BookNameRole)
+        listView.currentBookId = listView.model.data(idx, ScriptureListModel.BookIdRole)
         listView.currentChapter = Number(listView.model.data(idx, ScriptureListModel.ChapterNumberRole))
       }
     }

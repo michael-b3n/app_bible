@@ -70,7 +70,7 @@ BridgeSettings::~BridgeSettings() noexcept
 
 ///
 ///
-auto BridgeSettings::workflowSettings() const -> const std::shared_ptr<bibstd::workflow::workflow_settings>&
+const std::shared_ptr<bibstd::workflow::workflow_settings>& BridgeSettings::workflowSettings() const
 {
   return workflowSettings_;
 }

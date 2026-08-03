@@ -1,6 +1,5 @@
 #include "bibstd/workflow/workflow_bible_ref_ocr.hpp"
 #include "bibstd/bible/reference_ocr.hpp"
-#include "bibstd/bible/reference_range.hpp"
 #include "bibstd/core/core_bible_ref_finder.hpp"
 #include "bibstd/system/ocr.hpp"
 #include "bibstd/txt/ocr_engine.hpp"
@@ -19,6 +18,32 @@
 
 namespace bibstd::workflow
 {
+namespace detail
+{
+
+///
+/// Compute the bounding box of the recognized reference within the image. The bounding box
+/// surrounds the bounding boxes of all characters the reference was parsed from.
+/// \return bounding box of the reference, or std::nullopt if no bounding box could be determined
+///
+[[nodiscard]] auto reference_bounding_box(
+  const bible::reference_ocr::reference_position_data& position_data,
+  const core::core_bible_ref_finder::index_range_type& index_range
+) -> std::optional<util::screen_rect_type>
+{
+  decltype(auto) boxes = position_data.character_bounding_boxes;
+  const auto begin = std::ranges::next(std::ranges::cbegin(boxes), std::min(index_range.begin, boxes.size()));
+  const auto end = std::ranges::next(std::ranges::cbegin(boxes), std::min(index_range.end, boxes.size()));
+
+  auto result = std::optional<util::screen_rect_type>{};
+  std::ranges::for_each(
+    std::ranges::subrange(begin, end) | std::views::filter([](const auto& box) { return box.has_value(); }),
+    [&](const auto& box) { result = result ? math::surrounding_rect(*result, *box) : *box; }
+  );
+  return result;
+}
+
+} // namespace detail
 
 ///
 ///
@@ -95,18 +120,20 @@ auto workflow_bible_ref_ocr::find(const params& params) -> result
       params->position
     );
 
-    const auto construct_result = [&](const auto& refs)
+    const auto construct_result = [&](const auto& found)
     {
       auto retval = result{};
-      if(!refs.empty())
+      if(!found.ranges.empty())
       {
-        const auto reference =
-          std::ranges::min_element(refs, [](const auto& a, const auto& b) { return a.begin() < b.begin(); })->begin();
-        const auto passage_params = workflow_scripture::passage_params::value_type{reference, std::nullopt};
+        auto ranges = found.ranges;
+        std::ranges::sort(ranges, [](const auto& a, const auto& b) { return a.begin() < b.begin(); });
+        const auto passage_params = workflow_scripture::passage_params::value_type{ranges.front().begin(), std::nullopt};
         if(const auto passage_result = workflow_scripture_->passage(passage_params))
         {
           retval = result::value_type{
-            .reference_ranges = refs, .first_reference = reference, .passage = passage_result.value().passage
+            .reference_ranges = std::move(ranges),
+            .passage = passage_result.value().passage,
+            .reference_bounding_box = found.bounding_box
           };
         }
       }
@@ -116,15 +143,15 @@ auto workflow_bible_ref_ocr::find(const params& params) -> result
     using atype = bible::reference_ocr::algorithm_type;
     if(
       const auto references = find_references(params, local_settings, atype::recognize_with_paragraph_recognition);
-      references && !references->empty()
+      references && !references->ranges.empty()
     )
     {
-      LOG_INFO("reference search finished: references=[{}]", util::format::join(references.value_or({}), ", "));
+      LOG_INFO("reference search finished: references=[{}]", util::format::join(references->ranges, ", "));
       return construct_result(*references);
     }
     else if(const auto references = find_references(params, local_settings, atype::recognize_just_with_line_recognition))
     {
-      LOG_INFO("reference search finished: references=[{}]", util::format::join(references.value_or({}), ", "));
+      LOG_INFO("reference search finished: references=[{}]", util::format::join(references->ranges, ", "));
       return construct_result(*references);
     }
     else
@@ -220,7 +247,7 @@ auto workflow_bible_ref_ocr::versification() const -> decltype(settings_t::versi
 ///
 ///
 auto workflow_bible_ref_ocr::find_references(const auto& params, const settings_t& settings, const auto algorithm)
-  -> framework::process_result<std::vector<bible::reference_range>>
+  -> framework::process_result<find_references_result_t>
 {
   const auto position_data = bible::reference_ocr::run(
     ocr_engines_,
@@ -239,7 +266,10 @@ auto workflow_bible_ref_ocr::find_references(const auto& params, const settings_
     auto parse_result = core_bible_ref_finder_->parse(
       position_data->text, position_data->cursor_character_index, settings.language, versification
     );
-    return parse_result.ranges;
+    return find_references_result_t{
+      .ranges = std::move(parse_result.ranges),
+      .bounding_box = detail::reference_bounding_box(*position_data, parse_result.index_range_origin)
+    };
   }
   else
   {
