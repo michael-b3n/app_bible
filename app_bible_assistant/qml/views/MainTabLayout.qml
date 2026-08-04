@@ -17,6 +17,7 @@ Item
   required property ScriptureListModel listModelScripture
   required property BridgeBibleRefOcr bridgeBibleRefOcr
   required property BridgeBibleRefLookup bridgeBibleRefLookup
+  required property bool pinned
 
   readonly property bool runningState : bridgeBibleRefOcr.running
 
@@ -25,6 +26,7 @@ Item
 
   // Signals
   signal closeClicked()
+  signal pinClicked()
 
   // Connections
   ///
@@ -93,6 +95,23 @@ Item
           width: bar.height
           height: bar.height
         }
+      }
+
+      ButtonIconSwitch
+      {
+        id: pinButton
+
+        // Properties
+        Layout.fillHeight: true
+        Layout.fillWidth: false
+        Layout.preferredWidth: Metrics.controlHeight
+        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+        svgSourceFirst: Icons.pin
+        svgSourceSecond: Icons.pinFilled
+        toggled: root.pinned
+
+        // Connections
+        onClicked: { root.pinClicked() }
       }
 
       ButtonIconSimple

@@ -26,6 +26,7 @@ class SpeechBubbleShape : public QQuickPaintedItem
   Q_PROPERTY(int offsetToTailY MEMBER offsetToTailY_ NOTIFY offsetToTailYChanged)
   Q_PROPERTY(int bubbleWidth MEMBER bubbleWidth_ NOTIFY bubbleWidthChanged)
   Q_PROPERTY(int bubbleHeight MEMBER bubbleHeight_ NOTIFY bubbleHeightChanged)
+  Q_PROPERTY(bool tailVisible MEMBER tailVisible_ NOTIFY tailVisibleChanged)
   Q_PROPERTY(QColor strokeColor MEMBER strokeColor_ NOTIFY strokeColorChanged)
   Q_PROPERTY(QColor fillColor MEMBER fillColor_ NOTIFY fillColorChanged)
 
@@ -47,6 +48,7 @@ signals:
   void offsetToTailYChanged();
   void bubbleWidthChanged();
   void bubbleHeightChanged();
+  void tailVisibleChanged();
   void strokeColorChanged();
   void fillColorChanged();
 
@@ -66,6 +68,7 @@ private: // Variables
   int offsetToTailY_{0};
   int bubbleWidth_{100};
   int bubbleHeight_{50};
+  bool tailVisible_{true};
   QColor strokeColor_{Qt::gray};
   QColor fillColor_{Qt::white};
 

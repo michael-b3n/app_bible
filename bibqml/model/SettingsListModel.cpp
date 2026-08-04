@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <chrono>
 #include <optional>
+#include <ranges>
+#include <string_view>
 #include <type_traits>
 
 namespace bibqml
@@ -36,6 +38,18 @@ using validator_range_sptr = bibstd::framework::setting_validator_range_type_era
 template<typename T>
 using validator_list_sptr = bibstd::framework::setting_validator_list_type_erased<T>::sptr_type;
 using validator_unbound_sptr = bibstd::framework::setting_validator_unbound::sptr_type;
+
+///
+/// Check if the setting of the specified path is an internal one. Internal settings hold state
+/// the application manages on its own, e.g. the position of a window. They are persisted like
+/// any other setting, but they are not meant to be edited by the user.
+/// \return true if the setting is internal, false otherwise
+///
+auto isInternalSetting(const std::string_view path) -> bool
+{
+  static constexpr auto internalPrefix = std::string_view{"internal."};
+  return path.starts_with(internalPrefix);
+}
 
 ///
 /// Deduce the value type enum value from the settings pointer.
@@ -103,8 +117,9 @@ SettingsListModel::SettingsListModel(
   : QAbstractListModel{parent}
   , workflowSettings_{std::move(workflowSettings)}
 {
+  const auto settings = workflowSettings_->type_erased_settings();
   std::ranges::for_each(
-    workflowSettings_->type_erased_settings(),
+    settings | std::views::filter([](const auto& settingData) { return !isInternalSetting(settingData.path); }),
     [&](const auto& settingData)
     { std::visit([&](const auto setting) { addSetting(settingData.path, setting); }, settingData.setting); }
   );
@@ -226,7 +241,7 @@ void SettingsListModel::disconnect()
 ///
 void SettingsListModel::appendSetting(const std::string& path)
 {
-  if(bibstd::util::contains(entries_, [&path](const auto& entry) { return entry.path == path; }))
+  if(isInternalSetting(path) || bibstd::util::contains(entries_, [&path](const auto& entry) { return entry.path == path; }))
   {
     return;
   }

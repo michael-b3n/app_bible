@@ -6,6 +6,8 @@
 #include "src/construct_bridge.hpp"
 #include "src/construct_translations.hpp"
 
+#include <bibqml/bridge/BridgeApplication.hpp>
+
 #include <bibstd/system/filesystem.hpp>
 #include <bibstd/system/open_browser.hpp>
 #include <bibstd/system/screen.hpp>
@@ -76,12 +78,14 @@ int main(int argc, char** argv)
     QMetaObject::invokeMethod(&app, [&app] { app.quit(); }, Qt::QueuedConnection);
   };
   const auto open_github = []() { bibstd::system::open_browser::open("https://github.com/michael-b3n/app_bible"); };
+  const auto show_window = [&bridge]() { bridge.bridge_application->requestShowWindow(); };
   // Start system tray.
   const auto tray_guard = bibstd::system::tray::init(
     bibstd::system::tray::icon_buffer{icon_view},
     {
-      bibstd::system::tray::entry_type{bibstd::system::tray::button{"Exit", do_on_exit}},
+      bibstd::system::tray::entry_type{bibstd::system::tray::button{"Show window", show_window}},
       bibstd::system::tray::entry_type{bibstd::system::tray::button{"Open GitHub", open_github}},
+      bibstd::system::tray::entry_type{bibstd::system::tray::button{"Exit", do_on_exit}},
       // ...
     }
   );

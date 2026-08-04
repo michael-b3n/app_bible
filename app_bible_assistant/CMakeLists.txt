@@ -85,7 +85,7 @@ endforeach()
 #
 set(QT_FORCE_CMP0156_TO_VALUE NEW)
 
-find_package(${QT_VERSION_NAME} ${QT_VERSION_NUMBER} REQUIRED COMPONENTS Quick QuickControls2 Svg)
+find_package(${QT_VERSION_NAME} ${QT_VERSION_NUMBER} REQUIRED COMPONENTS Quick QuickControls2 QuickShapes Svg)
 qt_standard_project_setup(REQUIRES ${QT_VERSION_NUMBER})
 qt_add_executable(${PROJECT_NAME} WIN32)
 
@@ -160,6 +160,7 @@ add_incbin_resources(src/construct_translations.cpp res/pretty_names.csv)
 target_link_libraries(${PROJECT_NAME}
   PRIVATE Qt6::Quick
   PRIVATE Qt6::QuickControls2
+  PRIVATE Qt6::QuickShapes
   PRIVATE Qt6::Svg
   PRIVATE bibstd
   PRIVATE BibQmlplugin

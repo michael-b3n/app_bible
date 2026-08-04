@@ -38,6 +38,8 @@ class Icons final : public QObject
   Q_PROPERTY(QString dragHandle MEMBER dragHandle_ CONSTANT)
   Q_PROPERTY(QString loading MEMBER loading_ CONSTANT)
   Q_PROPERTY(QString openInBrowser MEMBER openInBrowser_ CONSTANT)
+  Q_PROPERTY(QString pin MEMBER pin_ CONSTANT)
+  Q_PROPERTY(QString pinFilled MEMBER pinFilled_ CONSTANT)
   Q_PROPERTY(QString remove MEMBER remove_ CONSTANT)
   Q_PROPERTY(QString settings MEMBER settings_ CONSTANT)
 
@@ -52,6 +54,8 @@ private: // Variables
   QString dragHandle_{detail::toIconUrl("drag_handle.svg")};
   QString loading_{detail::toIconUrl("loading.svg")};
   QString openInBrowser_{detail::toIconUrl("open_in_browser.svg")};
+  QString pin_{detail::toIconUrl("pin.svg")};
+  QString pinFilled_{detail::toIconUrl("pin_filled.svg")};
   QString remove_{detail::toIconUrl("remove.svg")};
   QString settings_{detail::toIconUrl("settings.svg")};
 };

@@ -2,7 +2,8 @@ import QtQuick
 import QtQuick.VectorImage
 
 ///
-/// Icon button toggling between two svg icons.
+/// Icon button showing one of two svg icons.
+/// The toggled state is owned by the call site, the button only reports the click.
 ///
 ButtonBase
 {
@@ -12,9 +13,6 @@ ButtonBase
   required property string svgSourceFirst
   required property string svgSourceSecond
   property bool toggled: false
-
-  // Connections
-  onClicked: { root.toggled = !root.toggled }
 
   // Components
   VectorImage

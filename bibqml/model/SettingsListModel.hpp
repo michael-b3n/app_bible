@@ -19,6 +19,8 @@ namespace bibqml
 
 ///
 /// List model providing settings for a ListView.
+/// Settings whose path starts with "internal." are left out, they hold state the
+/// application manages on its own and are not meant to be edited by the user.
 ///
 class SettingsListModel final : public QAbstractListModel
 {
