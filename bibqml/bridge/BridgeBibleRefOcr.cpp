@@ -1,6 +1,5 @@
 #include "bibqml/bridge/BridgeBibleRefOcr.hpp"
 
-#include <bibstd/bible/ocr_book_variants_de.hpp>
 #include <bibstd/framework/setting_validator.hpp>
 #include <bibstd/math/rect.hpp>
 #include <bibstd/system/screen.hpp>
