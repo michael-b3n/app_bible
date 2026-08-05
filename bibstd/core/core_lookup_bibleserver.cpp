@@ -39,6 +39,8 @@ auto core_lookup_bibleserver::open(const bible::reference_range& range, const st
   auto urls = std::vector<std::string>{};
   const auto append_url = [&](const auto book, const auto chapter, const auto verse_begin, const auto verse_end)
   {
+    // Note that bibleserver uses german reference formatting in URLs, even for english translations.
+    // This allows us to use the same formatter for all lookups.
     urls.emplace_back(
       std::format(
         "https://www.bibleserver.com/{}/{}{}%2C{}-{}",

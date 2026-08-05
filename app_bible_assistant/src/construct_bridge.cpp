@@ -27,10 +27,13 @@ bridge_instance::~bridge_instance() noexcept = default;
 ///
 auto disconnect_bridge(bridge_instance& instance) -> void
 {
-  assert(instance.bridge_bible_ref_ocr);
-  instance.bridge_bible_ref_ocr->disconnect();
   assert(instance.bridge_bible_ref_lookup);
+  assert(instance.bridge_bible_ref_ocr);
+  assert(instance.scripture_list_model);
+  assert(instance.settings_list_model);
   instance.bridge_bible_ref_lookup->disconnect();
+  instance.bridge_bible_ref_ocr->disconnect();
+  instance.scripture_list_model->disconnect();
   instance.settings_list_model->disconnect();
 }
 

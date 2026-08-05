@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bibstd/bible/reference.hpp>
+#include <bibstd/signal/synchronized_executor.hpp>
 #include <bibstd/util/non_owning_ptr.hpp>
 
 #include <QAbstractListModel>
@@ -45,8 +46,9 @@ class ScriptureListModel final : public QAbstractListModel
   };
 
   // Variables
-  std::shared_ptr<bibstd::workflow::workflow_scripture> workflowScripture_;
+  const std::shared_ptr<bibstd::workflow::workflow_scripture> workflowScripture_;
   std::deque<Entry> entries_;
+  bibstd::signal::synchronized_executor executor_;
 
 public: // Typedefs
   enum Role
@@ -93,6 +95,12 @@ public: // Modifiers
   /// Clear all entries from the model.
   ///
   Q_INVOKABLE void clear();
+
+  ///
+  /// Disconnect all signal connections.
+  /// This will stop the frontend backend communication.
+  ///
+  void disconnect();
 
 signals:
   void refreshed();
