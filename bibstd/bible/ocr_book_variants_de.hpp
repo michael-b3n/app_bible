@@ -2,11 +2,8 @@
 
 #include "bibstd/bible/common.hpp"
 #include "bibstd/util/enum.hpp"
-#include "bibstd/util/ranges.hpp"
 #include "bibstd/util/string.hpp"
 
-#include <algorithm>
-#include <array>
 #include <tuple>
 #include <utility>
 
@@ -16,12 +13,9 @@ namespace bibstd::bible
 ///
 /// Holds all german bible book name variants corresponding to book id.
 ///
-class ocr_book_variants_de final
+struct ocr_book_variants_de final
 {
-  // Typedefs
-  using book_name_type = std::pair<book_id, std::string_view>;
-
-public: // Constants
+  // Constants
   ///
   /// All german bible book name variants listed with corresponding book id.
   /// Whitespaces and fullstops are omitted.
@@ -97,32 +91,6 @@ public: // Constants
   };
   // clang-format on
   static_assert(std::tuple_size_v<decltype(name_variants)> == util::enum_count<book_id>());
-
-  ///
-  /// Concatenated list of all bible book name variants.
-  ///
-  static constexpr auto name_variants_list = []()
-  {
-    constexpr auto get = [&]<std::size_t I>()
-    {
-      const auto element = std::get<I>(name_variants);
-      constexpr auto size = std::tuple_size_v<decltype(element.second)>;
-      std::array<std::pair<book_id, std::string_view>, size> result;
-      std::ranges::for_each(
-        util::ranges::index_view(result), [&](const auto i) { result.at(i) = std::pair{element.first, element.second.at(i)}; }
-      );
-      return result;
-    };
-    constexpr auto to_array = [](auto&& tuple)
-    {
-      constexpr auto get_array = [](auto&&... e) { return std::array{std::forward<decltype(e)>(e)...}; };
-      return std::apply(get_array, std::forward<decltype(tuple)>(tuple));
-    };
-    return [&]<std::size_t... I>(std::index_sequence<I...>)
-    {
-      return to_array(std::tuple_cat(get.template operator()<I>()...));
-    }(std::make_index_sequence<std::tuple_size_v<decltype(name_variants)>>{});
-  }();
 };
 
 } // namespace bibstd::bible
