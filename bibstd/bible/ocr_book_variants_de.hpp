@@ -38,7 +38,7 @@ public: // Constants
     std::pair{           book_id::ruth,                                          util::string::to_string_view_array("Rut")},
     std::pair{        book_id::samuel1,              util::string::to_string_view_array("1Samuel", "1Sam", "ISam", "Isam")}, // '1' regularly detected as 'I'
     std::pair{        book_id::samuel2,                              util::string::to_string_view_array("2Samuel", "2Sam")},
-    std::pair{         book_id::kings1,                util::string::to_string_view_array("1Könige", "1Kön", "1Kö", "IKö")}, // '1' regularly detected as 'I'
+    std::pair{         book_id::kings1,        util::string::to_string_view_array("1Könige", "1Kön", "IKön", "1Kö", "IKö")}, // '1' regularly detected as 'I'
     std::pair{         book_id::kings2,                       util::string::to_string_view_array("2Könige", "2Kön", "2Kö")},
     std::pair{    book_id::chronicles1,                     util::string::to_string_view_array("1Chronik", "1Chr", "IChr")}, // '1' regularly detected as 'I'
     std::pair{    book_id::chronicles2,                             util::string::to_string_view_array("2Chronik", "2Chr")},
