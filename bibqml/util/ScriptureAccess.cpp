@@ -55,6 +55,19 @@ auto bookName(bibstd::workflow::workflow_scripture& workflowScripture, const bib
 
 ///
 ///
+auto scriptureCopyright(bibstd::workflow::workflow_scripture& workflowScripture) -> QString
+{
+  const auto scripture = defaultScripture(workflowScripture);
+  if(!scripture)
+  {
+    return {};
+  }
+  const auto copyright = scripture.value()->information().copyright;
+  return copyright ? QString::fromStdString(*copyright) : QString{};
+}
+
+///
+///
 auto toReference(
   bibstd::workflow::workflow_scripture& workflowScripture, const QString& bookId, const int chapter, const int verse
 ) -> std::optional<bibstd::bible::reference>

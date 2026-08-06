@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
+import QtQuick.VectorImage
 import BibQml
 
 ///
@@ -14,7 +15,6 @@ Item
 
   // Properties
   required property ScriptureListModel listModelScripture
-  required property BridgeBibleRefOcr bridgeBibleRefOcr
   required property BridgeBibleRefLookup bridgeBibleRefLookup
 
   // Components
@@ -121,6 +121,7 @@ Item
     {
       target: root.listModelScripture
       function onRefreshed() { Qt.callLater(function() { listView.loadPrevious(1) }) }
+      function onDataChanged() { listView.updateHeader() }
     }
 
     // Components
@@ -129,7 +130,6 @@ Item
       id: delegateRoot
 
       // Properties
-      required property int index
       required property string verseText
       required property string bookName
       required property int chapterNumber
@@ -230,6 +230,13 @@ Item
     ScrollBar.vertical: ScrollBarSimple{ id: scrollBar }
 
     // Functions
+    function rowAt(y)
+    {
+      const position = Math.max(0, Math.min(y, listView.contentHeight - 1))
+      const row = listView.indexAt(listView.contentX, position)
+      return row >= 0 ? row : listView.indexAt(listView.contentX, position - listView.spacing)
+    }
+
     function updateHeader()
     {
       if(!listView.model || listView.model.rowCount() === 0)
@@ -239,7 +246,7 @@ Item
         listView.currentChapter = 0
         return
       }
-      let row = listView.indexAt(listView.contentX, listView.contentY)
+      let row = listView.rowAt(listView.contentY)
       if(row >= 0)
       {
         let idx = listView.model.index(row, 0)
@@ -261,6 +268,110 @@ Item
         {
           listView.positionViewAtIndex(addedCount, ListView.Beginning)
         }
+      }
+    }
+  }
+
+  ///
+  /// Copyright of the scripture the verses are taken from. It floats in the corner over the
+  /// verses instead of taking room from them, and it is only the icon: the statement itself is
+  /// told on hover. A scripture that states no copyright shows nothing.
+  ///
+  Item
+  {
+    id: copyrightNote
+
+    // Properties
+    readonly property string statement: root.listModelScripture.scriptureCopyright
+    readonly property bool available: copyrightNote.statement !== ""
+
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    anchors.margins: Metrics.spacingTiny
+    width: Metrics.controlHeight - Metrics.spacingSmall
+    height: copyrightNote.width
+    visible: copyrightNote.available
+    z: 1
+
+    // Components
+    VectorImage
+    {
+      id: copyrightIcon
+
+      // Properties
+      anchors.fill: parent
+      opacity: copyrightArea.containsMouse ? 1 : 0.3
+      source: Icons.copyright
+      preferredRendererType: VectorImage.CurveRenderer
+
+      // Animations
+      Behavior on opacity
+      {
+        NumberAnimation
+        {
+          duration: Metrics.durationShort
+          easing.type: Easing.InOutQuad
+        }
+      }
+
+      // Components
+      MouseArea
+      {
+        id: copyrightArea
+
+        // Properties
+        anchors.fill: parent
+        hoverEnabled: true
+        acceptedButtons: Qt.NoButton
+      }
+    }
+
+    ///
+    /// The statement, shown above the icon while it is hovered.
+    ///
+    Rectangle
+    {
+      id: copyrightStatement
+
+      // Properties
+      readonly property int maximumWidth: root.width - 2 * Metrics.spacingSmall
+
+      anchors.left: parent.left
+      anchors.bottom: parent.top
+      anchors.bottomMargin: Metrics.spacingTiny
+      width: copyrightStatementText.contentWidth + 2 * Metrics.spacingSmall
+      height: copyrightStatementText.contentHeight + 2 * Metrics.spacingSmall
+      visible: copyrightStatement.opacity > 0
+      opacity: copyrightArea.containsMouse ? 1 : 0
+      color: Colors.backgroundSolid
+      border.color: Colors.border
+      border.width: Metrics.border
+      radius: Metrics.radiusMedium
+
+      // Animations
+      Behavior on opacity
+      {
+        NumberAnimation
+        {
+          duration: Metrics.durationShort
+          easing.type: Easing.InOutQuad
+        }
+      }
+
+      // Components
+      Text
+      {
+        id: copyrightStatementText
+
+        // Properties
+        x: Metrics.spacingSmall
+        y: Metrics.spacingSmall
+        width: copyrightStatement.maximumWidth - 2 * Metrics.spacingSmall
+        text: copyrightNote.statement
+        wrapMode: Text.WordWrap
+        font.pointSize: Metrics.fontSizeSmall
+        color: Colors.text
+        renderType: Text.CurveRendering
       }
     }
   }

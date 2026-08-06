@@ -141,7 +141,6 @@ Item
       TabScriptureContent
       {
         listModelScripture: root.listModelScripture
-        bridgeBibleRefOcr: root.bridgeBibleRefOcr
         bridgeBibleRefLookup: root.bridgeBibleRefLookup
       }
 

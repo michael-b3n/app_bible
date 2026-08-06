@@ -30,6 +30,8 @@ class ScriptureListModel final : public QAbstractListModel
   Q_OBJECT
   QML_ELEMENT
 
+  Q_PROPERTY(QString scriptureCopyright READ scriptureCopyright NOTIFY scriptureCopyrightChanged FINAL)
+
   // Typedefs
   ///
   /// ListModel Entry
@@ -51,6 +53,9 @@ class ScriptureListModel final : public QAbstractListModel
   bibstd::signal::synchronized_executor executor_;
 
 public: // Typedefs
+  ///
+  /// Roles the delegates of the view read an entry by.
+  ///
   enum Role
   {
     VerseTextRole = Qt::UserRole + 1,
@@ -73,6 +78,13 @@ public: // Overrides
   int rowCount(const QModelIndex& parent = QModelIndex()) const override;
   QVariant data(const QModelIndex& index, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
+
+public: // Accessors
+  ///
+  /// Copyright statement of the scripture the verses are taken from.
+  /// \return copyright statement, empty if the scripture does not provide one
+  ///
+  QString scriptureCopyright() const;
 
 public: // Modifiers
   ///
@@ -103,6 +115,7 @@ public: // Modifiers
   void disconnect();
 
 signals:
+  void scriptureCopyrightChanged();
   void refreshed();
 
 private: // Implementation

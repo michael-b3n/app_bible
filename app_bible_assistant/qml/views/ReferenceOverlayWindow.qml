@@ -62,13 +62,24 @@ Window
 
     // Properties
     anchors.fill: parent
-    opacity: root.shown ? 1 : 0
+    opacity: 0
 
     // Animations
-    Behavior on opacity
+    // The button appears animated and disappears at once, together with the window it belongs to.
+    states: State
     {
+      name: "shown"
+      when: root.shown
+
+      PropertyChanges { content.opacity: 1 }
+    }
+    transitions: Transition
+    {
+      to: "shown"
+
       NumberAnimation
       {
+        property: "opacity"
         duration: Metrics.durationShort
         easing.type: Easing.InOutQuad
       }

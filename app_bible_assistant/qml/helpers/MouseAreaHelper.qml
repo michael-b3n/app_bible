@@ -16,9 +16,6 @@ Item
     bottomLeft.containsMouse ||
     bottomRight.containsMouse
 
-  implicitHeight: 100
-  implicitWidth: 200
-
   // Signals
   signal pressed(mouse: MouseEvent)
   signal released(mouse: MouseEvent)

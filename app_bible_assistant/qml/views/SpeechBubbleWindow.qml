@@ -38,7 +38,7 @@ Window
     id: shape
 
     // Properties
-    opacity: root.shown ? 1 : 0
+    opacity: 0
     radius: Metrics.radiusLarge
     tailVisible: root.tailVisible
     tailPositionX: root.currentTailPosition.x - root.x
@@ -51,10 +51,21 @@ Window
     fillColor: Colors.backgroundTransparent
 
     // Animations
-    Behavior on opacity
+    // The frame appears animated and disappears at once, together with the window it frames.
+    states: State
     {
+      name: "shown"
+      when: root.shown
+
+      PropertyChanges { shape.opacity: 1 }
+    }
+    transitions: Transition
+    {
+      to: "shown"
+
       NumberAnimation
       {
+        property: "opacity"
         duration: Metrics.durationShort
         easing.type: Easing.InOutQuad
       }
@@ -64,8 +75,7 @@ Window
   // Functions
   ///
   /// Takes over the geometry the bubble shall be drawn with. A bubble that is not shown keeps the
-  /// geometry it has: it fades out instead of disappearing at once, and the bubble left on the
-  /// screen must not jump onto the window and the reference of the next search.
+  /// geometry it has, so that it is drawn where the window it frames is and nowhere else.
   ///
   function takeGeometry()
   {

@@ -41,6 +41,10 @@ QtObject
 
   // Constants
   readonly property int referenceOverlayTimeout: 10000
+  // Time the overlay keeps reporting a search that ended without a result. A search is over in
+  // an instant, so without it the only answer the user gets to a search that found nothing is a
+  // flicker at the cursor.
+  readonly property int searchWithoutResultDuration: 2500
   // Size the overlay has while the area of the reference is still unknown
   readonly property int overlayDefaultSize: Metrics.controlHeight + 2 * Metrics.spacingSmall
   // Length of the bubble tail
@@ -150,6 +154,18 @@ QtObject
     }
   }
 
+  // Timer keeping the overlay of a search that found nothing on the screen for a moment
+  property Timer searchWithoutResultTimer: Timer
+  {
+    id: searchWithoutResultTimer
+
+    // Properties
+    interval: root.searchWithoutResultDuration
+
+    // Connections
+    onTriggered: { root.endSearchWithoutResult() }
+  }
+
   property Connections applicationConnections: Connections
   {
     target: root.bridgeApplication
@@ -231,15 +247,29 @@ QtObject
   ///
   function beginSearch()
   {
+    searchWithoutResultTimer.stop()
     root.phase = Main.Phase.Searching
     reference.forgetArea()
   }
 
   ///
   /// Ends the running search. A search that found a reference asked for the main window already,
-  /// one without a result leaves it hidden, there is nothing to show anymore.
+  /// one without a result leaves it hidden, there is nothing to show anymore. It is still
+  /// reported for a moment, so that the user sees that the search happened and found nothing.
   ///
   function finishSearch()
+  {
+    if(root.phase === Main.Phase.Searching)
+    {
+      searchWithoutResultTimer.restart()
+    }
+  }
+
+  ///
+  /// Takes the overlay of the search that found nothing off the screen. A search or a window
+  /// asked for in the meantime owns the screen now and keeps it.
+  ///
+  function endSearchWithoutResult()
   {
     if(root.phase === Main.Phase.Searching)
     {

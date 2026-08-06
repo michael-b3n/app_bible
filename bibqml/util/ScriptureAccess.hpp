@@ -35,6 +35,12 @@ namespace bibqml
 [[nodiscard]] auto bookName(bibstd::workflow::workflow_scripture& workflowScripture, bibstd::bible::book_id book) -> QString;
 
 ///
+/// Get the copyright statement of the default scripture.
+/// \return copyright statement, empty if the scripture does not provide one
+///
+[[nodiscard]] auto scriptureCopyright(bibstd::workflow::workflow_scripture& workflowScripture) -> QString;
+
+///
 /// Create a bible reference from QML provided values. The reference is validated
 /// against the versification of the default scripture.
 /// \return reference, or std::nullopt if the values do not describe a valid reference

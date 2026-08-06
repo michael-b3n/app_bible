@@ -47,6 +47,13 @@ public: // Accessors
   ///
   Q_INVOKABLE QVariantList entries() const;
 
+  ///
+  /// Find the entry holding a value. Entries and the value looked up may be of different
+  /// types, e.g. a number stored as text, so they are compared by their text.
+  /// \return row of the first entry holding the value, -1 if no entry holds it
+  ///
+  Q_INVOKABLE int indexOfValue(const QVariant& value) const;
+
 public: // Modifiers
   ///
   /// Remove the entry at the specified index from the model.

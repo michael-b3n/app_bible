@@ -44,7 +44,6 @@ class Colors final : public QObject
   Q_PROPERTY(QColor text MEMBER text_ NOTIFY textChanged)
   Q_PROPERTY(QColor verseBox MEMBER verseBox_ NOTIFY verseBoxChanged)
   Q_PROPERTY(QColor verseText MEMBER verseText_ NOTIFY verseTextChanged)
-  Q_PROPERTY(QColor chapterText MEMBER chapterText_ NOTIFY chapterTextChanged)
   Q_PROPERTY(QColor bookHeader MEMBER bookHeader_ NOTIFY bookHeaderChanged)
   Q_PROPERTY(QColor bookHeaderText MEMBER bookHeaderText_ NOTIFY bookHeaderTextChanged)
 
@@ -64,8 +63,6 @@ signals:
   void textChanged();
   void verseBoxChanged();
   void verseTextChanged();
-  void chapterBoxChanged();
-  void chapterTextChanged();
   void bookHeaderChanged();
   void bookHeaderTextChanged();
 
@@ -89,7 +86,6 @@ private: // Variables
   QColor text_{detail::toQColor("#2e2319ff")};
   QColor verseBox_{detail::toQColor("#7b5f42ff")};
   QColor verseText_{detail::toQColor("#fef5deff")};
-  QColor chapterText_{detail::toQColor("#f3e3c0ff")};
   QColor bookHeader_{detail::toQColor("#8f633dff")};
   QColor bookHeaderText_{detail::toQColor("#fef5deff")};
 };

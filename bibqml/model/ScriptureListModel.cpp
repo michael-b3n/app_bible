@@ -54,6 +54,7 @@ ScriptureListModel::ScriptureListModel(
           {
             emit dataChanged(index(0, 0), index(rowCount() - 1, 0));
           }
+          emit scriptureCopyrightChanged();
         },
         Qt::QueuedConnection
       );
@@ -110,6 +111,13 @@ QHash<int, QByteArray> ScriptureListModel::roleNames() const
     {  VerseNumberRole,   "verseNumber"},
     {     IsHeaderRole,      "isHeader"},
   };
+}
+
+///
+///
+QString ScriptureListModel::scriptureCopyright() const
+{
+  return bibqml::scriptureCopyright(*workflowScripture_);
 }
 
 ///

@@ -42,13 +42,40 @@ Window
 
     // Properties
     anchors.fill: parent
-    opacity: root.shown ? 1 : 0
+    opacity: 0
+    // The content holds the keyboard of the window, which is what lets it answer the escape key
+    // of whatever the user is on.
+    focus: true
+
+    // Connections
+    ///
+    /// Escape hides the window, like its close button does. It is answered here and not by a
+    /// shortcut of the application, so that what is open inside the window, e.g. the popup of a
+    /// combo box, is closed by it first and the window only once nothing is left to close.
+    ///
+    Keys.onEscapePressed: (event) =>
+    {
+      root.closeClicked()
+      event.accepted = true
+    }
 
     // Animations
-    Behavior on opacity
+    // The window appears animated and disappears at once: what it shows belongs to the search
+    // that asked for it, so it must not linger over what the user turns to next.
+    states: State
     {
+      name: "shown"
+      when: root.shown
+
+      PropertyChanges { content.opacity: 1 }
+    }
+    transitions: Transition
+    {
+      to: "shown"
+
       NumberAnimation
       {
+        property: "opacity"
         duration: Metrics.durationShort
         easing.type: Easing.InOutQuad
       }

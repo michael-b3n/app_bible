@@ -35,6 +35,7 @@ class Icons final : public QObject
   Q_PROPERTY(QString addToQueue MEMBER addToQueue_ CONSTANT)
   Q_PROPERTY(QString checkMark MEMBER checkMark_ CONSTANT)
   Q_PROPERTY(QString close MEMBER close_ CONSTANT)
+  Q_PROPERTY(QString copyright MEMBER copyright_ CONSTANT)
   Q_PROPERTY(QString dragHandle MEMBER dragHandle_ CONSTANT)
   Q_PROPERTY(QString loading MEMBER loading_ CONSTANT)
   Q_PROPERTY(QString openInBrowser MEMBER openInBrowser_ CONSTANT)
@@ -51,6 +52,7 @@ private: // Variables
   QString addToQueue_{detail::toIconUrl("add_to_queue.svg")};
   QString checkMark_{detail::toIconUrl("check_mark.svg")};
   QString close_{detail::toIconUrl("close.svg")};
+  QString copyright_{detail::toIconUrl("copyright.svg")};
   QString dragHandle_{detail::toIconUrl("drag_handle.svg")};
   QString loading_{detail::toIconUrl("loading.svg")};
   QString openInBrowser_{detail::toIconUrl("open_in_browser.svg")};

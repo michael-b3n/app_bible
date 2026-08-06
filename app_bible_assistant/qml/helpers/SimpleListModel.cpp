@@ -66,8 +66,6 @@ bool SimpleListModel::setData(const QModelIndex& index, const QVariant& value, c
   {
     return false;
   }
-  [[maybe_unused]] const auto& entry = entries_.at(static_cast<std::size_t>(index.row()));
-
   switch(role)
   {
   case ValueRole:
@@ -92,6 +90,18 @@ Qt::ItemFlags SimpleListModel::flags(const QModelIndex& index) const
 QVariantList SimpleListModel::entries() const
 {
   return QVariantList{std::begin(entries_), std::end(entries_)};
+}
+
+///
+///
+int SimpleListModel::indexOfValue(const QVariant& value) const
+{
+  static constexpr auto asText = [](const QVariant& variant)
+  { return variant.isValid() && !variant.isNull() ? variant.toString() : QString{}; };
+
+  const auto text = asText(value);
+  const auto found = std::ranges::find_if(entries_, [&](const auto& entry) { return asText(entry) == text; });
+  return found != std::ranges::cend(entries_) ? static_cast<int>(std::ranges::distance(std::cbegin(entries_), found)) : -1;
 }
 
 ///
