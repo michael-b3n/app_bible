@@ -28,6 +28,13 @@ namespace bibqml
   -> std::optional<std::shared_ptr<bibstd::bible::scripture>>;
 
 ///
+/// Get the name of a book as provided by the default scripture, in the language of that scripture.
+/// Falls back to the raw book identifier if the scripture does not provide a name.
+/// \return book name
+///
+[[nodiscard]] auto bookName(bibstd::workflow::workflow_scripture& workflowScripture, bibstd::bible::book_id book) -> QString;
+
+///
 /// Create a bible reference from QML provided values. The reference is validated
 /// against the versification of the default scripture.
 /// \return reference, or std::nullopt if the values do not describe a valid reference

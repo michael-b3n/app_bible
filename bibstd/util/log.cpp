@@ -95,7 +95,10 @@ auto global_log_level() -> logger_level
 auto log_debug(std::string_view&& msg) -> void
 {
   const auto lock = detail::lock_logger();
-  detail::logger()->debug(std::move(msg));
+  if(const auto logger = detail::logger())
+  {
+    logger->debug(std::move(msg));
+  }
 }
 
 ///
@@ -103,7 +106,10 @@ auto log_debug(std::string_view&& msg) -> void
 auto log_info(std::string_view&& msg) -> void
 {
   const auto lock = detail::lock_logger();
-  detail::logger()->info(std::move(msg));
+  if(const auto logger = detail::logger())
+  {
+    logger->info(std::move(msg));
+  }
 }
 
 ///
@@ -111,7 +117,10 @@ auto log_info(std::string_view&& msg) -> void
 auto log_warn(std::string_view&& msg) -> void
 {
   const auto lock = detail::lock_logger();
-  detail::logger()->warn(std::move(msg));
+  if(const auto logger = detail::logger())
+  {
+    logger->warn(std::move(msg));
+  }
 }
 
 ///
@@ -119,7 +128,10 @@ auto log_warn(std::string_view&& msg) -> void
 auto log_error(std::string_view&& msg) -> void
 {
   const auto lock = detail::lock_logger();
-  detail::logger()->error(msg);
+  if(const auto logger = detail::logger())
+  {
+    logger->error(std::move(msg));
+  }
 }
 
 ///

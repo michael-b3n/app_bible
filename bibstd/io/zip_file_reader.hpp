@@ -18,9 +18,6 @@ struct zip_stat;
 namespace bibstd::io
 {
 
-// Forward declarations
-class zip_entry;
-
 ///
 /// Reader for ZIP archives. Provides read-only access to ZIP file contents.
 /// This class wraps libzip for simple ZIP file reading operations.

@@ -50,7 +50,10 @@ ScriptureListModel::ScriptureListModel(
               entry = makeEntry(ref);
             }
           );
-          emit dataChanged(index(0, 0), index(rowCount() - 1, 0));
+          if(!entries_.empty())
+          {
+            emit dataChanged(index(0, 0), index(rowCount() - 1, 0));
+          }
         },
         Qt::QueuedConnection
       );
@@ -258,15 +261,13 @@ QString ScriptureListModel::fetchPassage(const bibstd::bible::reference& ref) co
 ///
 ScriptureListModel::Entry ScriptureListModel::makeEntry(const bibstd::bible::reference& ref) const
 {
-  const auto prettyName = bibstd::util::enum_name(ref.book()); // TODO
-  const auto bookName = QString::fromUtf8(prettyName.data(), static_cast<qsizetype>(prettyName.size()));
   const auto bookId = bibstd::util::enum_name(ref.book());
 
   return Entry{
     .ref = ref,
     .verseText = fetchPassage(ref),
     .bookId = QString::fromLatin1(bookId.data(), static_cast<qsizetype>(bookId.size())),
-    .bookName = bookName,
+    .bookName = bookName(*workflowScripture_, ref.book()),
     .chapterNumber = ref.chapter().value,
     .verseNumber = ref.verse().value,
     .isHeader = ref.verse() == decltype(ref.verse()){1},
