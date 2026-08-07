@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <concepts>
+#include <type_traits>
 
 namespace bibstd::util
 {
@@ -25,7 +26,10 @@ constexpr auto contains(const std::ranges::range auto& container, const auto& el
 /// \return bool true if element is found in container, false otherwise
 ///
 constexpr auto contains(const std::ranges::range auto& container, const auto& pred) -> bool
-  requires(std::predicate<decltype(pred), std::ranges::range_value_t<decltype(container)>>)
+  requires(
+    !std::ranges::view<std::remove_cvref_t<decltype(container)>> &&
+    std::predicate<decltype(pred), std::ranges::range_value_t<decltype(container)>>
+  )
 {
   return std::ranges::find_if(container, pred) != std::ranges::cend(container);
 }
