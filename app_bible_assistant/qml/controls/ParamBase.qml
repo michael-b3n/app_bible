@@ -23,12 +23,12 @@ Control
   readonly property int titleHeight: title.implicitHeight
   readonly property int titleWidth: title.contentWidth + 2 * Metrics.spacingTiny
 
-  topPadding: showTitle ? (titleHeight + 2 * Metrics.spacingTiny) : Metrics.spacingTiny
+  topPadding: root.showTitle ? (root.titleHeight + 2 * Metrics.spacingTiny) : Metrics.spacingTiny
   bottomPadding: Metrics.spacingTiny
   leftPadding: Metrics.spacingTiny
   rightPadding: Metrics.spacingTiny
 
-
+  // Signals
   ///
   /// The signal will notify the backend about the change,
   /// the value will be validated and loop back to UI

@@ -6,11 +6,6 @@ import BibQml
 /// It owns the main window carrying the content, the bubble window drawing the frame around it and
 /// the overlay button that reports a running search and covers the reference it found.
 ///
-/// A search replaces what the main window shows, so the window disappears when one starts and only
-/// comes back with its result. On its way back it passes the placing phase, which is what keeps it
-/// from moving in front of the user: it is placed while it is still hidden, and a window that has
-/// not disappeared yet waits until it did.
-///
 QtObject
 {
   id: root
@@ -26,8 +21,6 @@ QtObject
     Hidden,
     // A search runs and reports itself by the overlay, the main window is hidden
     Searching,
-    // The main window is asked for and waits until it can be placed
-    Placing,
     // The main window is on the screen
     Shown
   }
@@ -154,6 +147,13 @@ QtObject
     }
   }
 
+  property Connections applicationConnections: Connections
+  {
+    target: root.bridgeApplication
+
+    function onShowWindowRequested() { root.showWindow() }
+  }
+
   // Timer keeping the overlay of a search that found nothing on the screen for a moment
   property Timer searchWithoutResultTimer: Timer
   {
@@ -164,13 +164,6 @@ QtObject
 
     // Connections
     onTriggered: { root.endSearchWithoutResult() }
-  }
-
-  property Connections applicationConnections: Connections
-  {
-    target: root.bridgeApplication
-
-    function onShowWindowRequested() { root.showWindow() }
   }
 
   // Windows
@@ -217,12 +210,7 @@ QtObject
     shown: root.windowShown
 
     // Connections
-    onVisibleChanged:
-    {
-      // A hidden window is free to move, so a window waiting for its placement gets it now.
-      Qt.callLater(root.placeWindow)
-      Qt.callLater(root.raiseWindows)
-    }
+    onVisibleChanged: { Qt.callLater(root.raiseWindows) }
     onReleased:
     {
       root.raiseWindows()
@@ -278,13 +266,15 @@ QtObject
   }
 
   ///
-  /// Places the main window and shows it there. Only a hidden window may be placed, so a window
-  /// that is still on the screen disappears first and is placed once it did.
+  /// Places the main window and shows it there. The window is placed before it enters the shown
+  /// phase, so it never appears at the area of the previous search first. A window that is on the
+  /// screen already stays on it and only moves to its new area, taking it off the screen for the
+  /// placement would make it blink.
   ///
   function placeAndShowWindow()
   {
-    root.phase = Main.Phase.Placing
-    root.placeWindow()
+    mainPlacement.place()
+    root.phase = Main.Phase.Shown
   }
 
   ///
@@ -305,19 +295,6 @@ QtObject
   {
     root.phase = Main.Phase.Hidden
     reference.forgetArea()
-  }
-
-  ///
-  /// Places the main window waiting for it and shows it, as soon as it is hidden.
-  ///
-  function placeWindow()
-  {
-    if(root.phase !== Main.Phase.Placing || main.visible)
-    {
-      return
-    }
-    mainPlacement.place()
-    root.phase = Main.Phase.Shown
   }
 
   ///

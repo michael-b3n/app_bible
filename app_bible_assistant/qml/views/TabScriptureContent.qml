@@ -107,9 +107,9 @@ Item
     cacheBuffer: listView.cachedPixels
 
     // Connections
-    onContentYChanged: listView.updateHeader()
-    onCountChanged: listView.updateHeader()
-    onAtYBeginningChanged: listView.loadPrevious(listView.pageSize)
+    onContentYChanged: { listView.updateHeader() }
+    onCountChanged: { listView.updateHeader() }
+    onAtYBeginningChanged: { listView.loadPrevious(listView.pageSize) }
     onAtYEndChanged:
     {
       if(listView.atYEnd && listView.model && listView.model.rowCount() > 0)
@@ -120,6 +120,7 @@ Item
     Connections
     {
       target: root.listModelScripture
+
       function onRefreshed() { Qt.callLater(function() { listView.loadPrevious(1) }) }
       function onDataChanged() { listView.updateHeader() }
     }
@@ -227,7 +228,7 @@ Item
       }
     }
 
-    ScrollBar.vertical: ScrollBarSimple{ id: scrollBar }
+    ScrollBar.vertical: ScrollBarSimple { id: scrollBar }
 
     // Functions
     function rowAt(y)
@@ -246,10 +247,10 @@ Item
         listView.currentChapter = 0
         return
       }
-      let row = listView.rowAt(listView.contentY)
+      const row = listView.rowAt(listView.contentY)
       if(row >= 0)
       {
-        let idx = listView.model.index(row, 0)
+        const idx = listView.model.index(row, 0)
         listView.currentBook = listView.model.data(idx, ScriptureListModel.BookNameRole)
         listView.currentBookId = listView.model.data(idx, ScriptureListModel.BookIdRole)
         listView.currentChapter = Number(listView.model.data(idx, ScriptureListModel.ChapterNumberRole))
@@ -260,10 +261,10 @@ Item
     {
       if(listView.atYBeginning && listView.model && listView.model.rowCount() > 0)
       {
-        let prevCount = listView.model.rowCount()
+        const prevCount = listView.model.rowCount()
         listView.model.loadPrevious(count)
         // Maintain scroll position after prepending
-        let addedCount = listView.model.rowCount() - prevCount
+        const addedCount = listView.model.rowCount() - prevCount
         if(addedCount > 0)
         {
           listView.positionViewAtIndex(addedCount, ListView.Beginning)

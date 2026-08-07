@@ -26,7 +26,7 @@ ParamBase
     padding: Metrics.paddingParamContent
     spacing: Metrics.spacingTiny
     width: root.availableWidth
-    implicitHeight: contentText.implicitHeight + 2 * padding
+    implicitHeight: contentText.implicitHeight + 2 * control.padding
 
     // Connections
     onActivated: (index) =>
@@ -54,7 +54,7 @@ ParamBase
     }
     Component.onCompleted:
     {
-      model.replace(root.listValidatorData)
+      control.model.replace(root.listValidatorData)
       Qt.callLater(control.syncCurrentIndex)
     }
 

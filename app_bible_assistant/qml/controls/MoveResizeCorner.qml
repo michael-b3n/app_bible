@@ -15,6 +15,7 @@ MouseArea
   required property int deltaWidthMultiplier
   required property int deltaHeightMultiplier
 
+  // Position the drag of this corner started at
   property int clickX: 0
   property int clickY: 0
 
@@ -29,19 +30,19 @@ MouseArea
     root.clickX = mouse.x
     root.clickY = mouse.y
   }
-
   onPositionChanged: (mouse) =>
   {
-    if(root.pressed)
+    if(!root.pressed)
     {
-      let deltaX = mouse.x - root.clickX
-      let deltaY = mouse.y - root.clickY
-      root.resizeRequested(
-        deltaX * root.deltaXMultiplier,
-        deltaY * root.deltaYMultiplier,
-        deltaX * root.deltaWidthMultiplier,
-        deltaY * root.deltaHeightMultiplier
-      )
+      return
     }
+    const deltaX = mouse.x - root.clickX
+    const deltaY = mouse.y - root.clickY
+    root.resizeRequested(
+      deltaX * root.deltaXMultiplier,
+      deltaY * root.deltaYMultiplier,
+      deltaX * root.deltaWidthMultiplier,
+      deltaY * root.deltaHeightMultiplier
+    )
   }
 }

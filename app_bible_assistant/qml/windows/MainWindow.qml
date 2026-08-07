@@ -20,9 +20,10 @@ Window
 
   color: "transparent"
   flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
-  // The fade runs on the content: a hidden window reports no opacity change, so a visibility
-  // bound to its own opacity would never become true.
-  visible: content.opacity > 0
+  // The window follows the phase it is told directly. Deriving its visibility from the fade of
+  // its content instead would tie the window to an animation that only runs while it is on the
+  // screen, and every restart of that fade would take the window off the screen again.
+  visible: root.shown
   x: root.mainRect.x
   y: root.mainRect.y
   width: root.mainRect.width
@@ -82,7 +83,7 @@ Window
     }
 
     // Components
-    MouseAreaHelper
+    MoveResizeArea
     {
       // Properties
       anchors.fill: parent

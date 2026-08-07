@@ -2,6 +2,7 @@
 
 #include "bibstd/bible/ocr_book_variants_de.hpp"
 #include "bibstd/bible/ocr_book_variants_en.hpp"
+#include "bibstd/util/const_map.hpp"
 #include "bibstd/util/language.hpp"
 #include "bibstd/util/ranges.hpp"
 
@@ -10,6 +11,7 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace bibstd::bible
 {
@@ -20,6 +22,19 @@ namespace bibstd::bible
 struct ocr_book_variants final
 {
 private: // Constants
+  ///
+  /// A map of common misread characters by OCR to their correct character.
+  ///
+  static constexpr auto ocr_char_alias_map = util::make_const_map<std::string_view, std::string_view>({
+    // Misread char         Correct char
+    {std::string_view{"0"}, std::string_view{"o"}},
+    {std::string_view{"I"}, std::string_view{"1"}},
+    {std::string_view{"l"}, std::string_view{"1"}},
+    {std::string_view{"m"}, std::string_view{"M"}},
+    {std::string_view{"O"}, std::string_view{"o"}},
+    {std::string_view{"s"}, std::string_view{"S"}},
+  });
+
   ///
   /// Concatenated list of all bible book name variants.
   ///
@@ -55,6 +70,16 @@ public: // Constants
   /// \return the span of all name variants based on language.
   ///
   static constexpr auto name_variants_span(util::language language) -> std::span<const std::pair<book_id, std::string_view>>;
+
+  ///
+  /// \return a list of name variants that are aliases of the given name variant.
+  ///
+  static auto name_variant_aliases(std::string_view name_variant, util::language language) -> std::vector<std::string>;
+
+  ///
+  /// \return a complete list of all name variants with their aliases based on language.
+  ///
+  static auto name_variants_with_aliases(util::language language) -> std::span<const std::pair<book_id, std::string>>;
 };
 
 ///

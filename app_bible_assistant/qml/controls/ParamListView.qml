@@ -37,8 +37,10 @@ ParamBase
       Connections
       {
         target: root
+
         function onValueChanged() { listView.model.replace(root.value) }
       }
+
       Component.onCompleted: { listView.model.replace(root.value) }
 
       // Components
@@ -83,7 +85,7 @@ ParamBase
                 height: width
 
                 // Connections
-                onClicked: listView.addVar()
+                onClicked: { listView.addVar() }
               }
             }
           }
@@ -276,34 +278,35 @@ ParamBase
           // Connections
           onActiveChanged:
           {
-            if (active)
+            if(dragHandler.active)
             {
               listView.interactive = false
-              startY = delegateRoot.y
-              startIndex = delegateRoot.index
-              desiredIndex = startIndex
+              dragHandler.startY = delegateRoot.y
+              dragHandler.startIndex = delegateRoot.index
+              dragHandler.desiredIndex = dragHandler.startIndex
             }
             else
             {
               listView.interactive = true
-              delegateRoot.y = startY
-              if(desiredIndex !== startIndex)
+              delegateRoot.y = dragHandler.startY
+              if(dragHandler.desiredIndex !== dragHandler.startIndex)
               {
-                listView.moveItem(startIndex, desiredIndex)
+                listView.moveItem(dragHandler.startIndex, dragHandler.desiredIndex)
               }
             }
           }
           onTranslationChanged:
           {
-            if(!active)
+            if(!dragHandler.active)
             {
               return
             }
 
-            delegateRoot.y = startY + translation.y
+            delegateRoot.y = dragHandler.startY + dragHandler.translation.y
 
-            const offset = Math.round(translation.y / delegateRoot.height)
-            desiredIndex = Math.max(0, Math.min(listView.count - 1, startIndex + offset))
+            const offset = Math.round(dragHandler.translation.y / delegateRoot.height)
+            dragHandler.desiredIndex =
+              Math.max(0, Math.min(listView.count - 1, dragHandler.startIndex + offset))
           }
         }
       }
@@ -335,7 +338,7 @@ ParamBase
       }
       function removeVar(index)
       {
-        let idx = listView.model.index(index, 0)
+        const idx = listView.model.index(index, 0)
         if(listView.model.remove(idx))
         {
           root.paramValueChanged(listView.model.entries())
@@ -343,7 +346,7 @@ ParamBase
       }
       function updateItem(index, value)
       {
-        let idx = listView.model.index(index, 0)
+        const idx = listView.model.index(index, 0)
         if(listView.model.setData(idx, value, SimpleListModel.ValueRole))
         {
           root.paramValueChanged(listView.model.entries())
@@ -351,8 +354,8 @@ ParamBase
       }
       function moveItem(fromIndex, toIndex)
       {
-        let fromIdx = listView.model.index(fromIndex, 0)
-        let toIdx = listView.model.index(toIndex, 0)
+        const fromIdx = listView.model.index(fromIndex, 0)
+        const toIdx = listView.model.index(toIndex, 0)
         if(listView.model.move(fromIdx, toIdx))
         {
           root.paramValueChanged(listView.model.entries())

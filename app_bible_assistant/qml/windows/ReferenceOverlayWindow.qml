@@ -3,7 +3,7 @@ import QtQuick.Shapes
 
 ///
 /// Transparent button covering the reference on the screen. While the search runs it is shown in
-/// its default size at the cursor and reports the search by a segment travelling along its border,
+/// its default size at the cursor and reports the search by a segment traveling along its border,
 /// once the reference is found it grows onto it. It times out because the content below it may
 /// have scrolled away or changed in the meantime.
 ///
@@ -23,9 +23,9 @@ Window
   color: "transparent"
   // The overlay must not take the focus away from the window the user is reading.
   flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool | Qt.WindowDoesNotAcceptFocus
-  // The fade runs on the content: a hidden window reports no opacity change, so a visibility
-  // bound to its own opacity would never become true.
-  visible: content.opacity > 0
+  // The window follows the phase it is told directly, see MainWindow for why its visibility is
+  // not derived from the fade of its content.
+  visible: root.shown
   x: root.currentRect.x
   y: root.currentRect.y
   width: root.currentRect.width
@@ -41,7 +41,7 @@ Window
   // waits until both have settled before it decides to grow or to jump.
   onOverlayRectChanged: { Qt.callLater(root.applyOverlayRect) }
   onLoadingChanged: { Qt.callLater(root.applyOverlayRect) }
-  onVisibleChanged: { Qt.callLater(root.applyOverlayRect) }
+  onShownChanged: { Qt.callLater(root.applyOverlayRect) }
 
   // Animations
   PropertyAnimation
@@ -165,7 +165,7 @@ Window
         // Animations
         NumberAnimation on dashOffset
         {
-          running: root.visible && root.loading
+          running: root.shown && root.loading
           loops: Animation.Infinite
           from: 0
           to: dashedBorder.period
@@ -208,7 +208,7 @@ Window
   function applyOverlayRect()
   {
     growAnimation.stop()
-    if(root.visible && !root.loading)
+    if(root.shown && !root.loading)
     {
       growAnimation.to = root.overlayRect
       growAnimation.start()

@@ -26,10 +26,9 @@ ParamBase
     implicitWidth: root.availableWidth
     implicitHeight: root.titleHeight
 
-    // Signals
-    onClicked: root.paramValueChanged(control.checked)
-
     // Connections
+    onClicked: { root.paramValueChanged(control.checked) }
+
     Connections
     {
       target: root

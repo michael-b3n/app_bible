@@ -21,7 +21,7 @@ ButtonIconSimple
   width: Metrics.controlHeight - Metrics.spacingTiny
   height: Metrics.controlHeight - Metrics.spacingTiny
   visible: root.paramControl.hovered
-  opacity: visible ? 1 : 0
+  opacity: root.visible ? 1 : 0
 
   // Animations
   Behavior on opacity { NumberAnimation { duration: Metrics.durationMedium } }

@@ -4,9 +4,8 @@ import QtQuick.Layouts
 import BibQml
 
 ///
-/// This object describes the tab layout.
-/// All main functionality is accessible
-/// via the provided tabs.
+/// Content of the main window. All functionality is reachable through the tabs, the buttons
+/// beside them belong to the window itself and are only reported to its owner.
 ///
 Item
 {
@@ -19,7 +18,9 @@ Item
   required property BridgeBibleRefLookup bridgeBibleRefLookup
   required property bool pinned
 
-  readonly property bool runningState : bridgeBibleRefOcr.running
+  // Constants
+  // Index of the tab a found reference is shown in
+  readonly property int scriptureTabIndex: 0
 
   implicitWidth: 640
   implicitHeight: 480
@@ -39,7 +40,7 @@ Item
 
     function onReferenceFound(bookId, chapter, verse)
     {
-      bar.setCurrentIndex(0)
+      bar.setCurrentIndex(root.scriptureTabIndex)
     }
   }
 
@@ -52,6 +53,9 @@ Item
     spacing: Metrics.spacingSmall
 
     // Components
+    ///
+    /// Header: the tabs and the buttons of the window.
+    ///
     RowLayout
     {
       // Properties
@@ -69,38 +73,39 @@ Item
         Layout.fillHeight: true
         Layout.fillWidth: true
         Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+
+        // Style
         background: Rectangle { color: "transparent" }
 
         // Components
         TabScriptureButton
         {
-          id: tab1
+          id: scriptureTab
 
           // Properties
           anchors.top: parent.top
           anchors.left: parent.left
           width: bar.height
           height: bar.height
-          runningState: root.runningState
+          searchRunning: root.bridgeBibleRefOcr.running
         }
 
         TabSettingsButton
         {
-          id: tab2
-
           // Properties
           anchors.top: parent.top
-          anchors.left: tab1.right
+          anchors.left: scriptureTab.right
           anchors.leftMargin: Metrics.spacingSmall
           width: bar.height
           height: bar.height
         }
       }
 
+      ///
+      /// Pins the window at its current position, or releases it back to the cursor.
+      ///
       ButtonIconSwitch
       {
-        id: pinButton
-
         // Properties
         Layout.fillHeight: true
         Layout.fillWidth: false
@@ -114,10 +119,11 @@ Item
         onClicked: { root.pinClicked() }
       }
 
+      ///
+      /// Takes the window off the screen.
+      ///
       ButtonIconSimple
       {
-        id: closeButton
-
         // Properties
         Layout.fillHeight: true
         Layout.fillWidth: false
@@ -130,6 +136,9 @@ Item
       }
     }
 
+    ///
+    /// Content of the tab the user selected.
+    ///
     StackLayout
     {
       // Properties
@@ -140,12 +149,14 @@ Item
       // Components
       TabScriptureContent
       {
+        // Properties
         listModelScripture: root.listModelScripture
         bridgeBibleRefLookup: root.bridgeBibleRefLookup
       }
 
       TabSettingsContent
       {
+        // Properties
         listModelSettings: root.listModelSettings
       }
     }

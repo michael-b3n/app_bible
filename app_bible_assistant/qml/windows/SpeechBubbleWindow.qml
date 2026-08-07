@@ -21,7 +21,9 @@ Window
 
   color: "transparent"
   flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowTransparentForInput
-  visible: shape.opacity > 0
+  // The window follows the phase it is told directly, see MainWindow for why its visibility is
+  // not derived from the fade of its shape.
+  visible: root.shown
   x: root.screenGeometry.x
   y: root.screenGeometry.y
   width: root.screenGeometry.width
