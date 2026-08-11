@@ -19,6 +19,15 @@ target_sources(bibstd_test
 )
 
 #
+# Provide the scripture resource folder. The embedded scripture data cannot be reused here, because including
+# `bibstd/res/scripture.hpp` emits the data itself and is therefore limited to a single translation unit.
+#
+cmake_path(GET CMAKE_CURRENT_SOURCE_DIR PARENT_PATH bibstd_test_PARENT_DIR)
+target_compile_definitions(bibstd_test
+  PRIVATE BIBSTD_TEST_SCRIPTURE_DIR="${bibstd_test_PARENT_DIR}/bibstd/res/scripture"
+)
+
+#
 # Link libaries.
 #
 target_link_libraries(

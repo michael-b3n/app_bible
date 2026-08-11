@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bibstd/bible/reference.hpp>
+#include <bibstd/signal/synchronized_executor.hpp>
 #include <bibstd/util/non_owning_ptr.hpp>
 
 #include <QAbstractListModel>
@@ -29,6 +30,8 @@ class ScriptureListModel final : public QAbstractListModel
   Q_OBJECT
   QML_ELEMENT
 
+  Q_PROPERTY(QString scriptureCopyright READ scriptureCopyright NOTIFY scriptureCopyrightChanged FINAL)
+
   // Typedefs
   ///
   /// ListModel Entry
@@ -45,10 +48,14 @@ class ScriptureListModel final : public QAbstractListModel
   };
 
   // Variables
-  std::shared_ptr<bibstd::workflow::workflow_scripture> workflowScripture_;
+  const std::shared_ptr<bibstd::workflow::workflow_scripture> workflowScripture_;
   std::deque<Entry> entries_;
+  bibstd::signal::synchronized_executor executor_;
 
 public: // Typedefs
+  ///
+  /// Roles the delegates of the view read an entry by.
+  ///
   enum Role
   {
     VerseTextRole = Qt::UserRole + 1,
@@ -72,6 +79,13 @@ public: // Overrides
   QVariant data(const QModelIndex& index, int role) const override;
   QHash<int, QByteArray> roleNames() const override;
 
+public: // Accessors
+  ///
+  /// Copyright statement of the scripture the verses are taken from.
+  /// \return copyright statement, empty if the scripture does not provide one
+  ///
+  QString scriptureCopyright() const;
+
 public: // Modifiers
   ///
   /// Reset the model with a new starting reference.
@@ -94,7 +108,14 @@ public: // Modifiers
   ///
   Q_INVOKABLE void clear();
 
+  ///
+  /// Disconnect all signal connections.
+  /// This will stop the frontend backend communication.
+  ///
+  void disconnect();
+
 signals:
+  void scriptureCopyrightChanged();
   void refreshed();
 
 private: // Implementation

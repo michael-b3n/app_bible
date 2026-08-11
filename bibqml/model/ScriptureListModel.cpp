@@ -2,7 +2,6 @@
 #include "bibqml/util/ScriptureAccess.hpp"
 
 #include <bibstd/bible/common.hpp>
-#include <bibstd/bible/reference_formatter_de.hpp>
 #include <bibstd/util/enum.hpp>
 #include <bibstd/util/log.hpp>
 #include <bibstd/util/numeric_cast.hpp>
@@ -33,6 +32,35 @@ ScriptureListModel::ScriptureListModel(
   : QAbstractListModel{parent}
   , workflowScripture_{std::move(workflowScripture)}
 {
+  decltype(auto) scriptureNameSetting = workflowScripture_->settings().scripture_name;
+
+  scriptureNameSetting->connect_queued(
+    &std::remove_pointer_t<decltype(scriptureNameSetting)>::signals_type::value_changed,
+    [this]()
+    {
+      QMetaObject::invokeMethod(
+        this,
+        [this]()
+        {
+          std::ranges::for_each(
+            entries_,
+            [this](auto& entry)
+            {
+              const auto ref = entry.ref;
+              entry = makeEntry(ref);
+            }
+          );
+          if(!entries_.empty())
+          {
+            emit dataChanged(index(0, 0), index(rowCount() - 1, 0));
+          }
+          emit scriptureCopyrightChanged();
+        },
+        Qt::QueuedConnection
+      );
+    },
+    executor_
+  );
 }
 
 ///
@@ -83,6 +111,13 @@ QHash<int, QByteArray> ScriptureListModel::roleNames() const
     {  VerseNumberRole,   "verseNumber"},
     {     IsHeaderRole,      "isHeader"},
   };
+}
+
+///
+///
+QString ScriptureListModel::scriptureCopyright() const
+{
+  return bibqml::scriptureCopyright(*workflowScripture_);
 }
 
 ///
@@ -212,6 +247,13 @@ void ScriptureListModel::clear()
 
 ///
 ///
+void ScriptureListModel::disconnect()
+{
+  executor_.disconnect();
+}
+
+///
+///
 QString ScriptureListModel::fetchPassage(const bibstd::bible::reference& ref) const
 {
   auto params = bibstd::workflow::workflow_scripture::passage_params::value_type{ref, std::nullopt};
@@ -227,15 +269,13 @@ QString ScriptureListModel::fetchPassage(const bibstd::bible::reference& ref) co
 ///
 ScriptureListModel::Entry ScriptureListModel::makeEntry(const bibstd::bible::reference& ref) const
 {
-  const auto& prettyName = bibstd::bible::reference_formatter_de::pretty_names.at(ref.book());
-  const auto bookName = QString::fromUtf8(prettyName.data(), static_cast<qsizetype>(prettyName.size()));
   const auto bookId = bibstd::util::enum_name(ref.book());
 
   return Entry{
     .ref = ref,
     .verseText = fetchPassage(ref),
     .bookId = QString::fromLatin1(bookId.data(), static_cast<qsizetype>(bookId.size())),
-    .bookName = bookName,
+    .bookName = bookName(*workflowScripture_, ref.book()),
     .chapterNumber = ref.chapter().value,
     .verseNumber = ref.verse().value,
     .isHeader = ref.verse() == decltype(ref.verse()){1},

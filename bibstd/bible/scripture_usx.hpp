@@ -24,7 +24,8 @@ namespace bibstd::bible
 class scripture_usx final : public scripture
 {
   // Variables
-  const std::optional<info_type> info_data_;
+  const info_type info_data_;
+  const std::map<book_id, book_name_type> book_name_data_;
   const std::map<reference_type, passage_html_type> verse_data_;
   const versification_type versification_;
 
@@ -105,17 +106,17 @@ public: // Constants
 
 public: // Typedefs
   using passage_map_type = std::remove_const_t<decltype(verse_data_)>;
+  using book_name_map_type = std::remove_const_t<decltype(book_name_data_)>;
 
 public: // Creators
   ///
   /// Create a scripture_usx instance by loading and parsing USX files from the provided zip reader.
-  /// \param zip_reader The zip file reader to load USX files from
   /// \return A unique pointer to the created scripture_usx instance, or nullptr on failure
   ///
   static auto create(const io::zip_file_reader& zip_reader) -> std::unique_ptr<scripture>;
 
 public: // Constructor
-  scripture_usx(std::optional<info_type> info_data, passage_map_type verse_data);
+  scripture_usx(info_type info_data, book_name_map_type book_name_data, passage_map_type verse_data);
   ~scripture_usx() noexcept override;
 
 private: // Overrides
@@ -123,6 +124,12 @@ private: // Overrides
   /// \see scripture::information
   ///
   auto do_information() const -> info_type override;
+
+  ///
+  /// The names originate from the header paragraphs of the book's own USX document.
+  /// \see scripture::book_information
+  ///
+  auto do_book_information(book_id book) const -> std::optional<book_name_type> override;
 
   ///
   /// \see scripture::passage_html

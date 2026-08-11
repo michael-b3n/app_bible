@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <chrono>
 #include <optional>
+#include <ranges>
+#include <string_view>
 #include <type_traits>
 
 namespace bibqml
@@ -36,6 +38,34 @@ using validator_range_sptr = bibstd::framework::setting_validator_range_type_era
 template<typename T>
 using validator_list_sptr = bibstd::framework::setting_validator_list_type_erased<T>::sptr_type;
 using validator_unbound_sptr = bibstd::framework::setting_validator_unbound::sptr_type;
+
+///
+/// Check if the setting of the specified path is an internal one. Internal settings hold state
+/// the application manages on its own, e.g. the position of a window. They are persisted like
+/// any other setting, but they are not meant to be edited by the user.
+/// \return true if the setting is internal, false otherwise
+///
+auto isInternalSetting(const std::string_view path) -> bool
+{
+  static constexpr auto internalPrefix = std::string_view{"internal."};
+  return path.starts_with(internalPrefix);
+}
+
+///
+/// Read the segments a setting path is made of. Splitting is left to the backend, which is
+/// where how a path is written is known.
+/// \return segments of the path as the views read them
+///
+auto toCategories(const std::string& path) -> QStringList
+{
+  const auto segments = bibstd::workflow::workflow_settings::split_path(path);
+  auto categories = QStringList{};
+  categories.reserve(static_cast<qsizetype>(segments.size()));
+  std::ranges::transform(
+    segments, std::back_inserter(categories), [](const auto& segment) { return QString::fromStdString(segment); }
+  );
+  return categories;
+}
 
 ///
 /// Deduce the value type enum value from the settings pointer.
@@ -103,8 +133,9 @@ SettingsListModel::SettingsListModel(
   : QAbstractListModel{parent}
   , workflowSettings_{std::move(workflowSettings)}
 {
+  const auto settings = workflowSettings_->type_erased_settings();
   std::ranges::for_each(
-    workflowSettings_->type_erased_settings(),
+    settings | std::views::filter([](const auto& settingData) { return !isInternalSetting(settingData.path); }),
     [&](const auto& settingData)
     { std::visit([&](const auto setting) { addSetting(settingData.path, setting); }, settingData.setting); }
   );
@@ -148,6 +179,7 @@ QVariant SettingsListModel::data(const QModelIndex& index, const int role) const
   switch(role)
   {
   case PathRole: return QString::fromStdString(entry.path);
+  case CategoriesRole: return entry.categories;
   case ValueTypeRole: return static_cast<int>(entry.valueType);
   case WrapperTypeRole: return static_cast<int>(entry.wrapperType);
   case ValidatorTypeRole: return static_cast<int>(entry.validatorType);
@@ -163,6 +195,7 @@ QHash<int, QByteArray> SettingsListModel::roleNames() const
 {
   return {
     {             PathRole,              "path"},
+    {       CategoriesRole,        "categories"},
     {        ValueTypeRole,         "valueType"},
     {      WrapperTypeRole,       "wrapperType"},
     {    ValidatorTypeRole,     "validatorType"},
@@ -226,7 +259,7 @@ void SettingsListModel::disconnect()
 ///
 void SettingsListModel::appendSetting(const std::string& path)
 {
-  if(bibstd::util::contains(entries_, [&path](const auto& entry) { return entry.path == path; }))
+  if(isInternalSetting(path) || bibstd::util::contains(entries_, [&path](const auto& entry) { return entry.path == path; }))
   {
     return;
   }
@@ -299,9 +332,11 @@ void SettingsListModel::addEntry(std::string path, const auto& setting)
     LOG_ERROR("max entries count exceeded: path=\"{}\" not added", path);
     return;
   }
+  auto categories = toCategories(path);
   entries_.emplace_back(
     Entry{
       .path = std::move(path),
+      .categories = std::move(categories),
       .valueType = getValueType(setting),
       .wrapperType = getWrapperType(setting),
       .validatorType = getValidatorType(setting),

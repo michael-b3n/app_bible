@@ -12,7 +12,8 @@ Control
   id: root
 
   // Properties
-  required property string path
+  // Segments the setting is named by, the first one being the category it is grouped under
+  required property var categories
   required property int valueType
   required property int wrapperType
   required property int validatorType
@@ -23,12 +24,12 @@ Control
   readonly property int titleHeight: title.implicitHeight
   readonly property int titleWidth: title.contentWidth + 2 * Metrics.spacingTiny
 
-  topPadding: showTitle ? (titleHeight + 2 * Metrics.spacingTiny) : Metrics.spacingTiny
+  topPadding: root.showTitle ? (root.titleHeight + 2 * Metrics.spacingTiny) : Metrics.spacingTiny
   bottomPadding: Metrics.spacingTiny
   leftPadding: Metrics.spacingTiny
   rightPadding: Metrics.spacingTiny
 
-
+  // Signals
   ///
   /// The signal will notify the backend about the change,
   /// the value will be validated and loop back to UI
@@ -45,8 +46,11 @@ Control
     id: title
 
     // Properties
+    // The category is already named by the section the setting is listed under, so only the
+    // segments below it are left to name here. A setting without a category names itself.
     // Note the language is passed to reevaluate this binding on a language change.
-    text: Translations.name(root.path, Translations.language)
+    text: Translations.names(root.categories.length > 1 ? root.categories.slice(1) : root.categories,
+                             Translations.language)
 
     visible: root.showTitle
     width: root.width

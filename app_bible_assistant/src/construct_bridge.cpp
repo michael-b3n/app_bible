@@ -7,6 +7,7 @@
 #include <bibstd/workflow/workflow_scripture.hpp>
 #include <bibstd/workflow/workflow_settings.hpp>
 
+#include <bibqml/bridge/BridgeApplication.hpp>
 #include <bibqml/bridge/BridgeBibleRefLookup.hpp>
 #include <bibqml/bridge/BridgeBibleRefOcr.hpp>
 #include <bibqml/bridge/BridgeSettings.hpp>
@@ -26,10 +27,13 @@ bridge_instance::~bridge_instance() noexcept = default;
 ///
 auto disconnect_bridge(bridge_instance& instance) -> void
 {
-  assert(instance.bridge_bible_ref_ocr);
-  instance.bridge_bible_ref_ocr->disconnect();
   assert(instance.bridge_bible_ref_lookup);
+  assert(instance.bridge_bible_ref_ocr);
+  assert(instance.scripture_list_model);
+  assert(instance.settings_list_model);
   instance.bridge_bible_ref_lookup->disconnect();
+  instance.bridge_bible_ref_ocr->disconnect();
+  instance.scripture_list_model->disconnect();
   instance.settings_list_model->disconnect();
 }
 
@@ -44,6 +48,7 @@ auto construct_bridge(QGuiApplication& app, backend_instance& backend) -> bridge
   auto workflow_bible_ref_lookup = std::static_pointer_cast<bibstd::workflow::workflow_bible_ref_lookup>(backend.workflow_bible_ref_lookup);
   auto workflow_scripture = std::static_pointer_cast<bibstd::workflow::workflow_scripture>(backend.workflow_scripture);
   return bridge_instance{
+    .bridge_application{std::make_unique<bibqml::BridgeApplication>()},
     .bridge_settings{std::make_unique<bibqml::BridgeSettings>(workflow_settings)},
     .settings_list_model{std::make_unique<bibqml::SettingsListModel>(workflow_settings)},
     .bridge_bible_ref_ocr{std::make_unique<bibqml::BridgeBibleRefOcr>(workflow_bible_ref_ocr, workflow_hotkey, workflow_settings)},
@@ -90,6 +95,7 @@ auto connect_engine(QQmlApplicationEngine& engine, QGuiApplication& app, bridge_
     {  "listModelScripture",    QVariant::fromValue(bridge.scripture_list_model.get())},
     {   "bridgeBibleRefOcr",    QVariant::fromValue(bridge.bridge_bible_ref_ocr.get())},
     {"bridgeBibleRefLookup", QVariant::fromValue(bridge.bridge_bible_ref_lookup.get())},
+    {   "bridgeApplication",      QVariant::fromValue(bridge.bridge_application.get())},
   });
 
   QObject::connect(

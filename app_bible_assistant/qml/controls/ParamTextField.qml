@@ -28,7 +28,7 @@ ParamBase
 
     padding: Metrics.paddingParamContent
     width: root.availableWidth
-    implicitHeight: contentHeight + 2 * padding
+    implicitHeight: input.contentHeight + 2 * input.padding
 
     inputMethodHints:
     {
@@ -45,7 +45,7 @@ ParamBase
     }
 
     // Connections
-    onTextEdited: debounceTimer.restart()
+    onTextEdited: { debounceTimer.restart() }
 
     Connections
     {
@@ -92,7 +92,7 @@ ParamBase
         return
       case SettingsListModel.IntValueType:
       {
-        let v =  parseInt(input.text)
+        const v = parseInt(input.text)
         if(isNaN(v))
         {
           input.text = root.value ? root.value.toString() : ""
@@ -106,7 +106,7 @@ ParamBase
       case SettingsListModel.DoubleValueType: // fallthrough
       case SettingsListModel.TimeValueType:
       {
-        let v =  parseFloat(input.text)
+        const v = parseFloat(input.text)
         if(isNaN(v))
         {
           input.text = root.value ? root.value.toString() : ""

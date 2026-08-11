@@ -1,5 +1,11 @@
 import QtQuick
 
+///
+/// Mouse area that lets the call site resize what it covers by dragging one of its four corners.
+/// It only reports the deltas of the drag, where its target ends up is up to the call site.
+/// Everything but the corners is left to the content, which is why this area never moves its
+/// target. That is the job of a MoveArea.
+///
 Item
 {
   id: root
@@ -7,55 +13,16 @@ Item
   // Properties
   required property bool expandable
   required property int expandAreaWidth
-  required property bool movable
-
-  readonly property bool containsMouse:
-    center.containsMouse ||
-    topLeft.containsMouse ||
-    topRight.containsMouse ||
-    bottomLeft.containsMouse ||
-    bottomRight.containsMouse
-
-  implicitHeight: 100
-  implicitWidth: 200
 
   // Signals
-  signal pressed(mouse: MouseEvent)
   signal released(mouse: MouseEvent)
   signal expandRequested(deltaX: int, deltaY: int, deltaWidth: int, deltaHeight: int)
-  signal moveRequested(deltaX: int, deltaY: int)
 
   // Components
-  MouseArea
-  {
-    id: center
-
-    // Properties
-    property int clickX: 0
-    property int clickY: 0
-
-    hoverEnabled: true
-    anchors.fill: parent
-
-    // Connections
-    onPressed: (mouse) =>
-    {
-      clickX = mouse.x
-      clickY = mouse.y
-      root.pressed(mouse)
-    }
-    onReleased: (mouse) => { root.released(mouse) }
-    onPositionChanged: (mouse) =>
-    {
-      if(root.movable && pressed)
-      {
-        root.moveRequested(mouse.x - clickX, mouse.y - clickY)
-      }
-    }
-  }
-
-  // Components
-  MouseAreaCornerHelper
+  ///
+  /// Corners of the area, they resize the target.
+  ///
+  ExpandCorner
   {
     id: topLeft
 
@@ -71,18 +38,14 @@ Item
     deltaHeightMultiplier: -1
 
     // Connections
-    onPressed: (mouse) => { root.pressed(mouse) }
     onReleased: (mouse) => { root.released(mouse) }
     onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {
-      if(root.expandable)
-      {
-        root.expandRequested(deltaX, deltaY, deltaWidth, deltaHeight)
-      }
+      root.requestExpand(deltaX, deltaY, deltaWidth, deltaHeight)
     }
   }
 
-  MouseAreaCornerHelper
+  ExpandCorner
   {
     id: topRight
 
@@ -98,18 +61,14 @@ Item
     deltaHeightMultiplier: -1
 
     // Connections
-    onPressed: (mouse) => { root.pressed(mouse) }
     onReleased: (mouse) => { root.released(mouse) }
     onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {
-      if(root.expandable)
-      {
-        root.expandRequested(deltaX, deltaY, deltaWidth, deltaHeight)
-      }
+      root.requestExpand(deltaX, deltaY, deltaWidth, deltaHeight)
     }
   }
 
-  MouseAreaCornerHelper
+  ExpandCorner
   {
     id: bottomLeft
 
@@ -125,18 +84,14 @@ Item
     deltaHeightMultiplier: 1
 
     // Connections
-    onPressed: (mouse) => { root.pressed(mouse) }
     onReleased: (mouse) => { root.released(mouse) }
     onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {
-      if(root.expandable)
-      {
-        root.expandRequested(deltaX, deltaY, deltaWidth, deltaHeight)
-      }
+      root.requestExpand(deltaX, deltaY, deltaWidth, deltaHeight)
     }
   }
 
-  MouseAreaCornerHelper
+  ExpandCorner
   {
     id: bottomRight
 
@@ -152,14 +107,22 @@ Item
     deltaHeightMultiplier: 1
 
     // Connections
-    onPressed: (mouse) => { root.pressed(mouse) }
     onReleased: (mouse) => { root.released(mouse) }
     onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {
-      if(root.expandable)
-      {
-        root.expandRequested(deltaX, deltaY, deltaWidth, deltaHeight)
-      }
+      root.requestExpand(deltaX, deltaY, deltaWidth, deltaHeight)
+    }
+  }
+
+  // Functions
+  ///
+  /// Reports the resize a corner was dragged by, if this area may be resized at all.
+  ///
+  function requestExpand(deltaX, deltaY, deltaWidth, deltaHeight)
+  {
+    if(root.expandable)
+    {
+      root.expandRequested(deltaX, deltaY, deltaWidth, deltaHeight)
     }
   }
 }

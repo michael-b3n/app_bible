@@ -21,5 +21,8 @@ Button
     // Properties
     color: root.pressed ? Colors.pressed : (root.hovered ? Colors.selection : "transparent")
     radius: Metrics.radiusSmall
+
+    // Animations
+    Behavior on color { ColorAnimation { duration: Metrics.durationShort } }
   }
 }

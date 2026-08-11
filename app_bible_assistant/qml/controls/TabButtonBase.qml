@@ -3,8 +3,8 @@ import QtQuick.Controls
 
 ///
 /// Base of all tab buttons.
-/// Implementations shall add their content, the size
-/// is expected to be set by the call site.
+/// Implementations shall add their content, every tab button is a square of the size all
+/// controls share, so that the bar they are listed in can size itself by them.
 ///
 TabButton
 {
@@ -29,5 +29,8 @@ TabButton
       return "transparent"
     }
     radius: Metrics.radiusSmall
+
+    // Animations
+    Behavior on color { ColorAnimation { duration: Metrics.durationShort } }
   }
 }

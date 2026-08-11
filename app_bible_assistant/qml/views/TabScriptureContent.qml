@@ -2,11 +2,12 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
+import QtQuick.VectorImage
 import BibQml
 
 ///
-/// This objects describes the content of the scripture tab.
-/// A list view lists dynamically loaded verses from the listModelScripture.
+/// Content of the scripture tab. A list view lists the verses of the listModelScripture, loading
+/// further ones whenever an end of the loaded range is reached.
 ///
 Item
 {
@@ -14,8 +15,23 @@ Item
 
   // Properties
   required property ScriptureListModel listModelScripture
-  required property BridgeBibleRefOcr bridgeBibleRefOcr
   required property BridgeBibleRefLookup bridgeBibleRefLookup
+
+  // The tab fades in when it is switched to, the layout takes the previous one off at once
+  opacity: root.visible ? 1 : 0
+  // Flattened while it fades, blending its children one by one would let the verses show
+  // through the sticky header
+  layer.enabled: root.opacity > 0 && root.opacity < 1
+
+  // Animations
+  Behavior on opacity
+  {
+    NumberAnimation
+    {
+      duration: Metrics.durationShort
+      easing.type: Easing.InOutQuad
+    }
+  }
 
   // Components
   ///
@@ -87,10 +103,9 @@ Item
     id: listView
 
     // Properties
-    // Number of verses that are requested from the model whenever
-    // an end of the already loaded scripture range is reached.
+    // Verses requested from the model whenever an end of the loaded range is reached
     readonly property int pageSize: 10
-    // Pixels of delegates kept alive outside the visible area.
+    // Pixels of delegates kept alive outside the visible area
     readonly property int cachedPixels: 600
 
     property string currentBook: ""
@@ -107,9 +122,9 @@ Item
     cacheBuffer: listView.cachedPixels
 
     // Connections
-    onContentYChanged: listView.updateHeader()
-    onCountChanged: listView.updateHeader()
-    onAtYBeginningChanged: listView.loadPrevious(listView.pageSize)
+    onContentYChanged: { listView.updateHeader() }
+    onCountChanged: { listView.updateHeader() }
+    onAtYBeginningChanged: { listView.loadPrevious(listView.pageSize) }
     onAtYEndChanged:
     {
       if(listView.atYEnd && listView.model && listView.model.rowCount() > 0)
@@ -120,7 +135,9 @@ Item
     Connections
     {
       target: root.listModelScripture
+
       function onRefreshed() { Qt.callLater(function() { listView.loadPrevious(1) }) }
+      function onDataChanged() { listView.updateHeader() }
     }
 
     // Components
@@ -129,7 +146,6 @@ Item
       id: delegateRoot
 
       // Properties
-      required property int index
       required property string verseText
       required property string bookName
       required property int chapterNumber
@@ -227,9 +243,23 @@ Item
       }
     }
 
-    ScrollBar.vertical: ScrollBarSimple{ id: scrollBar }
+    ScrollBar.vertical: ScrollBarSimple { id: scrollBar }
 
     // Functions
+    ///
+    /// Tells which row is at a position of the content. A position falling into the gap between
+    /// two rows belongs to the row above it, which is what the second lookup covers.
+    ///
+    function rowAt(y)
+    {
+      const position = Math.max(0, Math.min(y, listView.contentHeight - 1))
+      const row = listView.indexAt(listView.contentX, position)
+      return row >= 0 ? row : listView.indexAt(listView.contentX, position - listView.spacing)
+    }
+
+    ///
+    /// Takes the book and chapter of the topmost row into the sticky header.
+    ///
     function updateHeader()
     {
       if(!listView.model || listView.model.rowCount() === 0)
@@ -239,28 +269,135 @@ Item
         listView.currentChapter = 0
         return
       }
-      let row = listView.indexAt(listView.contentX, listView.contentY)
+      const row = listView.rowAt(listView.contentY)
       if(row >= 0)
       {
-        let idx = listView.model.index(row, 0)
+        const idx = listView.model.index(row, 0)
         listView.currentBook = listView.model.data(idx, ScriptureListModel.BookNameRole)
         listView.currentBookId = listView.model.data(idx, ScriptureListModel.BookIdRole)
         listView.currentChapter = Number(listView.model.data(idx, ScriptureListModel.ChapterNumberRole))
       }
     }
 
+    ///
+    /// Loads verses before the first one and keeps the view on the verse it is on, prepending
+    /// alone would push what the user reads out of sight.
+    ///
     function loadPrevious(count)
     {
       if(listView.atYBeginning && listView.model && listView.model.rowCount() > 0)
       {
-        let prevCount = listView.model.rowCount()
+        const prevCount = listView.model.rowCount()
         listView.model.loadPrevious(count)
-        // Maintain scroll position after prepending
-        let addedCount = listView.model.rowCount() - prevCount
+        const addedCount = listView.model.rowCount() - prevCount
         if(addedCount > 0)
         {
           listView.positionViewAtIndex(addedCount, ListView.Beginning)
         }
+      }
+    }
+  }
+
+  ///
+  /// Copyright of the scripture the verses are taken from. Only the icon floats over the verses
+  /// instead of taking room from them, the statement itself is told on hover. A scripture that
+  /// states no copyright shows nothing.
+  ///
+  Item
+  {
+    id: copyrightNote
+
+    // Properties
+    readonly property string statement: root.listModelScripture.scriptureCopyright
+    readonly property bool available: copyrightNote.statement !== ""
+
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    anchors.margins: Metrics.spacingTiny
+    width: Metrics.controlHeight - Metrics.spacingSmall
+    height: copyrightNote.width
+    visible: copyrightNote.available
+    z: 1
+
+    // Components
+    VectorImage
+    {
+      id: copyrightIcon
+
+      // Properties
+      anchors.fill: parent
+      opacity: copyrightArea.containsMouse ? 1 : 0.3
+      source: Icons.copyright
+      preferredRendererType: VectorImage.CurveRenderer
+
+      // Animations
+      Behavior on opacity
+      {
+        NumberAnimation
+        {
+          duration: Metrics.durationShort
+          easing.type: Easing.InOutQuad
+        }
+      }
+
+      // Components
+      MouseArea
+      {
+        id: copyrightArea
+
+        // Properties
+        anchors.fill: parent
+        hoverEnabled: true
+        acceptedButtons: Qt.NoButton
+      }
+    }
+
+    ///
+    /// The statement, shown above the icon while it is hovered.
+    ///
+    Rectangle
+    {
+      id: copyrightStatement
+
+      // Properties
+      readonly property int maximumWidth: root.width - 2 * Metrics.spacingSmall
+
+      anchors.left: parent.left
+      anchors.bottom: parent.top
+      anchors.bottomMargin: Metrics.spacingTiny
+      width: copyrightStatementText.contentWidth + 2 * Metrics.spacingSmall
+      height: copyrightStatementText.contentHeight + 2 * Metrics.spacingSmall
+      visible: copyrightStatement.opacity > 0
+      opacity: copyrightArea.containsMouse ? 1 : 0
+      color: Colors.backgroundSolid
+      border.color: Colors.border
+      border.width: Metrics.border
+      radius: Metrics.radiusMedium
+
+      // Animations
+      Behavior on opacity
+      {
+        NumberAnimation
+        {
+          duration: Metrics.durationShort
+          easing.type: Easing.InOutQuad
+        }
+      }
+
+      // Components
+      Text
+      {
+        id: copyrightStatementText
+
+        // Properties
+        x: Metrics.spacingSmall
+        y: Metrics.spacingSmall
+        width: copyrightStatement.maximumWidth - 2 * Metrics.spacingSmall
+        text: copyrightNote.statement
+        wrapMode: Text.WordWrap
+        font.pointSize: Metrics.fontSizeSmall
+        color: Colors.text
+        renderType: Text.CurveRendering
       }
     }
   }

@@ -4,9 +4,8 @@ import QtQuick.Layouts
 import BibQml
 
 ///
-/// This object describes the tab layout.
-/// All main functionality is accessible
-/// via the provided tabs.
+/// Content of the main window. All functionality is reachable through the tabs, the buttons
+/// beside them belong to the window itself and are only reported to its owner.
 ///
 Item
 {
@@ -17,19 +16,26 @@ Item
   required property ScriptureListModel listModelScripture
   required property BridgeBibleRefOcr bridgeBibleRefOcr
   required property BridgeBibleRefLookup bridgeBibleRefLookup
+  required property bool pinned
+  required property bool movable
 
-  readonly property bool runningState : bridgeBibleRefOcr.running
+  // Constants
+  // Index of the tab a found reference is shown in
+  readonly property int scriptureTabIndex: 0
 
   implicitWidth: 640
   implicitHeight: 480
 
   // Signals
   signal closeClicked()
+  signal pinClicked()
+  signal released()
+  signal moveRequested(deltaX: int, deltaY: int)
 
   // Connections
   ///
-  /// A found reference is shown in the scripture tab, so switch to it. Otherwise the
-  /// scripture of a reference found while another tab is open would stay hidden.
+  /// Switches to the scripture tab, a reference found while another tab is open would stay
+  /// hidden otherwise.
   ///
   Connections
   {
@@ -37,7 +43,7 @@ Item
 
     function onReferenceFound(bookId, chapter, verse)
     {
-      bar.setCurrentIndex(0)
+      bar.setCurrentIndex(root.scriptureTabIndex)
     }
   }
 
@@ -50,6 +56,9 @@ Item
     spacing: Metrics.spacingSmall
 
     // Components
+    ///
+    /// Header: the tabs and the buttons of the window.
+    ///
     RowLayout
     {
       // Properties
@@ -65,40 +74,65 @@ Item
 
         // Properties
         Layout.fillHeight: true
-        Layout.fillWidth: true
+        Layout.fillWidth: false
+        // Only as wide as the tabs it lays out, so that everything it does not need is left to
+        // the move area beside it
+        Layout.preferredWidth: bar.implicitWidth
         Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+        spacing: Metrics.spacingSmall
+
+        // Style
         background: Rectangle { color: "transparent" }
 
         // Components
         TabScriptureButton
         {
-          id: tab1
-
           // Properties
-          anchors.top: parent.top
-          anchors.left: parent.left
-          width: bar.height
-          height: bar.height
-          runningState: root.runningState
+          searchRunning: root.bridgeBibleRefOcr.running
         }
 
-        TabSettingsButton
-        {
-          id: tab2
-
-          // Properties
-          anchors.top: parent.top
-          anchors.left: tab1.right
-          anchors.leftMargin: Metrics.spacingSmall
-          width: bar.height
-          height: bar.height
-        }
+        TabSettingsButton {}
       }
 
+      ///
+      /// Free space of the header beside the tabs, the one place the window is moved by.
+      /// Dragging anywhere else would take it along while the user works in it.
+      ///
+      MoveArea
+      {
+        // Properties
+        Layout.fillHeight: true
+        Layout.fillWidth: true
+        movable: root.movable
+
+        // Connections
+        onReleased: { root.released() }
+        onMoveRequested: (deltaX, deltaY) => { root.moveRequested(deltaX, deltaY) }
+      }
+
+      ///
+      /// Pins the window at its current position, or releases it back to the cursor.
+      ///
+      ButtonIconSwitch
+      {
+        // Properties
+        Layout.fillHeight: true
+        Layout.fillWidth: false
+        Layout.preferredWidth: Metrics.controlHeight
+        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+        svgSourceFirst: Icons.pin
+        svgSourceSecond: Icons.pinFilled
+        toggled: root.pinned
+
+        // Connections
+        onClicked: { root.pinClicked() }
+      }
+
+      ///
+      /// Takes the window off the screen.
+      ///
       ButtonIconSimple
       {
-        id: closeButton
-
         // Properties
         Layout.fillHeight: true
         Layout.fillWidth: false
@@ -111,6 +145,9 @@ Item
       }
     }
 
+    ///
+    /// Content of the tab the user selected.
+    ///
     StackLayout
     {
       // Properties
@@ -121,13 +158,14 @@ Item
       // Components
       TabScriptureContent
       {
+        // Properties
         listModelScripture: root.listModelScripture
-        bridgeBibleRefOcr: root.bridgeBibleRefOcr
         bridgeBibleRefLookup: root.bridgeBibleRefLookup
       }
 
       TabSettingsContent
       {
+        // Properties
         listModelSettings: root.listModelSettings
       }
     }

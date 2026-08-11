@@ -25,6 +25,7 @@ SpeechBubbleShape::SpeechBubbleShape(bibstd::util::non_owning_ptr<QQuickItem> pa
   connect(this, &SpeechBubbleShape::offsetToTailYChanged, this, &SpeechBubbleShape::markDirty);
   connect(this, &SpeechBubbleShape::bubbleWidthChanged, this, &SpeechBubbleShape::markDirty);
   connect(this, &SpeechBubbleShape::bubbleHeightChanged, this, &SpeechBubbleShape::markDirty);
+  connect(this, &SpeechBubbleShape::tailVisibleChanged, this, &SpeechBubbleShape::markDirty);
 
   // Color-only changes just need a repaint
   connect(this, &SpeechBubbleShape::strokeColorChanged, this, [this] { update(); });
@@ -108,11 +109,11 @@ void SpeechBubbleShape::rebuildPath()
   const auto lineTopY = bubbleY + r;
   const auto lineBottomY = bubbleY + bh - r;
 
-  // Determine tail direction
-  const auto tailUp = tailPositionY_ < static_cast<int>(bubbleY);
-  const auto tailDown = tailPositionY_ > static_cast<int>(bubbleY + bh);
-  const auto tailLeft = !tailUp && !tailDown && tailPositionX_ < static_cast<int>(bubbleX);
-  const auto tailRight = !tailUp && !tailDown && tailPositionX_ > static_cast<int>(bubbleX + bw);
+  // Determine tail direction. Without a tail the shape stays a plain rounded rectangle.
+  const auto tailUp = tailVisible_ && tailPositionY_ < static_cast<int>(bubbleY);
+  const auto tailDown = tailVisible_ && tailPositionY_ > static_cast<int>(bubbleY + bh);
+  const auto tailLeft = tailVisible_ && !tailUp && !tailDown && tailPositionX_ < static_cast<int>(bubbleX);
+  const auto tailRight = tailVisible_ && !tailUp && !tailDown && tailPositionX_ > static_cast<int>(bubbleX + bw);
 
   const auto tailX = static_cast<double>(tailPositionX_);
   const auto tailY = static_cast<double>(tailPositionY_);

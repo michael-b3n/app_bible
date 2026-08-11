@@ -1,23 +1,18 @@
 #include "bibstd/bible/scripture_usx.hpp"
 #include "bibstd/bible/common.hpp"
+#include "bibstd/bible/scripture_usx_document.hpp"
+#include "bibstd/bible/scripture_usx_metadata.hpp"
 #include "bibstd/io/zip_file_reader.hpp"
-#include "bibstd/util/contains.hpp"
 #include "bibstd/util/enum.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
-#include "bibstd/util/string.hpp"
 #include "bibstd/util/timer.hpp"
-#include "bibstd/util/uid.hpp"
-
-#include <pugixml.hpp>
 
 #include <algorithm>
-#include <array>
-#include <map>
+#include <format>
 #include <optional>
 #include <ranges>
 #include <string>
-#include <string_view>
 #include <vector>
 
 namespace bibstd::bible
@@ -26,245 +21,16 @@ namespace detail
 {
 
 ///
-/// Simple node content walker that concatenates the content of all nodes found.
+/// Names and passages of every book of a scripture.
 ///
-class node_simple_content_walker : public pugi::xml_tree_walker
+struct scripture_content final
 {
-public: // Variables
-  std::string content;
-
-public: // Structors
-  node_simple_content_walker() = default;
-
-private: // Overrides
-  auto for_each(pugi::xml_node& node) -> bool override;
+  scripture_usx::book_name_map_type book_names;
+  scripture_usx::passage_map_type passages;
 };
-
-///
-///
-auto node_simple_content_walker::for_each(pugi::xml_node& node) -> bool
-{
-  decltype(auto) type = node.type();
-  if(type == pugi::xml_node_type::node_pcdata || type == pugi::xml_node_type::node_cdata)
-  {
-    content.append(node.value());
-  }
-  return true;
-}
-
-///
-/// Tree walker for finding nodes with a certain depth.
-/// The walker is initialized with criteria paths, which are paths in the XML tree that specify which nodes to find.
-///
-class node_path_finder_walker : public pugi::xml_tree_walker
-{
-  // Typedefs
-  using string_matrix_type = std::vector<std::vector<std::string>>;
-
-  struct criteria_data final
-  {
-    bool starts_with_wildcard = false;
-    typename string_matrix_type::value_type path_sections;
-  };
-
-  struct walker_data final
-  {
-    criteria_data criteria;
-    std::map<int, std::vector<pugi::xml_node>> found_nodes;
-  };
-
-  // Constants
-  static constexpr std::string_view wildcard = "...";
-  static constexpr char section_delimiter = '/';
-  static constexpr auto is_wildcard = [](const std::string_view data) { return data == wildcard; };
-
-  // Variables
-  std::vector<walker_data> data_;
-  decltype(walker_data::found_nodes) found_nodes_;
-
-public: // Typedefs
-  using result_type = decltype(found_nodes_);
-  using string_list_type = typename string_matrix_type::value_type;
-
-public: // Structors
-  ///
-  /// Construct a node depth finder walker with the given criteria path.
-  /// \param criteria_path The criteria paths to match nodes against. Multiple criteria paths can be provided, the first
-  /// matching path will be used. Each criteria path is a string that represents a path in the XML tree, with sections separated
-  /// by '/'. The path can contain wildcards ("...").
-  ///
-  node_path_finder_walker(const auto& criteria_paths);
-
-public: // Accessors
-  ///
-  /// Get the found nodes grouped by their depth in the XML tree.
-  /// \return A map where the key is the depth and the value is a vector of XML nodes found at that depth.
-  ///
-  auto found() const -> const result_type&;
-
-private: // Implementation
-  static auto parse_criteria(const auto& criteria_paths) -> std::vector<walker_data>;
-  static auto parse_path_sections(std::string_view criteria_path) -> string_list_type;
-  auto matches_criteria(const pugi::xml_node& node, const criteria_data& criteria) const -> bool;
-
-private: // Overrides
-  auto for_each(pugi::xml_node& node) -> bool override;
-  auto end(pugi::xml_node& node) -> bool override;
-};
-
-///
-///
-node_path_finder_walker::node_path_finder_walker(const auto& criteria_paths)
-  : data_{parse_criteria(criteria_paths)}
-{
-}
-
-///
-///
-auto node_path_finder_walker::found() const -> const result_type&
-{
-  return found_nodes_;
-}
-
-///
-///
-auto node_path_finder_walker::parse_criteria(const auto& criteria_paths) -> std::vector<walker_data>
-{
-  auto result = std::vector<walker_data>{};
-  std::ranges::for_each(
-    criteria_paths,
-    [&](const auto& criteria_path)
-    {
-      const auto sections = bibstd::util::string::split(criteria_path, section_delimiter);
-      if(sections.empty())
-      {
-        throw util::exception(std::format("invalid criteria path: reason=\"empty criteria\", path=\"{}\"", criteria_path));
-      }
-      if(is_wildcard(sections.back()))
-      {
-        throw util::exception(
-          std::format("invalid criteria path: reason=\"cannot end with wildcard\", path=\"{}\"", criteria_path)
-        );
-      }
-      result.emplace_back(criteria_data{is_wildcard(sections.front()), parse_path_sections(criteria_path)});
-    }
-  );
-  return result;
-}
-
-///
-///
-auto node_path_finder_walker::parse_path_sections(const std::string_view criteria_path) -> string_list_type
-{
-  auto path_sections = bibstd::util::string::split(criteria_path, wildcard);
-
-  std::ranges::for_each(
-    path_sections | std::views::filter([](const auto& section) { return !section.empty(); }),
-    [&](auto& element)
-    {
-      if(util::string::starts_with(element, section_delimiter))
-      {
-        element = element.substr(1);
-      }
-      if(util::string::ends_with(element, section_delimiter))
-      {
-        element.pop_back();
-      }
-    }
-  );
-  std::erase_if(path_sections, [](const auto& section) { return section.empty(); });
-  return path_sections;
-}
-
-///
-///
-auto node_path_finder_walker::matches_criteria(const pugi::xml_node& node, const criteria_data& criteria) const -> bool
-{
-  if(criteria.path_sections.empty())
-  {
-    return false;
-  }
-  decltype(auto) path = node.path();
-  auto checker = [&path, pos = decltype(std::string::npos){0}](const auto& path_section) mutable
-  {
-    const auto found_pos = path.find(path_section, pos);
-    const auto found = found_pos != std::string::npos;
-    if(found)
-    {
-      pos = found_pos + path_section.size();
-    }
-    return found;
-  };
-
-  decltype(auto) front = criteria.path_sections.front();
-  auto result = checker(front);
-  if(criteria.starts_with_wildcard)
-  {
-    result = util::string::starts_with(path, std::format("{}{}", section_delimiter, front));
-  }
-  auto rest = criteria.path_sections | std::views::drop(1);
-  return result && std::ranges::all_of(rest, [&](const auto& path_section) { return checker(path_section); });
-}
-
-///
-///
-auto node_path_finder_walker::for_each(pugi::xml_node& node) -> bool
-{
-  std::ranges::for_each(
-    data_ | std::views::filter([&](const auto& element) { return matches_criteria(node, element.criteria); }),
-    [&](auto& d) { d.found_nodes[depth()].push_back(node); }
-  );
-  return true;
-}
-
-///
-///
-auto node_path_finder_walker::end([[maybe_unused]] pugi::xml_node&) -> bool
-{
-  std::ranges::for_each(
-    data_ | std::views::take_while([&]([[maybe_unused]] const auto&) { return found_nodes_.empty(); }),
-    [&](auto& data) { found_nodes_ = std::move(data.found_nodes); }
-  );
-  return true;
-}
-
-///
-/// Find the child node specified by the criteria.
-/// \param parent The parent node to search within
-/// \param criteria_paths Criteria paths to match child nodes, the first matching path will be used.
-/// \return The first matching child node, or std::nullopt if not found
-///
-auto find_highest_child_node(const pugi::xml_node& parent, const auto& criteria_paths) -> std::optional<pugi::xml_node>
-{
-  pugi::xml_node current = parent;
-  auto walker = node_path_finder_walker{criteria_paths};
-  current.traverse(walker);
-
-  auto result = std::optional<pugi::xml_node>{};
-  std::ranges::for_each(
-    walker.found() | std::views::values | std::views::filter([](const auto& e) { return !e.empty(); }) | std::views::take(1),
-    [&](const auto& e) { result = e.front(); }
-  );
-  return result;
-}
-
-///
-/// Get all text content from subnodes of the given xml node.
-/// \param node The XML node to get content from
-/// \return A string containing the concatenated content of all subnodes
-///
-auto get_all_subnodes_content(const pugi::xml_node& node) -> std::string
-{
-  pugi::xml_node current = node;
-  auto walker = node_simple_content_walker{};
-  current.traverse(walker);
-  return walker.content;
-}
 
 ///
 /// Load a specific entry from the zip reader as a string.
-/// \param zip_reader The zip file reader to load from
-/// \param entry_name The name of the entry to load
 /// \return The loaded entry content as a string, or std::nullopt if not found
 ///
 auto load_entry(const io::zip_file_reader& zip_reader, const std::string& entry_name) -> std::optional<std::string>
@@ -280,513 +46,37 @@ auto load_entry(const io::zip_file_reader& zip_reader, const std::string& entry_
 }
 
 ///
-/// Load the scripture name from the XML document.
-/// \param doc The XML document to load from
-/// \return The loaded scripture name, or std::nullopt if not found
+/// Load and parse the USX document of every book of the scripture.
+/// \return Names and passages of all books, or std::nullopt if any book is missing or cannot be parsed
 ///
-auto load_name(const pugi::xml_document& doc) -> std::optional<std::string>
+auto load_content(const io::zip_file_reader& zip_reader) -> std::optional<scripture_content>
 {
-  static constexpr auto criteria_paths = std::array{"/.../identification/nameLocal", "/.../identification/name", "/.../name"};
-  auto result = std::optional<std::string>{};
-  const auto name_node = find_highest_child_node(doc, criteria_paths);
-  if(name_node)
+  try
   {
-    result = get_all_subnodes_content(*name_node);
-  }
-  else
-  {
-    LOG_ERROR(
-      "expected node in \"metadata.xml\" not found: criteria_paths=\"{}\"", bibstd::util::string::join(criteria_paths, ", ")
-    );
-  }
-  return result;
-}
-
-///
-/// Load the scripture version from the XML document.
-/// \param doc The XML document to load from
-/// \return The loaded scripture abbreviation, or std::nullopt if not found
-///
-auto load_abbreviation(const pugi::xml_document& doc) -> std::optional<std::string>
-{
-  static constexpr auto criteria_paths =
-    std::array{"/.../identification/abbreviationLocal", "/.../identification/abbreviation", "/.../abbreviation"};
-  auto result = std::optional<std::string>{};
-  const auto abbreviation_node = find_highest_child_node(doc, criteria_paths);
-  if(abbreviation_node)
-  {
-    result = get_all_subnodes_content(*abbreviation_node);
-  }
-  else
-  {
-    LOG_ERROR(
-      "expected node in \"metadata.xml\" not found: criteria_paths=\"{}\"", bibstd::util::string::join(criteria_paths, ", ")
-    );
-  }
-  return result;
-}
-
-///
-/// Load the scripture language from the XML document.
-/// \param doc The XML document to load from
-/// \return The loaded scripture language, or std::nullopt if not found
-///
-auto load_language(const pugi::xml_document& doc) -> std::optional<std::string>
-{
-  static constexpr auto criteria_paths = std::array{"/.../language/nameLocal", "/.../language/name", "/.../language"};
-  auto result = std::optional<std::string>{};
-  const auto language_node = find_highest_child_node(doc, criteria_paths);
-  if(language_node)
-  {
-    result = get_all_subnodes_content(*language_node);
-  }
-  else
-  {
-    LOG_ERROR(
-      "expected node in \"metadata.xml\" not found: criteria_paths=\"{}\"", bibstd::util::string::join(criteria_paths, ", ")
-    );
-  }
-  return result;
-}
-
-///
-/// Load copyright information from the XML document.
-/// \param doc The XML document to load from
-/// \return The loaded copyright information, or std::nullopt if not found
-///
-auto load_copyright(const pugi::xml_document& doc) -> std::optional<std::string>
-{
-  static constexpr auto criteria_paths = std::array{"/.../copyright/.../statementContent", "/.../copyright"};
-  auto result = std::optional<std::string>{};
-  const auto copyright_node = find_highest_child_node(doc, criteria_paths);
-  if(copyright_node)
-  {
-    result = get_all_subnodes_content(*copyright_node);
-  }
-  else
-  {
-    LOG_ERROR(
-      "expected node in \"metadata.xml\" not found: criteria_paths=\"{}\"", bibstd::util::string::join(criteria_paths, ", ")
-    );
-  }
-  return result;
-}
-
-///
-/// Serialize inline USX content to HTML string.
-/// Handles char styles (bold, italic, etc.) and skips notes.
-/// \param node The XML node to serialize
-/// \return HTML string
-///
-auto serialize_inline_to_html(const pugi::xml_node& node) -> std::string
-{
-  auto result = std::string{};
-  for(auto child : node.children())
-  {
-    const auto type = child.type();
-    if(type == pugi::node_pcdata || type == pugi::node_cdata)
+    auto result = scripture_content{};
+    for(const auto& [id, abbreviation] : scripture_usx::books)
     {
-      result.append(child.value());
-    }
-    else if(type == pugi::node_element)
-    {
-      const auto name = std::string_view{child.name()};
-      if(name == "char")
+      const auto usx_content = load_entry(zip_reader, std::format("{}.usx", abbreviation));
+      if(!usx_content.has_value() || usx_content->empty())
       {
-        const auto style = std::string_view{child.attribute("style").value()};
-        const auto inner = serialize_inline_to_html(child);
-        // clang-format off
-        if(style == "bd") { result.append(std::format("<b>{}</b>", inner)); }
-        else if(style == "it" || style == "em") { result.append(std::format("<i>{}</i>", inner)); }
-        else if(style == "nd") { result.append(std::format("<{0}>{1}</{0}>", scripture::html_format_name_of_god, inner)); }
-        else if(style == "add") { result.append(std::format("<{0}>{1}</{0}>", scripture::html_format_translator_addition, inner)); }
-        else { result.append(inner); }
-        // clang-format on
+        LOG_ERROR("failed to load \"{}\" data: expected \"{}.usx\" file within archive", util::enum_name(id), abbreviation);
+        return std::nullopt;
       }
-      else if(name == "note")
+      auto document = usx_document::parse(id, *usx_content);
+      if(!document)
       {
-        // skip footnotes
+        return std::nullopt;
       }
-      else
-      {
-        result.append(serialize_inline_to_html(child));
-      }
+      result.book_names.emplace(id, std::move(document->name));
+      result.passages.merge(document->passages);
     }
+    return result;
   }
-  return result;
-}
-
-///
-/// Check if a paragraph style is a content paragraph (not header/title/table of contents).
-/// \param style The style attribute value
-/// \return true if it is a content paragraph
-///
-auto is_content_paragraph(std::string_view style) -> bool
-{
-  static constexpr auto non_content = std::array{"h", "toc1", "toc2", "toc3", "mt", "mt1", "mt2", "mt3"};
-  return !util::contains(non_content, style);
-}
-
-///
-/// Extract text content from an XML node tree.
-/// \param node The XML node
-/// \return concatenated text content
-///
-auto get_inline_text(const pugi::xml_node& node) -> std::string
-{
-  auto result = std::string{};
-  for(auto child : node.children())
+  catch(...)
   {
-    if(child.type() == pugi::node_pcdata || child.type() == pugi::node_cdata)
-    {
-      result.append(child.value());
-    }
-    else if(child.type() == pugi::node_element)
-    {
-      result.append(get_inline_text(child));
-    }
+    LOG_ERROR("exception while loading book data: {}", util::exception_report());
+    return std::nullopt;
   }
-  return result;
-}
-
-///
-/// Parsing state for tracking the current verse being assembled.
-///
-struct verse_parse_state final
-{
-  // Typedefs
-  using paragraph_id_type = util::uid<struct paragraph_id_tag>;
-
-  struct segment final
-  {
-    paragraph_id_type paragraph_id{};
-    std::string_view paragraph_attribute_value{scripture::html_custom_attr_value_p_undefined};
-    std::string content{""};
-  };
-
-  std::vector<segment> segments{};
-  std::vector<std::string> current_xrefs{};
-  std::optional<std::uint32_t> chapter{};
-  std::optional<std::uint32_t> verse{};
-  std::optional<paragraph_id_type> current_paragraph_id{};
-};
-
-///
-/// Flush accumulated segments and cross-references for the current verse into the passage map.
-/// Resets segments and cross-references afterwards. Does nothing if no complete verse is pending.
-/// \param id The book identifier used to create the reference
-/// \param state The current parsing state (segments and xrefs are cleared)
-/// \param passage_map The map to store the assembled passage into
-///
-auto flush_verse(const book_id id, verse_parse_state& state, scripture_usx::passage_map_type& passage_map) -> void
-{
-  if(!state.verse || !state.chapter || state.segments.empty())
-  {
-    return;
-  }
-  std::erase_if(state.segments, [](const auto& s) { return s.content.empty(); });
-  if(state.segments.empty())
-  {
-    return;
-  }
-
-  auto html = std::string{};
-  for(const auto& seg : state.segments)
-  {
-    html.append(std::format(R"(<p {}="{}">)", scripture::html_custom_attr_name_id, seg.paragraph_attribute_value));
-    html.append(seg.content);
-    html.append("</p>");
-  }
-  const auto ref = scripture::reference_type::create_unguarded(id, *state.chapter, *state.verse);
-  passage_map.emplace(ref, scripture::passage_html_type{ref, std::move(html), std::move(state.current_xrefs)});
-  state.current_xrefs.clear();
-  state.segments.clear();
-}
-
-///
-/// Handle a chapter marker: flush the current verse and begin a new chapter.
-/// \param id The book identifier
-/// \param chapter_number The new chapter number
-/// \param state The current parsing state (chapter set, verse reset)
-/// \param passage_map The map to flush the previous verse into
-///
-auto begin_chapter(
-  const book_id id, const std::uint32_t chapter_number, verse_parse_state& state, scripture_usx::passage_map_type& passage_map
-) -> void
-{
-  flush_verse(id, state, passage_map);
-  state.chapter = chapter_number;
-  state.verse = std::nullopt;
-}
-
-///
-/// Handle a verse marker: flush the current verse and begin a new one.
-/// \param id The book identifier
-/// \param verse_number The new verse number
-/// \param state The current parsing state (verse number set)
-/// \param passage_map The map to flush the previous verse into
-///
-auto begin_verse(
-  const book_id id, const std::uint32_t verse_number, verse_parse_state& state, scripture_usx::passage_map_type& passage_map
-) -> void
-{
-  flush_verse(id, state, passage_map);
-  state.verse = verse_number;
-}
-
-///
-/// Append text content to the current verse's active segment.
-/// Creates a new segment when the paragraph context changes. Ignores content before any verse starts.
-/// \param state The current parsing state
-/// \param text The text to append
-///
-auto append_content(verse_parse_state& state, const std::string& text) -> void
-{
-  if(!state.verse || !state.chapter)
-  {
-    return;
-  }
-
-  static constexpr auto add_segment = [](verse_parse_state& state, const std::string& text)
-  {
-    const auto paragraph_value =
-      state.current_paragraph_id ? scripture::html_custom_attr_value_p_begin : scripture::html_custom_attr_value_p_undefined;
-    state.segments.push_back(
-      {state.current_paragraph_id.value_or(verse_parse_state::paragraph_id_type{}), paragraph_value, text}
-    );
-  };
-
-  if(!state.segments.empty())
-  {
-    const auto same_paragraph = state.current_paragraph_id == state.segments.back().paragraph_id;
-    if(!same_paragraph)
-    {
-      add_segment(state, text);
-    }
-    else
-    {
-      state.segments.back().content.append(text);
-    }
-  }
-  else
-  {
-    add_segment(state, text);
-  }
-}
-
-///
-/// Extract cross-reference texts from a <note style="x"> element's <char style="xt"> children.
-/// \param note_node The <note> XML element to extract from
-/// \return Vector of non-empty cross-reference text strings
-///
-auto extract_cross_references(const pugi::xml_node& note_node) -> std::vector<std::string>
-{
-  auto xrefs = std::vector<std::string>{};
-  for(auto note_child : note_node.children())
-  {
-    if(
-      note_child.type() == pugi::node_element && std::string_view(note_child.name()) == "char" &&
-      std::string_view(note_child.attribute("style").value()) == "xt"
-    )
-    {
-      auto text = get_inline_text(note_child);
-      if(!text.empty())
-      {
-        xrefs.push_back(std::move(text));
-      }
-    }
-  }
-  return xrefs;
-}
-
-///
-/// Process a single XML element within USX content.
-/// Dispatches verse markers, chapter markers, cross-reference notes, and inline styled elements.
-/// \param id The book identifier
-/// \param element The XML element node to process
-/// \param state The current parsing state
-/// \param passage_map The map to store completed verses into
-///
-auto process_element(
-  const book_id id, const pugi::xml_node& element, verse_parse_state& state, scripture_usx::passage_map_type& passage_map
-) -> void
-{
-  const auto name = std::string_view(element.name());
-
-  if(name == "verse")
-  {
-    if(const auto attr = element.attribute("number"))
-    {
-      begin_verse(id, attr.as_uint(), state, passage_map);
-    }
-  }
-  else if(name == "chapter")
-  {
-    if(const auto attr = element.attribute("number"))
-    {
-      begin_chapter(id, attr.as_uint(), state, passage_map);
-    }
-  }
-  else if(name == "note" && std::string_view(element.attribute("style").value()) == "x")
-  {
-    auto xrefs = extract_cross_references(element);
-    state.current_xrefs.insert(
-      state.current_xrefs.end(), std::make_move_iterator(xrefs.begin()), std::make_move_iterator(xrefs.end())
-    );
-  }
-  else if(name != "note")
-  {
-    const auto html = serialize_inline_to_html(element);
-    if(!html.empty())
-    {
-      append_content(state, html);
-    }
-  }
-}
-
-///
-/// Process a single XML node (text or element) within USX content.
-/// Text nodes are appended to the current verse. Element nodes are dispatched via process_element.
-/// \param id The book identifier
-/// \param node The XML node to process
-/// \param state The current parsing state
-/// \param passage_map The map to store completed verses into
-///
-auto process_node(
-  const book_id id, const pugi::xml_node& node, verse_parse_state& state, scripture_usx::passage_map_type& passage_map
-) -> void
-{
-  const auto type = node.type();
-  if(type == pugi::node_pcdata || type == pugi::node_cdata)
-  {
-    const auto text = std::string(node.value());
-    if(!text.empty())
-    {
-      append_content(state, text);
-    }
-  }
-  else if(type == pugi::node_element)
-  {
-    const auto name = std::string_view(node.name());
-    if(name == "para" && is_content_paragraph(std::string_view(node.attribute("style").value())))
-    {
-      state.current_paragraph_id = decltype(state.current_paragraph_id)::value_type{};
-      for(auto child : node.children())
-      {
-        process_node(id, child, state, passage_map);
-      }
-      state.current_paragraph_id = std::nullopt;
-    }
-    else
-    {
-      process_element(id, node, state, passage_map);
-    }
-  }
-}
-
-///
-/// Parse USX content for a single book into per-verse HTML passages with cross-references.
-/// \param id The book identifier
-/// \param usx_content The raw USX XML string
-/// \return Map of references to html_passage objects, empty on parse failure
-///
-auto parse_book_passages(const book_id id, const std::string& usx_content) -> scripture_usx::passage_map_type
-{
-  pugi::xml_document doc;
-  const auto parse_result = doc.load_string(usx_content.c_str(), pugi::parse_default | pugi::parse_ws_pcdata);
-  if(!parse_result)
-  {
-    LOG_ERROR("failed to parse USX content for {}: {}", util::enum_name(id), parse_result.description());
-    return {};
-  }
-
-  const auto usx_node = doc.child("usx");
-  if(!usx_node)
-  {
-    LOG_ERROR("no <usx> root element found for {}", util::enum_name(id));
-    return {};
-  }
-
-  auto passage_map = scripture_usx::passage_map_type{};
-  auto state = verse_parse_state{};
-
-  for(auto child : usx_node.children())
-  {
-    process_node(id, child, state, passage_map);
-  }
-
-  flush_verse(id, state, passage_map);
-  return passage_map;
-}
-
-///
-/// Load all passage data for every book from the zip archive.
-/// \param zip_reader The zip file reader to load book USX files from
-/// \return Map of all references to html_passage objects, empty on failure
-///
-auto load_book_data(const io::zip_file_reader& zip_reader) -> scripture_usx::passage_map_type
-{
-  SCOPED_TIMER_LOG();
-  auto result = scripture_usx::passage_map_type{};
-
-  const auto success = std::ranges::all_of(
-    scripture_usx::books,
-    [&](const auto& book)
-    {
-      try
-      {
-        const auto& [id, abbreviation] = book;
-        const auto content = load_entry(zip_reader, std::format("{}.usx", abbreviation));
-        if(!content.has_value() || content->empty())
-        {
-          LOG_ERROR("failed to load \"{}\" data: expected \"{}.usx\" file within archive", util::enum_name(id), abbreviation);
-          return false;
-        }
-        auto book_result = parse_book_passages(id, *content);
-        result.merge(book_result);
-        return true;
-      }
-      catch(...)
-      {
-        LOG_ERROR("exception while loading book data: {}", util::exception_report());
-        return false;
-      }
-    }
-  );
-  if(!success)
-  {
-    result.clear();
-  }
-  return result;
-}
-
-///
-/// Load scripture metadata (name, abbreviation, language, copyright) from the zip archive.
-/// \param zip_reader The zip file reader containing metadata.xml
-/// \return The loaded scripture information, or std::nullopt on failure
-///
-auto load_info_data(const io::zip_file_reader& zip_reader) -> std::optional<scripture_usx::info_type>
-{
-  SCOPED_TIMER_LOG();
-  const auto data = load_entry(zip_reader, "metadata.xml");
-  if(!data)
-  {
-    return {};
-  }
-  pugi::xml_document doc;
-  const auto parse_result = doc.load_string(data->c_str());
-  if(!parse_result)
-  {
-    LOG_ERROR("failed to parse \"metadata.xml\": {}", parse_result.description());
-    return {};
-  }
-
-  return scripture_usx::info_type{
-    .name = load_name(doc).value_or(scripture_usx::unknown_name),
-    .abbreviation = load_abbreviation(doc).value_or(scripture_usx::unknown_abbreviation),
-    .language = load_language(doc).value_or(scripture_usx::unknown_language),
-    .copyright = load_copyright(doc)
-  };
 }
 
 } // namespace detail
@@ -795,38 +85,41 @@ auto load_info_data(const io::zip_file_reader& zip_reader) -> std::optional<scri
 ///
 auto scripture_usx::create(const io::zip_file_reader& zip_reader) -> std::unique_ptr<scripture>
 {
-  auto info_data = detail::load_info_data(zip_reader);
+  SCOPED_TIMER_LOG();
+  auto info_data = usx_metadata::parse(zip_reader);
   if(!info_data)
   {
     LOG_ERROR("failed to load scripture information data");
     return nullptr;
   }
-  auto verse_data = detail::load_book_data(zip_reader);
-  if(verse_data.empty())
+  auto content = detail::load_content(zip_reader);
+  if(!content)
   {
-    LOG_ERROR("failed to load scripture verse data");
+    LOG_ERROR("failed to load scripture book data");
     return nullptr;
   }
   LOG_INFO(
-    "loaded scripture: name=\"{}\", abbreviation=\"{}\", language=\"{}\", copyright=\"{}\", verses={}",
+    "loaded scripture: name=\"{}\", abbreviation=\"{}\", language=\"{}\", copyright=\"{}\", verses={}, named_books={}",
     info_data->name,
     info_data->abbreviation,
     info_data->language,
     info_data->copyright.value_or("not found"),
-    verse_data.size()
+    content->passages.size(),
+    content->book_names.size()
   );
-  return std::make_unique<scripture_usx>(std::move(info_data), std::move(verse_data));
+  return std::make_unique<scripture_usx>(std::move(*info_data), std::move(content->book_names), std::move(content->passages));
 }
 
 ///
 ///
-scripture_usx::scripture_usx(std::optional<info_type> info_data, passage_map_type verse_data)
+scripture_usx::scripture_usx(info_type info_data, book_name_map_type book_name_data, passage_map_type verse_data)
   : info_data_{std::move(info_data)}
+  , book_name_data_{std::move(book_name_data)}
   , verse_data_{std::move(verse_data)}
   , versification_{[&]
                    {
                      auto view = verse_data_ | std::views::keys;
-                     const auto v = versification_type{info_data_->name, view | std::ranges::to<std::vector>()};
+                     const auto v = versification_type{info_data_.name, view | std::ranges::to<std::vector>()};
                      const auto it = std::ranges::find(versifications_default, v);
                      return it != std::ranges::cend(versifications_default) ? *it : v;
                    }()}
@@ -841,9 +134,15 @@ scripture_usx::~scripture_usx() noexcept = default;
 ///
 auto scripture_usx::do_information() const -> info_type
 {
-  static const auto unknown_info =
-    info_type{.name = unknown_name, .abbreviation = unknown_abbreviation, .language = unknown_language};
-  return info_data_.value_or(unknown_info);
+  return info_data_;
+}
+
+///
+///
+auto scripture_usx::do_book_information(const book_id book) const -> std::optional<book_name_type>
+{
+  const auto it = book_name_data_.find(book);
+  return it != std::cend(book_name_data_) ? std::make_optional(it->second) : std::nullopt;
 }
 
 ///
@@ -851,7 +150,7 @@ auto scripture_usx::do_information() const -> info_type
 auto scripture_usx::do_passage_html(const reference_type& ref) const -> std::optional<passage_html_type>
 {
   const auto it = verse_data_.find(ref);
-  if(it != verse_data_.end())
+  if(it != std::cend(verse_data_))
   {
     return it->second;
   }

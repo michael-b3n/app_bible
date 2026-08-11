@@ -1,9 +1,8 @@
 #pragma once
 
-#include "bibstd/bible/reference_range.hpp"
+#include "bibstd/bible/common.hpp"
 #include "bibstd/util/const_map.hpp"
 
-#include <string>
 #include <string_view>
 
 namespace bibstd::bible
@@ -81,14 +80,6 @@ struct reference_formatter_de final
     {     book_id::revelation,       "Offenbarung"}
   });
   static_assert(pretty_names.size() == util::enum_count<book_id>());
-
-  // Operators
-  ///
-  /// Formats a reference range to pretty format.
-  /// \param range Reference range that shall be formatted
-  /// \return formatted reference range as string
-  ///
-  static auto operator()(const reference_range& range) -> std::string;
 };
 
 } // namespace bibstd::bible

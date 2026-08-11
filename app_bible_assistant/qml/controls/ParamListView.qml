@@ -33,12 +33,32 @@ ParamBase
       clip: false
       anchors.fill: parent
 
+      // Animations
+      // Only the edits of the user are animated. A value taken over from the backend resets the
+      // model, which fires no transition at all, so the list is simply there.
+      add: Transition
+      {
+        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Metrics.durationShort }
+      }
+      remove: Transition
+      {
+        NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Metrics.durationShort }
+      }
+      // Rows an edit pushed aside slide to their new place. The dragged row itself is left alone,
+      // it is already where the user dropped it.
+      displaced: Transition
+      {
+        NumberAnimation { property: "y"; duration: Metrics.durationShort; easing.type: Easing.InOutQuad }
+      }
+
       // Connections
       Connections
       {
         target: root
+
         function onValueChanged() { listView.model.replace(root.value) }
       }
+
       Component.onCompleted: { listView.model.replace(root.value) }
 
       // Components
@@ -83,7 +103,7 @@ ParamBase
                 height: width
 
                 // Connections
-                onClicked: listView.addVar()
+                onClicked: { listView.addVar() }
               }
             }
           }
@@ -148,7 +168,7 @@ ParamBase
               id: switchControl
 
               // Properties
-              path: root.path
+              categories: root.categories
               valueType: root.valueType
               wrapperType: root.wrapperType
               validatorType: root.validatorType
@@ -182,7 +202,7 @@ ParamBase
               id: textFieldControl
 
               // Properties
-              path: root.path
+              categories: root.categories
               valueType: root.valueType
               wrapperType: root.wrapperType
               validatorType: root.validatorType
@@ -216,7 +236,7 @@ ParamBase
               id: comboBoxControl
 
               // Properties
-              path: root.path
+              categories: root.categories
               valueType: root.valueType
               wrapperType: root.wrapperType
               validatorType: root.validatorType
@@ -248,7 +268,7 @@ ParamBase
             ParamError
             {
               // Properties
-              path: root.path
+              categories: root.categories
               valueType: root.valueType
               wrapperType: root.wrapperType
               validatorType: root.validatorType
@@ -276,34 +296,35 @@ ParamBase
           // Connections
           onActiveChanged:
           {
-            if (active)
+            if(dragHandler.active)
             {
               listView.interactive = false
-              startY = delegateRoot.y
-              startIndex = delegateRoot.index
-              desiredIndex = startIndex
+              dragHandler.startY = delegateRoot.y
+              dragHandler.startIndex = delegateRoot.index
+              dragHandler.desiredIndex = dragHandler.startIndex
             }
             else
             {
               listView.interactive = true
-              delegateRoot.y = startY
-              if(desiredIndex !== startIndex)
+              delegateRoot.y = dragHandler.startY
+              if(dragHandler.desiredIndex !== dragHandler.startIndex)
               {
-                listView.moveItem(startIndex, desiredIndex)
+                listView.moveItem(dragHandler.startIndex, dragHandler.desiredIndex)
               }
             }
           }
           onTranslationChanged:
           {
-            if(!active)
+            if(!dragHandler.active)
             {
               return
             }
 
-            delegateRoot.y = startY + translation.y
+            delegateRoot.y = dragHandler.startY + dragHandler.translation.y
 
-            const offset = Math.round(translation.y / delegateRoot.height)
-            desiredIndex = Math.max(0, Math.min(listView.count - 1, startIndex + offset))
+            const offset = Math.round(dragHandler.translation.y / delegateRoot.height)
+            dragHandler.desiredIndex =
+              Math.max(0, Math.min(listView.count - 1, dragHandler.startIndex + offset))
           }
         }
       }
@@ -335,7 +356,7 @@ ParamBase
       }
       function removeVar(index)
       {
-        let idx = listView.model.index(index, 0)
+        const idx = listView.model.index(index, 0)
         if(listView.model.remove(idx))
         {
           root.paramValueChanged(listView.model.entries())
@@ -343,7 +364,7 @@ ParamBase
       }
       function updateItem(index, value)
       {
-        let idx = listView.model.index(index, 0)
+        const idx = listView.model.index(index, 0)
         if(listView.model.setData(idx, value, SimpleListModel.ValueRole))
         {
           root.paramValueChanged(listView.model.entries())
@@ -351,8 +372,8 @@ ParamBase
       }
       function moveItem(fromIndex, toIndex)
       {
-        let fromIdx = listView.model.index(fromIndex, 0)
-        let toIdx = listView.model.index(toIndex, 0)
+        const fromIdx = listView.model.index(fromIndex, 0)
+        const toIdx = listView.model.index(toIndex, 0)
         if(listView.model.move(fromIdx, toIdx))
         {
           root.paramValueChanged(listView.model.entries())

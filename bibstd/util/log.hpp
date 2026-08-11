@@ -53,6 +53,7 @@ auto log_error(std::string_view&& msg) -> void;
 
 ///
 /// Init logger and shutdown logger with RAII.
+/// \note Messages logged while no logger instance is alive are dropped.
 ///
 struct logger final
 {
@@ -92,7 +93,9 @@ struct logger final
 ///
 /// Default logging macros
 ///
+// clang-format off
 #define LOG_DEBUG(FMT_STR, ...) INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::debug, FMT_STR __VA_OPT__(,) __VA_ARGS__);
 #define LOG_INFO(FMT_STR, ...)  INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::info, FMT_STR __VA_OPT__(,) __VA_ARGS__);
 #define LOG_WARN(FMT_STR, ...)  INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::warning, FMT_STR __VA_OPT__(,) __VA_ARGS__);
 #define LOG_ERROR(FMT_STR, ...) INT_LOG_INTERNAL_FMT_STR(::bibstd::util::logger_level::error, FMT_STR __VA_OPT__(,) __VA_ARGS__);
+// clang-format on

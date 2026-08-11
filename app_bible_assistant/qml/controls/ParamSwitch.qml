@@ -26,10 +26,9 @@ ParamBase
     implicitWidth: root.availableWidth
     implicitHeight: root.titleHeight
 
-    // Signals
-    onClicked: root.paramValueChanged(control.checked)
-
     // Connections
+    onClicked: { root.paramValueChanged(control.checked) }
+
     Connections
     {
       target: root
@@ -41,7 +40,7 @@ ParamBase
         }
         else
         {
-          // TODO display a warning
+          // TODO display a warning that the optional setting holds no value
         }
       }
     }
@@ -58,7 +57,14 @@ ParamBase
       color: control.checked ? Colors.selection : Colors.backgroundSolidDarker
       border.color: control.checked ? Colors.borderDarker : Colors.border
 
+      // Animations
+      Behavior on color { ColorAnimation { duration: Metrics.durationShort } }
+      Behavior on border.color { ColorAnimation { duration: Metrics.durationShort } }
+
       // Components
+      ///
+      /// Handle, it slides to the side the switch was toggled to.
+      ///
       Rectangle
       {
         // Properties
@@ -69,6 +75,18 @@ ParamBase
         color: control.down ? Colors.borderDarker : Colors.border
         border.color: control.checked ? (control.down ? Colors.greenDarker : Colors.green) : Colors.borderDarker
         border.width: Metrics.borderThick
+
+        // Animations
+        Behavior on x
+        {
+          NumberAnimation
+          {
+            duration: Metrics.durationShort
+            easing.type: Easing.InOutQuad
+          }
+        }
+        Behavior on color { ColorAnimation { duration: Metrics.durationShort } }
+        Behavior on border.color { ColorAnimation { duration: Metrics.durationShort } }
       }
     }
   }

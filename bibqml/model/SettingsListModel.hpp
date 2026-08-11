@@ -8,6 +8,7 @@
 #include <QList>
 #include <QMetaEnum>
 #include <QObject>
+#include <QStringList>
 #include <QtQml/qqmlregistration.h>
 #include <QVariant>
 
@@ -19,6 +20,8 @@ namespace bibqml
 
 ///
 /// List model providing settings for a ListView.
+/// Settings whose path starts with "internal." are left out, they hold state the
+/// application manages on its own and are not meant to be edited by the user.
 ///
 class SettingsListModel final : public QAbstractListModel
 {
@@ -70,6 +73,7 @@ private: // Typedefs
   {
     // Role Variables
     std::string path;
+    QStringList categories;
     ValueType valueType;
     WrapperType wrapperType;
     ValidatorType validatorType;
@@ -85,11 +89,17 @@ public: // Typedefs
   enum Role
   {
     PathRole = Qt::UserRole + 1,
+    CategoriesRole,
     ValueTypeRole,
     WrapperTypeRole,
     ValidatorTypeRole,
     ValueRole,
-    ListValidatorDataRole
+    ListValidatorDataRole,
+    ///
+    /// One past the last role of this model. Proxy models begin the roles they add here, so
+    /// that a role added above cannot silently take a value one of them already uses.
+    ///
+    EndRole
   };
   Q_ENUM(Role)
 

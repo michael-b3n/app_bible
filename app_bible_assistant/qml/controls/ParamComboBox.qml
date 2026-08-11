@@ -26,7 +26,7 @@ ParamBase
     padding: Metrics.paddingParamContent
     spacing: Metrics.spacingTiny
     width: root.availableWidth
-    implicitHeight: contentText.implicitHeight + 2 * padding
+    implicitHeight: contentText.implicitHeight + 2 * control.padding
 
     // Connections
     onActivated: (index) =>
@@ -54,7 +54,7 @@ ParamBase
     }
     Component.onCompleted:
     {
-      model.replace(root.listValidatorData)
+      control.model.replace(root.listValidatorData)
       Qt.callLater(control.syncCurrentIndex)
     }
 
@@ -71,33 +71,32 @@ ParamBase
       // content item is ignored.
     }
 
-    indicator: Canvas
+    ///
+    /// Drop down indicator. It points down while the list is closed and flips over while it is
+    /// open, telling that clicking again closes it.
+    ///
+    indicator: TriangleShape
     {
-      id: canvas
-
       // Properties
-      contextType: "2d"
       x: control.width - width - Metrics.paddingParamContent
       y: control.topPadding + (control.availableHeight - height) / 2
       width: control.availableHeight / 2
       height: control.availableHeight / 3
+      color: control.pressed ? Colors.pressed : Colors.border
+      transformOrigin: Item.Center
+      // Note the popup is null until the control is built, the indicator is declared before it
+      rotation: control.popup && control.popup.visible ? 180 : 0
 
-      // Connections
-      Connections
+      // Animations
+      Behavior on rotation
       {
-        target: control
-        function onPressedChanged() { canvas.requestPaint(); }
+        NumberAnimation
+        {
+          duration: Metrics.durationShort
+          easing.type: Easing.InOutQuad
+        }
       }
-      onPaint:
-      {
-        context.reset();
-        context.moveTo(0, 0);
-        context.lineTo(width, 0);
-        context.lineTo(width / 2, height);
-        context.closePath();
-        context.fillStyle = control.pressed ? Colors.pressed : Colors.border;
-        context.fill();
-      }
+      Behavior on color { ColorAnimation { duration: Metrics.durationShort } }
     }
 
     popup: Popup
@@ -106,6 +105,16 @@ ParamBase
       y: control.height - 1
       width: control.width
       padding: Metrics.spacingSmall
+
+      // Animations
+      enter: Transition
+      {
+        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Metrics.durationShort }
+      }
+      exit: Transition
+      {
+        NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Metrics.durationShort }
+      }
 
       // Components
       contentItem: ListView
@@ -173,28 +182,7 @@ ParamBase
     ///
     function syncCurrentIndex()
     {
-      const selectedValue = root.value
-      if(control.model === undefined || control.model === null)
-      {
-        control.currentIndex = -1
-        return
-      }
-
-      for(let i = 0; i < control.count; ++i)
-      {
-        let idx = control.model.index(i, 0)
-        const option = control.model.data(idx, SimpleListModel.ValueRole)
-        const optionText = option === undefined || option === null ? "" : option.toString()
-        const selectedText = selectedValue === undefined || selectedValue === null ? "" : selectedValue.toString()
-
-        if(optionText === selectedText)
-        {
-          control.currentIndex = i
-          return
-        }
-      }
-
-      control.currentIndex = -1
+      control.currentIndex = control.model ? control.model.indexOfValue(root.value) : -1
     }
   }
 }

@@ -49,11 +49,27 @@ class scripture
     std::optional<std::string> copyright;
   };
 
+  ///
+  /// Names of a single book in the language of the scripture.
+  /// Not every scripture provides all of the forms, unavailable ones are empty.
+  ///
+  struct book_name final
+  {
+    // Operators
+    auto operator==(const book_name&) const -> bool = default;
+
+    // Variables
+    std::string abbreviation; // abbreviated form, e.g. "1. Mose"
+    std::string short_name;   // form intended for display, e.g. "1. Mose"
+    std::string long_name;    // full title, e.g. "Das 1. Buch Mose (Genesis)"
+  };
+
 public: // Typedefs
   using reference_type = reference;
   using versification_type = versification;
   using passage_html_type = passage<struct html_tag>;
   using info_type = info;
+  using book_name_type = book_name;
 
 public: // Constants
   static constexpr std::string_view html_format_name_of_god = "i";
@@ -76,8 +92,14 @@ public: // Accessors
   auto information() const -> info_type;
 
   ///
-  /// Get a bible passage.
-  /// \param reference The reference defining the passage to get.
+  /// Access the names of a book in the language of the scripture.
+  /// \param book Book to get the names of
+  /// \return Names of the book, or std::nullopt if the scripture does not provide them
+  ///
+  auto book_information(book_id book) const -> std::optional<book_name_type>;
+
+  ///
+  /// Get a bible passage of the specified reference.
   /// \return Expected passage, or std::nullopt if not found
   ///
   auto passage_html(const reference_type& ref) const -> std::optional<passage_html_type>;
@@ -90,6 +112,7 @@ public: // Accessors
 
 private: // Implementation
   virtual auto do_information() const -> info_type = 0;
+  virtual auto do_book_information(book_id book) const -> std::optional<book_name_type> = 0;
   virtual auto do_passage_html(const reference_type& ref) const -> std::optional<passage_html_type> = 0;
   virtual auto do_versification() const -> const versification_type& = 0;
 };

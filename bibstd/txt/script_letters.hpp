@@ -23,8 +23,6 @@ struct script_letters final
   // Static Methods
   ///
   /// Visit letters variant based on language.
-  /// \param language Language enum value
-  /// \param function Function to call with the letters variant
   /// \return Result of the function call
   ///
   static constexpr auto visit(const util::language language, const auto& function) -> auto;
@@ -40,7 +38,7 @@ constexpr auto script_letters::visit(const util::language language, const auto& 
     {
     case util::language::german: return std::cref(txt::script_latin::letters_de);
     case util::language::english: return std::cref(txt::script_latin::letters_en);
-    default: throw util::exception("unsupported language");
+    default: throw util::exception{"unsupported language"};
     }
   }();
   return std::visit([&](const auto& letters) { return function(letters.get()); }, letters_var);

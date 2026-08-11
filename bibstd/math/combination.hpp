@@ -15,6 +15,24 @@ namespace bibstd::math
 /// \param func A function to apply to each combination. The function should return a boolean value
 /// indicating whether to continue generating combinations (true) or to stop (false).
 ///
+/// \code
+/// const auto nested = std::vector<std::vector<int>>{{1, 2}, {3, 4, 5}};
+///
+/// for_each_combination(nested, [](const std::vector<int>& combination)
+/// {
+///   std::println("{}", combination);
+///   return true; // return false to stop early
+/// });
+///
+/// // prints:
+/// // [1, 3]
+/// // [2, 3]
+/// // [1, 4]
+/// // [2, 4]
+/// // [1, 5]
+/// // [2, 5]
+/// \endcode
+///
 template<typename T, typename F>
   requires(std::is_invocable_r_v<bool, F, const std::vector<T>&>)
 auto for_each_combination(const std::vector<std::vector<T>>& nested, F&& func) -> void
