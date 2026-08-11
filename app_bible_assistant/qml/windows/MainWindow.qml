@@ -2,8 +2,9 @@ import QtQuick
 import BibQml
 
 ///
-/// Window carrying the content. It has no decoration of its own, it is moved and resized by
-/// its mouse area and framed by the speech bubble behind it.
+/// Window carrying the content. It has no decoration of its own, it is resized by the corners
+/// of its expand area, moved by the free space of its header and framed by the speech bubble
+/// behind it.
 ///
 Window
 {
@@ -20,9 +21,6 @@ Window
 
   color: "transparent"
   flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
-  // The window follows the phase it is told directly. Deriving its visibility from the fade of
-  // its content instead would tie the window to an animation that only runs while it is on the
-  // screen, and every restart of that fade would take the window off the screen again.
   visible: root.shown
   x: root.mainRect.x
   y: root.mainRect.y
@@ -83,17 +81,15 @@ Window
     }
 
     // Components
-    MoveResizeArea
+    ExpandArea
     {
       // Properties
       anchors.fill: parent
       expandable: true
-      expandAreaWidth: Metrics.spacingMedium
-      movable: true
+      expandAreaWidth: Metrics.spacingLarge
 
       // Connections
       onReleased: { root.released() }
-      onMoveRequested: (deltaX, deltaY) => { root.moveRequested(deltaX, deltaY) }
       onExpandRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
       {
         root.expandRequested(deltaX, deltaY, deltaWidth, deltaHeight)
@@ -108,12 +104,15 @@ Window
         bridgeBibleRefOcr: root.bridgeBibleRefOcr
         bridgeBibleRefLookup: root.bridgeBibleRefLookup
         pinned: root.pinned
+        movable: true
 
         anchors.fill: parent
 
         // Connections
         onCloseClicked: { root.closeClicked() }
         onPinClicked: { root.pinClicked() }
+        onReleased: { root.released() }
+        onMoveRequested: (deltaX, deltaY) => { root.moveRequested(deltaX, deltaY) }
       }
     }
   }

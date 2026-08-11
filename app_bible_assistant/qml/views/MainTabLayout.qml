@@ -17,6 +17,7 @@ Item
   required property BridgeBibleRefOcr bridgeBibleRefOcr
   required property BridgeBibleRefLookup bridgeBibleRefLookup
   required property bool pinned
+  required property bool movable
 
   // Constants
   // Index of the tab a found reference is shown in
@@ -28,6 +29,8 @@ Item
   // Signals
   signal closeClicked()
   signal pinClicked()
+  signal released()
+  signal moveRequested(deltaX: int, deltaY: int)
 
   // Connections
   ///
@@ -71,8 +74,13 @@ Item
 
         // Properties
         Layout.fillHeight: true
-        Layout.fillWidth: true
+        Layout.fillWidth: false
+        // Only as wide as the tabs it lays out. The bar is the one item of the header that
+        // grows with what the application offers, so it measures itself and everything it does
+        // not need is left to the move area beside it.
+        Layout.preferredWidth: bar.implicitWidth
         Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+        spacing: Metrics.spacingSmall
 
         // Style
         background: Rectangle { color: "transparent" }
@@ -80,25 +88,28 @@ Item
         // Components
         TabScriptureButton
         {
-          id: scriptureTab
-
           // Properties
-          anchors.top: parent.top
-          anchors.left: parent.left
-          width: bar.height
-          height: bar.height
           searchRunning: root.bridgeBibleRefOcr.running
         }
 
-        TabSettingsButton
-        {
-          // Properties
-          anchors.top: parent.top
-          anchors.left: scriptureTab.right
-          anchors.leftMargin: Metrics.spacingSmall
-          width: bar.height
-          height: bar.height
-        }
+        TabSettingsButton {}
+      }
+
+      ///
+      /// Free space of the header beside the tabs. The window has nothing to show here, so this
+      /// is the one place it is moved by. Dragging anywhere else would take the window along
+      /// while the user works in it.
+      ///
+      MoveArea
+      {
+        // Properties
+        Layout.fillHeight: true
+        Layout.fillWidth: true
+        movable: root.movable
+
+        // Connections
+        onReleased: { root.released() }
+        onMoveRequested: (deltaX, deltaY) => { root.moveRequested(deltaX, deltaY) }
       }
 
       ///

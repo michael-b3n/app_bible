@@ -150,7 +150,7 @@ ParamBase
               id: switchControl
 
               // Properties
-              path: root.path
+              categories: root.categories
               valueType: root.valueType
               wrapperType: root.wrapperType
               validatorType: root.validatorType
@@ -184,7 +184,7 @@ ParamBase
               id: textFieldControl
 
               // Properties
-              path: root.path
+              categories: root.categories
               valueType: root.valueType
               wrapperType: root.wrapperType
               validatorType: root.validatorType
@@ -218,7 +218,7 @@ ParamBase
               id: comboBoxControl
 
               // Properties
-              path: root.path
+              categories: root.categories
               valueType: root.valueType
               wrapperType: root.wrapperType
               validatorType: root.validatorType
@@ -250,7 +250,7 @@ ParamBase
             ParamError
             {
               // Properties
-              path: root.path
+              categories: root.categories
               valueType: root.valueType
               wrapperType: root.wrapperType
               validatorType: root.validatorType

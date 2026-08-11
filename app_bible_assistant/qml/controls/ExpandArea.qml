@@ -1,9 +1,11 @@
 import QtQuick
 
 ///
-/// Mouse area that lets the call site move and resize what it covers. Dragging the center asks
-/// for a move, dragging one of the four corners asks for a resize. The area only reports the
-/// deltas of the drag, where its target ends up is up to the call site.
+/// Mouse area that lets the call site resize what it covers by dragging one of its four corners.
+/// The area only reports the deltas of the drag, where its target ends up is up to the call site.
+/// Everything but the corners is left to what the area covers, so that the content of a window
+/// stays reachable, which is why this area does not move its target. That is the job of a
+/// MoveArea placed where the window has nothing else to do.
 ///
 Item
 {
@@ -12,58 +14,16 @@ Item
   // Properties
   required property bool expandable
   required property int expandAreaWidth
-  required property bool movable
-
-  readonly property bool containsMouse:
-    center.containsMouse ||
-    topLeft.containsMouse ||
-    topRight.containsMouse ||
-    bottomLeft.containsMouse ||
-    bottomRight.containsMouse
 
   // Signals
-  signal pressed(mouse: MouseEvent)
   signal released(mouse: MouseEvent)
   signal expandRequested(deltaX: int, deltaY: int, deltaWidth: int, deltaHeight: int)
-  signal moveRequested(deltaX: int, deltaY: int)
 
   // Components
   ///
-  /// Center of the area, it moves the target.
-  ///
-  MouseArea
-  {
-    id: center
-
-    // Properties
-    // Position the drag started at
-    property int clickX: 0
-    property int clickY: 0
-
-    anchors.fill: parent
-    hoverEnabled: true
-
-    // Connections
-    onPressed: (mouse) =>
-    {
-      center.clickX = mouse.x
-      center.clickY = mouse.y
-      root.pressed(mouse)
-    }
-    onReleased: (mouse) => { root.released(mouse) }
-    onPositionChanged: (mouse) =>
-    {
-      if(root.movable && center.pressed)
-      {
-        root.moveRequested(mouse.x - center.clickX, mouse.y - center.clickY)
-      }
-    }
-  }
-
-  ///
   /// Corners of the area, they resize the target.
   ///
-  MoveResizeCorner
+  ExpandCorner
   {
     id: topLeft
 
@@ -79,7 +39,6 @@ Item
     deltaHeightMultiplier: -1
 
     // Connections
-    onPressed: (mouse) => { root.pressed(mouse) }
     onReleased: (mouse) => { root.released(mouse) }
     onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {
@@ -87,7 +46,7 @@ Item
     }
   }
 
-  MoveResizeCorner
+  ExpandCorner
   {
     id: topRight
 
@@ -103,7 +62,6 @@ Item
     deltaHeightMultiplier: -1
 
     // Connections
-    onPressed: (mouse) => { root.pressed(mouse) }
     onReleased: (mouse) => { root.released(mouse) }
     onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {
@@ -111,7 +69,7 @@ Item
     }
   }
 
-  MoveResizeCorner
+  ExpandCorner
   {
     id: bottomLeft
 
@@ -127,7 +85,6 @@ Item
     deltaHeightMultiplier: 1
 
     // Connections
-    onPressed: (mouse) => { root.pressed(mouse) }
     onReleased: (mouse) => { root.released(mouse) }
     onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {
@@ -135,7 +92,7 @@ Item
     }
   }
 
-  MoveResizeCorner
+  ExpandCorner
   {
     id: bottomRight
 
@@ -151,7 +108,6 @@ Item
     deltaHeightMultiplier: 1
 
     // Connections
-    onPressed: (mouse) => { root.pressed(mouse) }
     onReleased: (mouse) => { root.released(mouse) }
     onResizeRequested: (deltaX, deltaY, deltaWidth, deltaHeight) =>
     {

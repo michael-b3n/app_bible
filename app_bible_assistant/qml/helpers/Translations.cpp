@@ -110,4 +110,14 @@ QString Translations::name(const QString& key, const QString& language) const
   return name ? QString::fromStdString(*name) : key;
 }
 
+///
+///
+QString Translations::names(const QStringList& keys, const QString& language) const
+{
+  auto result = QStringList{};
+  result.reserve(keys.size());
+  std::ranges::transform(keys, std::back_inserter(result), [&](const auto& key) { return name(key, language); });
+  return result.join(nameSeparator);
+}
+
 } // namespace aba::qml

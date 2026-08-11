@@ -16,7 +16,7 @@ namespace aba::qml
 ///
 /// QML Translations singleton.
 /// This class provides the pretty name of any identifier the application displays, e.g. the
-/// path and the values of a setting, or the text of a button. Keys are plain strings, the
+/// segments and the values of a setting, or the text of a button. Keys are plain strings, the
 /// meaning of a key is defined by the caller only. The backend does not know about pretty
 /// names, it only deals with identifiers, therefore all displayed identifiers are translated
 /// here.
@@ -38,6 +38,12 @@ class Translations final : public QObject
   // Variables
   const pretty_names names_;
   QString language_;
+
+public: // Constants
+  ///
+  /// Separator between the pretty names of several keys displayed as one text.
+  ///
+  static constexpr auto nameSeparator = QLatin1Char{' '};
 
 public: // Static interface
   ///
@@ -79,6 +85,14 @@ public: // Methods
   /// \return pretty name, the key itself if no pretty name is available
   ///
   Q_INVOKABLE QString name(const QString& key, const QString& language = {}) const;
+
+  ///
+  /// Get the pretty names of several keys as one text, e.g. the segments a setting is named by.
+  /// Every key is named on its own, so that a name has to be provided once and reads the same
+  /// wherever the key is used.
+  /// \return pretty names in the order of the keys, separated by a space
+  ///
+  Q_INVOKABLE QString names(const QStringList& keys, const QString& language = {}) const;
 
 signals:
   void languageChanged();

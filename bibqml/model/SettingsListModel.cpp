@@ -52,6 +52,22 @@ auto isInternalSetting(const std::string_view path) -> bool
 }
 
 ///
+/// Read the segments a setting path is made of. Splitting is left to the backend, which is
+/// where how a path is written is known.
+/// \return segments of the path as the views read them
+///
+auto toCategories(const std::string& path) -> QStringList
+{
+  const auto segments = bibstd::workflow::workflow_settings::split_path(path);
+  auto categories = QStringList{};
+  categories.reserve(static_cast<qsizetype>(segments.size()));
+  std::ranges::transform(
+    segments, std::back_inserter(categories), [](const auto& segment) { return QString::fromStdString(segment); }
+  );
+  return categories;
+}
+
+///
 /// Deduce the value type enum value from the settings pointer.
 /// \return enum value describing the value type
 ///
@@ -163,6 +179,7 @@ QVariant SettingsListModel::data(const QModelIndex& index, const int role) const
   switch(role)
   {
   case PathRole: return QString::fromStdString(entry.path);
+  case CategoriesRole: return entry.categories;
   case ValueTypeRole: return static_cast<int>(entry.valueType);
   case WrapperTypeRole: return static_cast<int>(entry.wrapperType);
   case ValidatorTypeRole: return static_cast<int>(entry.validatorType);
@@ -178,6 +195,7 @@ QHash<int, QByteArray> SettingsListModel::roleNames() const
 {
   return {
     {             PathRole,              "path"},
+    {       CategoriesRole,        "categories"},
     {        ValueTypeRole,         "valueType"},
     {      WrapperTypeRole,       "wrapperType"},
     {    ValidatorTypeRole,     "validatorType"},
@@ -314,9 +332,11 @@ void SettingsListModel::addEntry(std::string path, const auto& setting)
     LOG_ERROR("max entries count exceeded: path=\"{}\" not added", path);
     return;
   }
+  auto categories = toCategories(path);
   entries_.emplace_back(
     Entry{
       .path = std::move(path),
+      .categories = std::move(categories),
       .valueType = getValueType(setting),
       .wrapperType = getWrapperType(setting),
       .validatorType = getValidatorType(setting),

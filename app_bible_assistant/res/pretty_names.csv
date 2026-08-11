@@ -5,33 +5,36 @@
 # the installed scriptures or OCR engines, are always displayed as provided by the backend.
 #
 key,german,english
+character_recognition_ocr_engine,Zeichenerkennung,Character recognition
+click_action,Aktion bei Klick,Click action
 dbu,DBU,DBU
 elb,Elberfelder Bibel,Elberfelder Bibel
 english,Englisch,English
 esv,English Standard Version,English Standard Version
 eu,Einheitsübersetzung,Einheitsübersetzung
+fallback_versification_name,Ersatz-Verszählung,Fallback versification
 german,Deutsch,German
 gnb,Gute Nachricht Bibel,Gute Nachricht Bibel
 hfa,Hoffnung für alle,Hoffnung für alle
 kjv,King James Version,King James Version
-lookup.translations,Übersetzungen,Translations
+language,Sprache,Language
+layout_recognition_ocr_engine,Layouterkennung,Layout recognition
+lookup,Nachschlagen,Lookup
 LookupBrowser,Im Browser öffnen,Open in browser
 lut,Lutherbibel,Lutherbibel
 meng,Menge Bibel,Menge Bibel
+name,Name,Name
 neu,Neue evangelistische Übersetzung,Neue evangelistische Übersetzung
 ngu,Neue Genfer Übersetzung,Neue Genfer Übersetzung
 nirv,New International Reader's Version,New International Reader's Version
 niv,New International Version,New International Version
 nlb,Neues Leben. Die Bibel,Neues Leben. Die Bibel
 None,Keine Aktion,No action
-ocr.character_recognition_ocr_engine,Texterkennung,Character recognition
-ocr.click_action,Aktion bei Klick auf Bibelstelle,Bible reference click action
-ocr.fallback_versification_name,Ersatz-Verszählung,Fallback versification
-ocr.language,Sprache der Texterkennung,Text recognition language
-ocr.layout_recognition_ocr_engine,Layouterkennung,Layout recognition
-ocr.tessdata_path,Tesseract Datenverzeichnis,Tesseract data folder
-scripture.name,Bibelausgabe,Scripture
+ocr,Texterkennung,Text recognition
+scripture,Bibelausgabe,Scripture
 slt,Schlachter,Schlachter
-ui.language,Sprache,Language
+tessdata_path,Tesseract Datenverzeichnis,Tesseract data folder
+translations,Übersetzungen,Translations
+ui,Benutzeroberfläche,User interface
 vxb,Volxbibel,Volxbibel
 zb,Zürcher Bibel,Zürcher Bibel
