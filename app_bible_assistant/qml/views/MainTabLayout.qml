@@ -34,8 +34,8 @@ Item
 
   // Connections
   ///
-  /// A found reference is shown in the scripture tab, so switch to it. Otherwise the
-  /// scripture of a reference found while another tab is open would stay hidden.
+  /// Switches to the scripture tab, a reference found while another tab is open would stay
+  /// hidden otherwise.
   ///
   Connections
   {
@@ -75,9 +75,8 @@ Item
         // Properties
         Layout.fillHeight: true
         Layout.fillWidth: false
-        // Only as wide as the tabs it lays out. The bar is the one item of the header that
-        // grows with what the application offers, so it measures itself and everything it does
-        // not need is left to the move area beside it.
+        // Only as wide as the tabs it lays out, so that everything it does not need is left to
+        // the move area beside it
         Layout.preferredWidth: bar.implicitWidth
         Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
         spacing: Metrics.spacingSmall
@@ -96,9 +95,8 @@ Item
       }
 
       ///
-      /// Free space of the header beside the tabs. The window has nothing to show here, so this
-      /// is the one place it is moved by. Dragging anywhere else would take the window along
-      /// while the user works in it.
+      /// Free space of the header beside the tabs, the one place the window is moved by.
+      /// Dragging anywhere else would take it along while the user works in it.
       ///
       MoveArea
       {

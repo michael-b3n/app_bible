@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bibqml/model/SettingsListModel.hpp>
+
 #include <bibstd/util/non_owning_ptr.hpp>
 
 #include <QHash>
@@ -15,11 +16,10 @@ namespace aba::qml
 ///
 /// QML proxy model putting the settings of a SettingsListModel into the order they are read in:
 /// by the pretty name of their category first, by their own pretty name second. The order
-/// therefore follows the language the names are displayed in and not the order the backend
-/// happens to create its settings in.
+/// therefore follows the language they are displayed in and not the order the backend creates
+/// them in.
 /// The source model only tells which segments a setting is named by. That the first of them is
-/// the category the settings are grouped under is decided here, together with the order, so
-/// that the view is left with nothing but displaying what it is given.
+/// its category is decided here, so that the view is left with nothing but displaying it.
 ///
 class SettingsSortModel : public QSortFilterProxyModel
 {
@@ -67,8 +67,7 @@ private: // Implementation
 
   ///
   /// Name a setting is displayed under inside its category. Only the category is told apart, all
-  /// further segments name the setting, so that a deeper path stays readable instead of asking
-  /// for a level of grouping the view does not offer.
+  /// further segments name the setting itself, the view offers no deeper level of grouping.
   /// \return pretty name of the segments below the category
   ///
   [[nodiscard]] static QString settingName(const QStringList& categories);

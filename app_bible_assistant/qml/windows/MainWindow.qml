@@ -42,15 +42,13 @@ Window
     // Properties
     anchors.fill: parent
     opacity: 0
-    // The content holds the keyboard of the window, which is what lets it answer the escape key
-    // of whatever the user is on.
+    // Holds the keyboard focus of the window, which is what lets it answer the escape key
     focus: true
 
     // Connections
     ///
-    /// Escape hides the window, like its close button does. It is answered here and not by a
-    /// shortcut of the application, so that what is open inside the window, e.g. the popup of a
-    /// combo box, is closed by it first and the window only once nothing is left to close.
+    /// Escape hides the window, like its close button does. Answered here and not by a shortcut
+    /// of the application, so that an open popup is closed first and the window only last.
     ///
     Keys.onEscapePressed: (event) =>
     {

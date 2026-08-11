@@ -2,10 +2,9 @@ import QtQuick
 
 ///
 /// Mouse area that lets the call site resize what it covers by dragging one of its four corners.
-/// The area only reports the deltas of the drag, where its target ends up is up to the call site.
-/// Everything but the corners is left to what the area covers, so that the content of a window
-/// stays reachable, which is why this area does not move its target. That is the job of a
-/// MoveArea placed where the window has nothing else to do.
+/// It only reports the deltas of the drag, where its target ends up is up to the call site.
+/// Everything but the corners is left to the content, which is why this area never moves its
+/// target. That is the job of a MoveArea.
 ///
 Item
 {

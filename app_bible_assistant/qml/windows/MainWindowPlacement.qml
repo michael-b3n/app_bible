@@ -4,12 +4,11 @@ import BibQml
 ///
 /// Area the main window covers, together with the math that puts it there.
 ///
-/// The area is a plain property that nothing but the functions below write. The window therefore
-/// never moves on its own, it moves exactly when its owner calls one of them, which is what lets
-/// the owner keep it from moving in front of the user.
+/// Nothing but the functions below writes the area, so the window never moves on its own. It
+/// moves exactly when its owner asks for it, which is what keeps it out of the user's way.
 ///
 /// A pinned window stays where the user put it and only follows the borders of its screen, an
-/// unpinned one follows the cursor of the search, keeping the offset the user dragged it to.
+/// unpinned one follows the cursor of the search, keeping the offset it was dragged to.
 ///
 QtObject
 {
@@ -139,8 +138,8 @@ QtObject
   }
 
   ///
-  /// Puts the window onto the area the user requested, it is only kept on the screen. The area is
-  /// remembered unconstrained, so the window returns to it once there is space again.
+  /// Puts the window onto the area the user requested, kept on the screen. The offset to the
+  /// cursor is remembered unconstrained, so the window returns to it once there is space again.
   ///
   function applyUserArea(target)
   {

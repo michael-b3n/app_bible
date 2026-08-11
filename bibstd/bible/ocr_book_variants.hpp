@@ -17,7 +17,7 @@ namespace bibstd::bible
 {
 
 ///
-/// Holds all german bible book name variants corresponding to book id.
+/// Holds all bible book name variants corresponding to book id, per supported language.
 ///
 struct ocr_book_variants final
 {

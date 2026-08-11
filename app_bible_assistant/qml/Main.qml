@@ -2,9 +2,8 @@ import QtQuick
 import BibQml
 
 ///
-/// Application root object.
-/// It owns the main window carrying the content, the bubble window drawing the frame around it and
-/// the overlay button that reports a running search and covers the reference it found.
+/// Application root object. It owns the main window carrying the content, the bubble window
+/// framing it and the overlay button covering the reference a search found.
 ///
 QtObject
 {
@@ -12,8 +11,7 @@ QtObject
 
   // Typedefs
   ///
-  /// Phases the application goes through. They describe what is on the screen, the main window is
-  /// shown in the shown phase only.
+  /// Phases the application goes through, they tell what is on the screen.
   ///
   enum Phase
   {
@@ -34,9 +32,8 @@ QtObject
 
   // Constants
   readonly property int referenceOverlayTimeout: 10000
-  // Time the overlay keeps reporting a search that ended without a result. A search is over in
-  // an instant, so without it the only answer the user gets to a search that found nothing is a
-  // flicker at the cursor.
+  // Time the overlay keeps reporting a search that found nothing. A search is over in an instant,
+  // without it the user only gets a flicker at the cursor.
   readonly property int searchWithoutResultDuration: 2500
   // Size the overlay has while the area of the reference is still unknown
   readonly property int overlayDefaultSize: Metrics.controlHeight + 2 * Metrics.spacingSmall
@@ -82,8 +79,8 @@ QtObject
     }
   }
 
-  // Overlay button state: it reports the running search until the area it covers is known, and it
-  // has its default size at the cursor as long as that area is unknown
+  // Overlay button state: it reports the search until the reference is found, and sits at the
+  // cursor in its default size for as long as the area of that reference is unknown
   readonly property bool overlayLoading: root.searching && !reference.areaKnown
   readonly property bool overlayShown: root.searching || reference.areaKnown
   readonly property rect overlayRect: reference.areaKnown
@@ -128,8 +125,7 @@ QtObject
       reference.chapterEnd = chapterEnd
       reference.verseEnd = verseEnd
       reference.area = boundingBox
-      // The window shows the passage of this reference and steps aside for it, so it is placed
-      // again even if it happens to be on the screen already.
+      // Placed again even if it is on the screen already, it steps aside for this reference.
       root.placeAndShowWindow()
     }
 
@@ -241,9 +237,8 @@ QtObject
   }
 
   ///
-  /// Ends the running search. A search that found a reference asked for the main window already,
-  /// one without a result leaves it hidden, there is nothing to show anymore. It is still
-  /// reported for a moment, so that the user sees that the search happened and found nothing.
+  /// Ends the running search. One that found a reference asked for the window already, one
+  /// without a result is only reported for a moment, so that the user sees that it happened.
   ///
   function finishSearch()
   {
@@ -254,8 +249,8 @@ QtObject
   }
 
   ///
-  /// Takes the overlay of the search that found nothing off the screen. A search or a window
-  /// asked for in the meantime owns the screen now and keeps it.
+  /// Takes the overlay of a search that found nothing off the screen. A search or a window asked
+  /// for in the meantime keeps it.
   ///
   function endSearchWithoutResult()
   {
@@ -266,10 +261,9 @@ QtObject
   }
 
   ///
-  /// Places the main window and shows it there. The window is placed before it enters the shown
-  /// phase, so it never appears at the area of the previous search first. A window that is on the
-  /// screen already stays on it and only moves to its new area, taking it off the screen for the
-  /// placement would make it blink.
+  /// Places the main window and shows it there. It is placed before it is shown, so it never
+  /// appears at the area of the previous search first. A window already on the screen only moves,
+  /// taking it off for the placement would make it blink.
   ///
   function placeAndShowWindow()
   {

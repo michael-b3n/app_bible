@@ -29,5 +29,8 @@ TabButton
       return "transparent"
     }
     radius: Metrics.radiusSmall
+
+    // Animations
+    Behavior on color { ColorAnimation { duration: Metrics.durationShort } }
   }
 }

@@ -6,8 +6,8 @@ import QtQuick.VectorImage
 import BibQml
 
 ///
-/// This objects describes the content of the scripture tab.
-/// A list view lists dynamically loaded verses from the listModelScripture.
+/// Content of the scripture tab. A list view lists the verses of the listModelScripture, loading
+/// further ones whenever an end of the loaded range is reached.
 ///
 Item
 {
@@ -16,6 +16,22 @@ Item
   // Properties
   required property ScriptureListModel listModelScripture
   required property BridgeBibleRefLookup bridgeBibleRefLookup
+
+  // The tab fades in when it is switched to, the layout takes the previous one off at once
+  opacity: root.visible ? 1 : 0
+  // Flattened while it fades, blending its children one by one would let the verses show
+  // through the sticky header
+  layer.enabled: root.opacity > 0 && root.opacity < 1
+
+  // Animations
+  Behavior on opacity
+  {
+    NumberAnimation
+    {
+      duration: Metrics.durationShort
+      easing.type: Easing.InOutQuad
+    }
+  }
 
   // Components
   ///
@@ -87,10 +103,9 @@ Item
     id: listView
 
     // Properties
-    // Number of verses that are requested from the model whenever
-    // an end of the already loaded scripture range is reached.
+    // Verses requested from the model whenever an end of the loaded range is reached
     readonly property int pageSize: 10
-    // Pixels of delegates kept alive outside the visible area.
+    // Pixels of delegates kept alive outside the visible area
     readonly property int cachedPixels: 600
 
     property string currentBook: ""
@@ -231,6 +246,10 @@ Item
     ScrollBar.vertical: ScrollBarSimple { id: scrollBar }
 
     // Functions
+    ///
+    /// Tells which row is at a position of the content. A position falling into the gap between
+    /// two rows belongs to the row above it, which is what the second lookup covers.
+    ///
     function rowAt(y)
     {
       const position = Math.max(0, Math.min(y, listView.contentHeight - 1))
@@ -238,6 +257,9 @@ Item
       return row >= 0 ? row : listView.indexAt(listView.contentX, position - listView.spacing)
     }
 
+    ///
+    /// Takes the book and chapter of the topmost row into the sticky header.
+    ///
     function updateHeader()
     {
       if(!listView.model || listView.model.rowCount() === 0)
@@ -257,13 +279,16 @@ Item
       }
     }
 
+    ///
+    /// Loads verses before the first one and keeps the view on the verse it is on, prepending
+    /// alone would push what the user reads out of sight.
+    ///
     function loadPrevious(count)
     {
       if(listView.atYBeginning && listView.model && listView.model.rowCount() > 0)
       {
         const prevCount = listView.model.rowCount()
         listView.model.loadPrevious(count)
-        // Maintain scroll position after prepending
         const addedCount = listView.model.rowCount() - prevCount
         if(addedCount > 0)
         {
@@ -274,9 +299,9 @@ Item
   }
 
   ///
-  /// Copyright of the scripture the verses are taken from. It floats in the corner over the
-  /// verses instead of taking room from them, and it is only the icon: the statement itself is
-  /// told on hover. A scripture that states no copyright shows nothing.
+  /// Copyright of the scripture the verses are taken from. Only the icon floats over the verses
+  /// instead of taking room from them, the statement itself is told on hover. A scripture that
+  /// states no copyright shows nothing.
   ///
   Item
   {

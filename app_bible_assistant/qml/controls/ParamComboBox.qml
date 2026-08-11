@@ -71,6 +71,10 @@ ParamBase
       // content item is ignored.
     }
 
+    ///
+    /// Drop down indicator. It points down while the list is closed and flips over while it is
+    /// open, telling that clicking again closes it.
+    ///
     indicator: TriangleShape
     {
       // Properties
@@ -79,6 +83,20 @@ ParamBase
       width: control.availableHeight / 2
       height: control.availableHeight / 3
       color: control.pressed ? Colors.pressed : Colors.border
+      transformOrigin: Item.Center
+      // Note the popup is null until the control is built, the indicator is declared before it
+      rotation: control.popup && control.popup.visible ? 180 : 0
+
+      // Animations
+      Behavior on rotation
+      {
+        NumberAnimation
+        {
+          duration: Metrics.durationShort
+          easing.type: Easing.InOutQuad
+        }
+      }
+      Behavior on color { ColorAnimation { duration: Metrics.durationShort } }
     }
 
     popup: Popup
@@ -87,6 +105,16 @@ ParamBase
       y: control.height - 1
       width: control.width
       padding: Metrics.spacingSmall
+
+      // Animations
+      enter: Transition
+      {
+        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Metrics.durationShort }
+      }
+      exit: Transition
+      {
+        NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Metrics.durationShort }
+      }
 
       // Components
       contentItem: ListView

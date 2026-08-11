@@ -2,7 +2,7 @@ import QtQuick
 
 ///
 /// Header of one settings category. It names the category and folds its settings away when it
-/// is clicked, so that the user only reads the settings of the categories they are after.
+/// is clicked.
 ///
 Item
 {
@@ -11,8 +11,8 @@ Item
   // Properties
   // Key of the category, it is named through the translations like any other key
   required property string category
-  // Whether the settings of the category are folded away. The header only reports that it was
-  // clicked, what is folded away is decided by the list the settings are shown in.
+  // Whether the settings of the category are folded away. The header only reports the click,
+  // the list the settings are shown in decides.
   required property bool collapsed
 
   implicitHeight: Metrics.controlHeight
@@ -37,10 +37,13 @@ Item
       return Colors.backgroundSolidDarker
     }
 
+    // Animations
+    Behavior on color { ColorAnimation { duration: Metrics.durationShort } }
+
     // Components
     ///
-    /// Fold indicator. It points down while the category is unfolded, telling that its settings
-    /// follow below, and to the right of them while it is folded away.
+    /// Fold indicator. It points down at the settings while they are unfolded and to the right
+    /// while they are folded away.
     ///
     TriangleShape
     {

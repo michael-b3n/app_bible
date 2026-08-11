@@ -5,13 +5,12 @@ import QtQuick.Controls
 import BibQml
 
 ///
-/// This objects describes the content of the settings tab.
-/// A list view lists all settings from the listModelSetting
-/// using the ParamsControls. Settings are grouped by the first of the segments they are named
-/// by and every group can be folded away. The tab opens with all of them folded, so that the
-/// user reads what the application can be told before reading the settings themselves.
-/// Only this one level is grouped, all further segments name the setting itself.
-/// The groups and the settings inside them are listed in alphabetical order.
+/// Content of the settings tab. A list view lists the settings of the listModelSettings through
+/// the Param controls, grouped by the first of the segments they are named by. Only this one
+/// level is grouped, all further segments name the setting itself.
+/// Every group can be folded away and the tab opens with all of them folded, so that the user
+/// reads what the application can be told before reading the settings themselves.
+/// Groups and the settings inside them are listed in alphabetical order.
 ///
 Item
 {
@@ -20,16 +19,27 @@ Item
   // Properties
   required property SettingsListModel listModelSettings
 
-  // Categories the user unfolded, by their key. It is remembered per category and not per row,
-  // so that a setting created or reordered while a category is folded stays hidden with it.
-  // Everything the user did not open is folded away, so that the tab opens on the categories
-  // and not on the full list of settings behind them.
+  // Categories the user unfolded, by their key. Remembered per category and not per row, so that
+  // a setting created or reordered while a category is folded stays hidden with it.
   property var openedCategories: ({})
+
+  // The tab fades in when it is switched to, the layout takes the previous one off at once
+  opacity: root.visible ? 1 : 0
+
+  // Animations
+  Behavior on opacity
+  {
+    NumberAnimation
+    {
+      duration: Metrics.durationShort
+      easing.type: Easing.InOutQuad
+    }
+  }
 
   // Components
   ///
-  /// Order the settings are listed in. The backend knows nothing about the order its settings
-  /// are read in, so they are sorted by the names they are displayed under.
+  /// Order the settings are listed in. The backend has no order to offer, so they are sorted by
+  /// the names they are displayed under.
   ///
   SettingsSortModel
   {
@@ -89,9 +99,8 @@ Item
       readonly property bool collapsed: root.isCollapsed(delegateRoot.category)
 
       width: listView.width - scrollBar.width
-      // A folded setting is kept in the view with no height left instead of being filtered out
-      // of the model: the header of a section belongs to the first setting of that section, so
-      // filtering the settings away would take the header the user folded them with along.
+      // A folded setting is kept with no height left instead of being filtered out of the model:
+      // the section header belongs to the first setting of its section and would go with it.
       height: delegateRoot.collapsed ? 0 : content.implicitHeight
       visible: delegateRoot.height > 0
       clip: true

@@ -2,10 +2,9 @@ import QtQuick
 import QtQuick.Shapes
 
 ///
-/// Transparent button covering the reference on the screen. While the search runs it is shown in
-/// its default size at the cursor and reports the search by a segment traveling along its border,
-/// once the reference is found it grows onto it. It times out because the content below it may
-/// have scrolled away or changed in the meantime.
+/// Transparent button covering the reference on the screen. While the search runs it sits at the
+/// cursor and reports itself by a segment traveling along its border, once the reference is found
+/// it grows onto it. It times out, the content below it may have scrolled away by then.
 ///
 Window
 {
@@ -102,8 +101,8 @@ Window
     {
       // Properties
       // The reference below shall stay readable, so the area is only tinted while it is hovered.
-      // Note that the opacity never drops to zero: fully transparent pixels of a translucent
-      // window are not hit by mouse events, which would make the overlay unclickable.
+      // Note the opacity never drops to zero, fully transparent pixels of a translucent window
+      // are not hit by mouse events, which would make the overlay unclickable.
       anchors.fill: parent
       color: Colors.selection
       opacity: mouseArea.containsMouse ? 0.3 : 0.02
@@ -202,8 +201,7 @@ Window
   // Functions
   ///
   /// Puts the button onto the area it shall cover. Only a shown button that knows the reference
-  /// grows onto it, a hidden one and one reporting a new search jump to their area instead of
-  /// flying there from the reference of the previous search.
+  /// grows onto it, the others jump, so that none flies in from the previous search.
   ///
   function applyOverlayRect()
   {

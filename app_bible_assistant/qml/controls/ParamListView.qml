@@ -33,6 +33,24 @@ ParamBase
       clip: false
       anchors.fill: parent
 
+      // Animations
+      // Only the edits of the user are animated. A value taken over from the backend resets the
+      // model, which fires no transition at all, so the list is simply there.
+      add: Transition
+      {
+        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Metrics.durationShort }
+      }
+      remove: Transition
+      {
+        NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Metrics.durationShort }
+      }
+      // Rows an edit pushed aside slide to their new place. The dragged row itself is left alone,
+      // it is already where the user dropped it.
+      displaced: Transition
+      {
+        NumberAnimation { property: "y"; duration: Metrics.durationShort; easing.type: Easing.InOutQuad }
+      }
+
       // Connections
       Connections
       {

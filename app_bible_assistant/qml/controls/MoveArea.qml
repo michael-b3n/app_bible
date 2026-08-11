@@ -1,10 +1,9 @@
 import QtQuick
 
 ///
-/// Mouse area that lets the call site move the window it belongs to. The area only reports the
-/// deltas of the drag, where the window ends up is up to the call site. The cursor tells the
-/// user that this is the handle of the window, everything else the window shows belongs to what
-/// the user works with and must not take the window along.
+/// Mouse area that lets the call site move the window it belongs to. It only reports the deltas
+/// of the drag, where the window ends up is up to the call site. The cursor marks it as the
+/// handle of the window, everything else the window shows must not take it along.
 ///
 MouseArea
 {
