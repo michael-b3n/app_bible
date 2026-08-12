@@ -3,6 +3,7 @@
 #include <bibstd/util/log.hpp>
 #include <bibstd/workflow/workflow_bible_ref_lookup.hpp>
 #include <bibstd/workflow/workflow_bible_ref_ocr.hpp>
+#include <bibstd/workflow/workflow_bible_ref_ocr_auto.hpp>
 #include <bibstd/workflow/workflow_hotkey.hpp>
 #include <bibstd/workflow/workflow_scripture.hpp>
 #include <bibstd/workflow/workflow_settings.hpp>
@@ -44,6 +45,7 @@ auto construct_bridge(QGuiApplication& app, backend_instance& backend) -> bridge
   // clang-format off
   auto workflow_settings = backend.workflow_settings;
   auto workflow_bible_ref_ocr = std::static_pointer_cast<bibstd::workflow::workflow_bible_ref_ocr>(backend.workflow_bible_ref_ocr);
+  auto workflow_bible_ref_ocr_auto = std::static_pointer_cast<bibstd::workflow::workflow_bible_ref_ocr_auto>(backend.workflow_bible_ref_ocr_auto);
   auto workflow_hotkey = std::static_pointer_cast<bibstd::workflow::workflow_hotkey>(backend.workflow_hotkey);
   auto workflow_bible_ref_lookup = std::static_pointer_cast<bibstd::workflow::workflow_bible_ref_lookup>(backend.workflow_bible_ref_lookup);
   auto workflow_scripture = std::static_pointer_cast<bibstd::workflow::workflow_scripture>(backend.workflow_scripture);
@@ -51,7 +53,7 @@ auto construct_bridge(QGuiApplication& app, backend_instance& backend) -> bridge
     .bridge_application{std::make_unique<bibqml::BridgeApplication>()},
     .bridge_settings{std::make_unique<bibqml::BridgeSettings>(workflow_settings)},
     .settings_list_model{std::make_unique<bibqml::SettingsListModel>(workflow_settings)},
-    .bridge_bible_ref_ocr{std::make_unique<bibqml::BridgeBibleRefOcr>(workflow_bible_ref_ocr, workflow_hotkey, workflow_settings)},
+    .bridge_bible_ref_ocr{std::make_unique<bibqml::BridgeBibleRefOcr>(workflow_bible_ref_ocr, workflow_bible_ref_ocr_auto, workflow_hotkey, workflow_settings)},
     .bridge_bible_ref_lookup{std::make_unique<bibqml::BridgeBibleRefLookup>(workflow_bible_ref_lookup, workflow_scripture)},
     .scripture_list_model{std::make_unique<bibqml::ScriptureListModel>(workflow_scripture)}
   };
@@ -70,10 +72,10 @@ auto connect_bridge(bridge_instance& instance) -> void
     &bibqml::ScriptureListModel::resetWithReference
   );
 
-  // Clear passage model when OCR starts
+  // Clear passage model when the manual search starts
   QObject::connect(
     instance.bridge_bible_ref_ocr.get(),
-    &bibqml::BridgeBibleRefOcr::runningChanged,
+    &bibqml::BridgeBibleRefOcr::manualSearchRunningChanged,
     instance.scripture_list_model.get(),
     [model = instance.scripture_list_model.get()](bool running)
     {

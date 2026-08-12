@@ -127,15 +127,7 @@ auto workflow_bible_ref_ocr::find(const params& params) -> result
       {
         auto ranges = found.ranges;
         std::ranges::sort(ranges, [](const auto& a, const auto& b) { return a.begin() < b.begin(); });
-        const auto passage_params = workflow_scripture::passage_params::value_type{ranges.front().begin(), std::nullopt};
-        if(const auto passage_result = workflow_scripture_->passage(passage_params))
-        {
-          retval = result::value_type{
-            .reference_ranges = std::move(ranges),
-            .passage = passage_result.value().passage,
-            .reference_bounding_box = found.bounding_box
-          };
-        }
+        retval = result::value_type{.reference_ranges = std::move(ranges), .reference_bounding_box = found.bounding_box};
       }
       return retval;
     };

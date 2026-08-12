@@ -88,7 +88,7 @@ Item
         TabScriptureButton
         {
           // Properties
-          searchRunning: root.bridgeBibleRefOcr.running
+          searchRunning: root.bridgeBibleRefOcr.manualSearchRunning
         }
 
         TabSettingsButton {}
@@ -108,6 +108,25 @@ Item
         // Connections
         onReleased: { root.released() }
         onMoveRequested: (deltaX, deltaY) => { root.moveRequested(deltaX, deltaY) }
+      }
+
+      ///
+      /// Starts and stops the automatic reference search. The button follows the search
+      /// instead of the click: the search reports when it really started and stopped.
+      ///
+      ButtonIconSwitch
+      {
+        // Properties
+        Layout.fillHeight: true
+        Layout.fillWidth: false
+        Layout.preferredWidth: Metrics.controlHeight
+        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+        svgSourceFirst: Icons.play
+        svgSourceSecond: Icons.stop
+        toggled: root.bridgeBibleRefOcr.autoSearchRunning
+
+        // Connections
+        onClicked: { root.bridgeBibleRefOcr.setAutoSearch(!root.bridgeBibleRefOcr.autoSearchRunning) }
       }
 
       ///

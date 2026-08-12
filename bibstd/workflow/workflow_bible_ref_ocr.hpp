@@ -2,7 +2,6 @@
 
 #include "bibstd/bible/reference_ocr.hpp"
 #include "bibstd/bible/reference_range.hpp"
-#include "bibstd/bible/scripture.hpp"
 #include "bibstd/framework/process_params.hpp"
 #include "bibstd/framework/settings_base.hpp"
 #include "bibstd/util/language.hpp"
@@ -55,13 +54,11 @@ class workflow_bible_ref_ocr final : public workflow_base<workflow_bible_ref_ocr
 
   ///
   /// Result of bible reference OCR process. This contains the found reference ranges ordered
-  /// canonically, the passage content of the first reference of the first range and the
-  /// bounding box of the recognized reference text within the image.
+  /// canonically and the bounding box of the recognized reference text within the image.
   ///
   struct result_t final
   {
     std::vector<bible::reference_range> reference_ranges;
-    std::optional<bible::scripture::passage_html_type> passage;
     std::optional<util::screen_rect_type> reference_bounding_box;
   };
 

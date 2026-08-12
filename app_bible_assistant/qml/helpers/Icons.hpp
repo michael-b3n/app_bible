@@ -41,8 +41,10 @@ class Icons final : public QObject
   Q_PROPERTY(QString openInBrowser MEMBER openInBrowser_ CONSTANT)
   Q_PROPERTY(QString pin MEMBER pin_ CONSTANT)
   Q_PROPERTY(QString pinFilled MEMBER pinFilled_ CONSTANT)
+  Q_PROPERTY(QString play MEMBER play_ CONSTANT)
   Q_PROPERTY(QString remove MEMBER remove_ CONSTANT)
   Q_PROPERTY(QString settings MEMBER settings_ CONSTANT)
+  Q_PROPERTY(QString stop MEMBER stop_ CONSTANT)
 
 public: // Structors
   explicit Icons(bibstd::util::non_owning_ptr<QObject> parent = nullptr);
@@ -58,8 +60,10 @@ private: // Variables
   QString openInBrowser_{detail::toIconUrl("open_in_browser.svg")};
   QString pin_{detail::toIconUrl("pin.svg")};
   QString pinFilled_{detail::toIconUrl("pin_filled.svg")};
+  QString play_{detail::toIconUrl("play.svg")};
   QString remove_{detail::toIconUrl("remove.svg")};
   QString settings_{detail::toIconUrl("settings.svg")};
+  QString stop_{detail::toIconUrl("stop.svg")};
 };
 
 } // namespace aba::qml

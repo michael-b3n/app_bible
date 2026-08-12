@@ -67,6 +67,12 @@ target_link_libraries(${PROJECT_NAME}
 #
 # Add target include dirs (automatically includes all immediate subdirectories).
 #
-file(GLOB ${PROJECT_NAME}_SUBDIRS LIST_DIRECTORIES true CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*")
-list(FILTER ${PROJECT_NAME}_SUBDIRS EXCLUDE REGEX "\\.") # Exclude files, only keep directories
+file(GLOB ${PROJECT_NAME}_SUBDIR_CANDIDATES LIST_DIRECTORIES true CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*")
+
+foreach(entry ${${PROJECT_NAME}_SUBDIR_CANDIDATES})
+  if(IS_DIRECTORY ${entry})
+    list(APPEND ${PROJECT_NAME}_SUBDIRS ${entry})
+  endif()
+endforeach()
+
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${${PROJECT_NAME}_SUBDIRS})
