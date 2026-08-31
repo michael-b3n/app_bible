@@ -2,7 +2,7 @@
 
 #include "bibstd/meta/contains.hpp"
 #include "bibstd/meta/for_each.hpp"
-#include "bibstd/meta/pack.hpp"
+#include "bibstd/meta/remove_duplicates.hpp"
 #include "bibstd/util/exception.hpp"
 
 #include <algorithm>
@@ -24,39 +24,6 @@ concept const_variant_mappable = requires {
   typename P::second_type;
 };
 
-///
-/// Helper struct to remove duplicated types from a pack of types.
-///
-template<meta::packaged T>
-struct remove_duplicates;
-
-///
-/// \see remove_duplicates
-///
-template<template<typename...> typename P, typename A>
-struct remove_duplicates<P<A>>
-{
-  using type = P<A>;
-};
-
-///
-/// \see remove_duplicates
-///
-template<template<typename...> typename P, typename A, typename... Args>
-struct remove_duplicates<P<A, Args...>>
-{
-  using type = std::conditional_t<
-    meta::type_index_v<P<Args...>, A> == sizeof...(Args),
-    meta::add_to_pack_t<A, typename remove_duplicates<P<Args...>>::type>,
-    typename remove_duplicates<P<Args...>>::type>;
-};
-
-///
-/// Typedef of type with removed duplicates from pack like type P.
-///
-template<meta::packaged P>
-using remove_duplicates_t = remove_duplicates<P>::type;
-
 } // namespace detail
 
 ///
@@ -77,8 +44,8 @@ class const_variant_map
   const std::tuple<P...> elements_;
 
 public: // Typedefs
-  using key_variant_type = detail::remove_duplicates_t<first_types>;
-  using value_variant_type = detail::remove_duplicates_t<second_types>;
+  using key_variant_type = meta::remove_duplicates_t<first_types>;
+  using value_variant_type = meta::remove_duplicates_t<second_types>;
   using tuple_type = std::tuple<P...>;
 
 public: // Constants
