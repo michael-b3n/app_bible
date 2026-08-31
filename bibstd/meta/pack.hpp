@@ -203,31 +203,17 @@ using pack_n_types_t = typename pack_n_types<P, T, N>::type;
 ///
 template<packaged P, typename T>
 struct type_index;
-
+template<packaged P, typename T>
+struct type_index;
 template<template<typename...> typename P, typename... Args, typename T>
-struct type_index<P<Args...>, T>
+struct type_index<P<Args...>, T> final
 {
-private:
-  template<typename T_, typename Sequence_, typename... Args_>
-  struct type_index_helper;
-
-  template<typename T_, std::size_t I_, typename A_>
-  struct type_index_helper<T_, std::index_sequence<I_>, A_>
-  {
-    using type = std::conditional_t<std::is_same_v<T_, A_>, detail::index_t<I_>, detail::index_t<I_ + 1>>;
-  };
-
-  template<typename T_, std::size_t I0_, std::size_t... I_, typename A_, typename... Args_>
-  struct type_index_helper<T_, std::index_sequence<I0_, I_...>, A_, Args_...>
-  {
-    using type = std::conditional_t<
-      std::is_same_v<T_, A_>,
-      detail::index_t<I0_>,
-      typename type_index_helper<T_, std::index_sequence<I_...>, Args_...>::type>;
-  };
-
-public:
-  static constexpr std::size_t index = type_index_helper<T, std::make_index_sequence<sizeof...(Args)>, Args...>::type::index;
+  static constexpr std::size_t index = 0;
+};
+template<template<typename...> typename P, typename Arg, typename... Args, typename T>
+struct type_index<P<Arg, Args...>, T> final
+{
+  static constexpr std::size_t index = std::is_same_v<T, Arg> ? 0 : (1 + type_index<P<Args...>, T>::index);
 };
 
 ///
