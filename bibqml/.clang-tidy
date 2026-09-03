@@ -1,0 +1,12 @@
+---
+#
+# Qml bridge specific clang-tidy configuration. Inherits the checks of the repository root.
+#
+InheritParentConfig: true
+
+#
+# The bridge follows the Qt naming conventions (CamelCase types, camelBack slots and signals)
+# instead of the lower_case style of bibstd, so the naming check is off here.
+#
+Checks: >
+  -readability-identifier-naming

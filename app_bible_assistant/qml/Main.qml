@@ -129,9 +129,9 @@ QtObject
       root.placeAndShowWindow()
     }
 
-    function onRunningChanged(running)
+    function onManualSearchRunningChanged(manualSearchRunning)
     {
-      if(running)
+      if(manualSearchRunning)
       {
         root.beginSearch()
       }

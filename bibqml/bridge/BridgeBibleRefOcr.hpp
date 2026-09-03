@@ -51,12 +51,12 @@ class BridgeBibleRefOcr final : public QObject
   // Variables
   const std::shared_ptr<bibstd::workflow::workflow_bible_ref_ocr> workflowBibleRefOcr_;
   const std::shared_ptr<bibstd::workflow::workflow_bible_ref_ocr_auto> workflowBibleRefOcrAuto_;
-  const bibstd::workflow::workflow_hotkey::shared_sig_type manualSearchSig_{};
+  const bibstd::workflow::workflow_hotkey::shared_sig_type manualSearchSig_;
   const ClickActionSettingType clickActionSetting_;
   const AutoSearchSettingType autoSearchSetting_;
   // The manual search that is current, none while none runs. It is what manualSearchRunning_
   // follows, so the running state has one owner and cannot be cleared twice
-  std::optional<bibstd::framework::process_id_type> processId_{};
+  std::optional<bibstd::framework::process_id_type> manualSearchProcessId_;
   bool manualSearchRunning_{false};
   bool autoSearchRunning_{false};
   QPoint cursorPosition_{0, 0};
@@ -88,7 +88,6 @@ public: // Structors
     const std::shared_ptr<bibstd::workflow::workflow_settings>& workflowSettings,
     bibstd::util::non_owning_ptr<QObject> parent = nullptr
   );
-  ~BridgeBibleRefOcr() noexcept override;
 
 public: // Accessors
   ///
@@ -101,8 +100,6 @@ public: // Modifiers
   ///
   /// Ask the automatic reference search to start or to stop. This only states the intent and
   /// returns immediately, the search itself reports its state by the autoSearchRunning property.
-  /// The intent is stored in the settings, so it survives a restart.
-  /// \param enabled True to search automatically, false to stop searching
   ///
   Q_INVOKABLE void setAutoSearch(bool enabled);
 

@@ -226,10 +226,6 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(
 
 ///
 ///
-BridgeBibleRefOcr::~BridgeBibleRefOcr() noexcept = default;
-
-///
-///
 BridgeBibleRefOcr::ClickAction BridgeBibleRefOcr::clickAction() const
 {
   const auto action = bibstd::util::to_enum<ClickAction>(clickActionSetting_->value());
@@ -311,8 +307,8 @@ void BridgeBibleRefOcr::applyAutoSearch()
 ///
 void BridgeBibleRefOcr::setManualSearch(const std::optional<bibstd::framework::process_id_type> processId)
 {
-  processId_ = processId;
-  const auto running = processId_.has_value();
+  manualSearchProcessId_ = processId;
+  const auto running = manualSearchProcessId_.has_value();
   if(manualSearchRunning_ != running)
   {
     manualSearchRunning_ = running;
@@ -349,7 +345,7 @@ void BridgeBibleRefOcr::notifyManualSearchFinished(
     [this, processId, referenceRange, boundingBox]()
     {
       // A newer search took over in the meantime, only its result is of interest.
-      if(processId_ != processId)
+      if(manualSearchProcessId_ != processId)
       {
         return;
       }

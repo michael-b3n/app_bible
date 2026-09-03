@@ -1,0 +1,114 @@
+---
+#
+# Clang-Tidy configuration for app_bible.
+#
+# Run over the whole project with `tools/run_clang_tidy.ps1`, or over a single file with
+# `clang-tidy -p build <file>`. The build directory has to be configured first, because
+# clang-tidy reads the compile flags from its `compile_commands.json`.
+#
+Checks: >
+  -*,
+  bugprone-*,
+  cert-*,
+  concurrency-*,
+  cppcoreguidelines-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-std-namespace-modification,
+  -cert-dcl58-cpp,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-avoid-do-while,
+  -cppcoreguidelines-macro-usage,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-use-enum-class,
+  -misc-include-cleaner,
+  -misc-no-recursion,
+  -misc-non-private-member-variables-in-classes,
+  -modernize-use-nodiscard,
+  -modernize-use-trailing-return-type,
+  -performance-enum-size,
+  -portability-avoid-pragma-once,
+  -readability-else-after-return,
+  -readability-function-cognitive-complexity,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -readability-redundant-access-specifiers,
+  -readability-redundant-typename,
+  -readability-uppercase-literal-suffix
+
+#
+# Checks turned off because they contradict the style of these sources:
+#   - `readability-else-after-return`: if/else chains are spelled out symmetrically.
+#   - `readability-redundant-typename`: type aliases spell out `typename X::type`.
+#   - `bugprone-std-namespace-modification`: std::formatter specializations are intended.
+#   - `cppcoreguidelines-use-enum-class`: enums the QML layer reads are unscoped, QML exposes
+#     them by the name of the type alone.
+#
+
+#
+# Only diagnose the projects own headers, not the ones of Qt, boost or other external libraries.
+#
+HeaderFilterRegex: '(bibstd|bibqml|bibstd_test|app_bible_assistant)[/\].*\.hpp$'
+ExcludeHeaderFilterRegex: '(build|libs_external)[/\].*'
+
+#
+# Findings are advisory, the build must not fail on them.
+#
+WarningsAsErrors: ""
+FormatStyle: file
+SystemHeaders: false
+
+CheckOptions:
+  #
+  # Naming conventions, see the existing sources: everything is lower_case,
+  # private member variables carry a trailing underscore.
+  #
+  readability-identifier-naming.NamespaceCase: lower_case
+  readability-identifier-naming.ClassCase: lower_case
+  readability-identifier-naming.StructCase: lower_case
+  readability-identifier-naming.EnumCase: lower_case
+  readability-identifier-naming.EnumConstantCase: lower_case
+  readability-identifier-naming.FunctionCase: lower_case
+  readability-identifier-naming.VariableCase: lower_case
+  readability-identifier-naming.ParameterCase: lower_case
+  readability-identifier-naming.MemberCase: lower_case
+  readability-identifier-naming.PrivateMemberSuffix: _
+  readability-identifier-naming.ProtectedMemberSuffix: _
+  readability-identifier-naming.TypeAliasCase: lower_case
+  readability-identifier-naming.TypedefCase: lower_case
+  readability-identifier-naming.ConceptCase: lower_case
+  readability-identifier-naming.ConstexprVariableCase: lower_case
+  readability-identifier-naming.GlobalConstantCase: lower_case
+  readability-identifier-naming.StaticConstantCase: lower_case
+  readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
+  readability-identifier-naming.TemplateParameterCase: CamelCase
+  readability-identifier-naming.TypeTemplateParameterCase: CamelCase
+  readability-identifier-naming.ValueTemplateParameterCase: CamelCase
+  readability-identifier-naming.TemplateTemplateParameterCase: CamelCase
+  # Nested template parameters carry a trailing underscore to shadow the enclosing ones.
+  readability-identifier-naming.TemplateParameterIgnoredRegexp: '.*_+'
+  readability-identifier-naming.TypeTemplateParameterIgnoredRegexp: '.*_+'
+  readability-identifier-naming.ValueTemplateParameterIgnoredRegexp: '.*_+'
+  readability-identifier-naming.TemplateTemplateParameterIgnoredRegexp: '.*_+'
+
+  #
+  # The sources consistently use east const free `const auto` locals and `auto` returns.
+  #
+  readability-qualified-auto.AddConstToQualified: "false"
+  readability-braces-around-statements.ShortStatementLines: "1"
+
+  #
+  # Trailing return types are the project style, so `auto` return types are expected.
+  #
+  modernize-use-auto.MinTypeNameLength: "5"
+  performance-unnecessary-value-param.AllowedTypes: "std::string_view;std::span"

@@ -52,7 +52,7 @@ private: // Implementation
 class shared_scope_guard final
 {
   // Variables
-  bool is_initial_instance_;
+  bool is_initial_instance_{false};
   scope_guard instance_guard_;
 
 public: // Typedefs

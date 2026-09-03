@@ -22,6 +22,12 @@ namespace detail
 ///
 constexpr auto maxEntries = static_cast<std::size_t>(std::numeric_limits<int>::max());
 
+///
+/// Verses loaded on either side of the reference the model is reset with, so the reference is
+/// read with what leads up to it instead of from the top of the view.
+///
+constexpr auto contextSize = 10;
+
 } // namespace detail
 
 ///
@@ -32,10 +38,11 @@ ScriptureListModel::ScriptureListModel(
   : QAbstractListModel{parent}
   , workflowScripture_{std::move(workflowScripture)}
 {
-  decltype(auto) scriptureNameSetting = workflowScripture_->settings().scripture_name;
+  using ScriptureNameSetting = std::remove_pointer_t<decltype(workflowScripture_->settings().scripture_name)>;
+  const bibstd::util::non_owning_ptr<ScriptureNameSetting> scriptureNameSetting = workflowScripture_->settings().scripture_name;
 
   scriptureNameSetting->connect_queued(
-    &std::remove_pointer_t<decltype(scriptureNameSetting)>::signals_type::value_changed,
+    &ScriptureNameSetting::signals_type::value_changed,
     [this]()
     {
       QMetaObject::invokeMethod(
@@ -62,10 +69,6 @@ ScriptureListModel::ScriptureListModel(
     executor_
   );
 }
-
-///
-///
-ScriptureListModel::~ScriptureListModel() noexcept = default;
 
 ///
 ///
@@ -115,6 +118,13 @@ QHash<int, QByteArray> ScriptureListModel::roleNames() const
 
 ///
 ///
+int ScriptureListModel::referenceRow() const
+{
+  return referenceRow_;
+}
+
+///
+///
 QString ScriptureListModel::scriptureCopyright() const
 {
   return bibqml::scriptureCopyright(*workflowScripture_);
@@ -134,8 +144,9 @@ void ScriptureListModel::resetWithReference(const QString& bookId, const int cha
   entries_.clear();
   addEntry(*ref);
   endResetModel();
-  // load some context around the initial verse
-  loadNext(10);
+  referenceRow(0);
+  loadPrevious(detail::contextSize);
+  loadNext(detail::contextSize);
   emit refreshed();
 }
 
@@ -184,6 +195,7 @@ void ScriptureListModel::loadPrevious(const int count)
     beginInsertRows(QModelIndex(), 0, insertCount - 1);
     std::ranges::for_each(newEntries, [&](auto& entry) { entries_.push_front(std::move(entry)); });
     endInsertRows();
+    referenceRow(referenceRow_ + insertCount);
   }
 }
 
@@ -243,6 +255,7 @@ void ScriptureListModel::clear()
   beginResetModel();
   entries_.clear();
   endResetModel();
+  referenceRow(0);
 }
 
 ///
@@ -254,9 +267,22 @@ void ScriptureListModel::disconnect()
 
 ///
 ///
+void ScriptureListModel::referenceRow(const int row)
+{
+  if(referenceRow_ == row)
+  {
+    return;
+  }
+  referenceRow_ = row;
+  emit referenceRowChanged();
+}
+
+///
+///
 QString ScriptureListModel::fetchPassage(const bibstd::bible::reference& ref) const
 {
-  auto params = bibstd::workflow::workflow_scripture::passage_params::value_type{ref, std::nullopt};
+  auto params =
+    bibstd::workflow::workflow_scripture::passage_params::value_type{.reference = ref, .scripture_name = std::nullopt};
   auto result = workflowScripture_->passage(params);
   if(result)
   {

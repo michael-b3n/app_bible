@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 4.3)
 project(bibstd_test LANGUAGES CXX)
 
 find_package(Catch2 3 REQUIRED)
+include(Catch)
 
 file(GLOB_RECURSE bibstd_test_CPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 
@@ -35,3 +36,8 @@ target_link_libraries(
   PUBLIC
   Catch2::Catch2WithMain
   bibstd)
+
+#
+# Register the Catch2 test cases with CTest, so they can be run via `ctest` in the build directory.
+#
+catch_discover_tests(bibstd_test)

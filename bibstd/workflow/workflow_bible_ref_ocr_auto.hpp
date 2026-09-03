@@ -157,6 +157,11 @@ public: // Structors
   workflow_bible_ref_ocr_auto(
     std::shared_ptr<workflow_settings> workflow_settings, std::shared_ptr<workflow_bible_ref_ocr> workflow_bible_ref_ocr
   );
+
+  ///
+  /// Destroying the machine destroys its running state, so a
+  /// run on the way is joined here and reports nothing.
+  ///
   ~workflow_bible_ref_ocr_auto() noexcept;
 
 public: // Modifiers

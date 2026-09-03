@@ -15,3 +15,24 @@ This app shall provide assistance when working with and studying in the bible. C
 * German
 
 More features, OS and language support are planned and in progress.
+
+### Development
+Configure and build:
+```
+cmake -S . -B build
+cmake --build build
+```
+
+Run the unit tests, either directly or through CTest:
+```
+cmake --build build --target bibstd_test
+./build/bibstd_test/bibstd_test
+ctest --test-dir build --output-on-failure
+```
+
+Run the static analysis. It reads the compile flags from `build/compile_commands.json`, so the build has to be configured first. The checks are configured in `.clang-tidy`, with overrides for `bibqml` (Qt naming) and `bibstd_test`:
+```
+tools/run_clang_tidy.ps1
+tools/run_clang_tidy.ps1 -Path bibstd/util
+clang-tidy -p build bibstd/util/scope_guard.cpp
+```

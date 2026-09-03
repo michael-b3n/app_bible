@@ -17,7 +17,7 @@ namespace bibstd::util
 ///
 template<typename T>
 constexpr auto numeric_cast_rt(auto&& v) -> T
-  requires(std::is_arithmetic_v<T> && std::is_arithmetic_v<decltype(v)>)
+  requires(std::is_arithmetic_v<T> && std::is_arithmetic_v<std::remove_cvref_t<decltype(v)>>)
 {
   if consteval
   {

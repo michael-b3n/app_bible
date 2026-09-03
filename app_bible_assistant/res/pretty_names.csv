@@ -5,9 +5,11 @@
 # the installed scriptures or OCR engines, are always displayed as provided by the backend.
 #
 key,german,english
+auto_search,Automatische Suche,Automatic search
 character_recognition_ocr_engine,Zeichenerkennung,Character recognition
 click_action,Aktion bei Klick,Click action
 dbu,DBU,DBU
+dwell_duration,Verweildauer,Dwell duration
 elb,Elberfelder Bibel,Elberfelder Bibel
 english,Englisch,English
 esv,English Standard Version,English Standard Version
@@ -23,6 +25,7 @@ lookup,Nachschlagen,Lookup
 LookupBrowser,Im Browser öffnen,Open in browser
 lut,Lutherbibel,Lutherbibel
 meng,Menge Bibel,Menge Bibel
+movement_tolerance,Bewegungstoleranz,Movement tolerance
 name,Name,Name
 neu,Neue evangelistische Übersetzung,Neue evangelistische Übersetzung
 ngu,Neue Genfer Übersetzung,Neue Genfer Übersetzung
@@ -31,6 +34,8 @@ niv,New International Version,New International Version
 nlb,Neues Leben. Die Bibel,Neues Leben. Die Bibel
 None,Keine Aktion,No action
 ocr,Texterkennung,Text recognition
+ocr_auto,Automatische Texterkennung,Automatic text recognition
+poll_interval,Abfrageintervall,Poll interval
 scripture,Bibelausgabe,Scripture
 slt,Schlachter,Schlachter
 tessdata_path,Tesseract Datenverzeichnis,Tesseract data folder
