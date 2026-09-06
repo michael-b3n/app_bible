@@ -136,12 +136,12 @@ auto node_path_finder_walker::parse_criteria(const auto& criteria_paths) -> std:
       const auto sections = bibstd::util::string::split(criteria_path, section_delimiter);
       if(sections.empty())
       {
-        throw util::exception(std::format("invalid criteria path: reason=\"empty criteria\", path=\"{}\"", criteria_path));
+        throw util::exception(std::format(R"(invalid criteria path: reason="empty criteria", path="{}")", criteria_path));
       }
       if(is_wildcard(sections.back()))
       {
         throw util::exception(
-          std::format("invalid criteria path: reason=\"cannot end with wildcard\", path=\"{}\"", criteria_path)
+          std::format(R"(invalid criteria path: reason="cannot end with wildcard", path="{}")", criteria_path)
         );
       }
       result.emplace_back(criteria_data{is_wildcard(sections.front()), parse_path_sections(criteria_path)});
@@ -217,7 +217,7 @@ auto node_path_finder_walker::for_each(pugi::xml_node& node) -> bool
 
 ///
 ///
-auto node_path_finder_walker::end([[maybe_unused]] pugi::xml_node&) -> bool
+auto node_path_finder_walker::end([[maybe_unused]] pugi::xml_node& /*node*/) -> bool
 {
   std::ranges::for_each(
     data_ | std::views::take_while([&]([[maybe_unused]] const auto&) { return found_nodes_.empty(); }),

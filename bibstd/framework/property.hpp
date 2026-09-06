@@ -28,11 +28,11 @@ private: // Structors
 
 public: // Structors
   property(const property<value_type>& other);
-  property(property<value_type>&& other);
+  property(property<value_type>&& other) noexcept;
 
 public: // Operators
   auto operator=(const property<value_type>& other) & -> property<value_type>&;
-  auto operator=(property<value_type>&& other) & -> property<value_type>&;
+  auto operator=(property<value_type>&& other) & noexcept -> property<value_type>&;
   auto operator==(const property<value_type>& other) const -> bool;
 
 public: // Accessor
@@ -70,7 +70,7 @@ property<T>::property(const value_type& value)
 template<typename T>
 property<T>::property(const property<value_type>& other)
 {
-  const auto lock = std::lock_guard(other.mtx_);
+  const auto lock = std::scoped_lock{other.mtx_};
   value_ = other.value_;
   property_tree_update_ = other.property_tree_update_;
 }
@@ -78,9 +78,9 @@ property<T>::property(const property<value_type>& other)
 ///
 ///
 template<typename T>
-property<T>::property(property<value_type>&& other)
+property<T>::property(property<value_type>&& other) noexcept
 {
-  const auto lock = std::lock_guard(other.mtx_);
+  const auto lock = std::scoped_lock{other.mtx_};
   value_ = std::move(other.value_);
   property_tree_update_ = std::move(other.property_tree_update_);
 }
@@ -92,7 +92,7 @@ auto property<T>::operator=(const property<value_type>& other) & -> property<val
 {
   if(this != &other)
   {
-    const auto lock = std::scoped_lock(mtx_, other.mtx_);
+    const auto lock = std::scoped_lock{mtx_, other.mtx_};
     value_ = other.value_;
     property_tree_update_ = other.property_tree_update_;
   }
@@ -102,11 +102,11 @@ auto property<T>::operator=(const property<value_type>& other) & -> property<val
 ///
 ///
 template<typename T>
-auto property<T>::operator=(property<value_type>&& other) & -> property<value_type>&
+auto property<T>::operator=(property<value_type>&& other) & noexcept -> property<value_type>&
 {
   if(this != &other)
   {
-    const auto lock = std::scoped_lock(mtx_, other.mtx_);
+    const auto lock = std::scoped_lock{mtx_, other.mtx_};
     value_ = std::move(other.value_);
     property_tree_update_ = std::move(other.property_tree_update_);
   }
@@ -118,7 +118,7 @@ auto property<T>::operator=(property<value_type>&& other) & -> property<value_ty
 template<typename T>
 auto property<T>::operator==(const property<value_type>& other) const -> bool
 {
-  const auto lock = std::scoped_lock(mtx_, other.mtx_);
+  const auto lock = std::scoped_lock{mtx_, other.mtx_};
   return value_ == other.value_;
 }
 
@@ -127,7 +127,7 @@ auto property<T>::operator==(const property<value_type>& other) const -> bool
 template<typename T>
 auto property<T>::value() const -> value_type
 {
-  const auto lock = std::lock_guard(mtx_);
+  const auto lock = std::scoped_lock{mtx_};
   return value_;
 }
 
@@ -136,7 +136,7 @@ auto property<T>::value() const -> value_type
 template<typename T>
 auto property<T>::value(const value_type& value) -> void
 {
-  const auto lock = std::lock_guard(mtx_);
+  const auto lock = std::scoped_lock{mtx_};
   if(value_ != value)
   {
     value_ = value;
@@ -152,7 +152,7 @@ auto property<T>::value(const value_type& value) -> void
 template<typename T>
 auto property<T>::exchange(const value_type& new_value) -> value_type
 {
-  const auto lock = std::lock_guard(mtx_);
+  const auto lock = std::scoped_lock{mtx_};
   const auto old_value = value_;
   if(value_ != new_value)
   {

@@ -23,7 +23,7 @@
 
 namespace bibstd::bible
 {
-namespace detail
+namespace
 {
 
 ///
@@ -31,20 +31,6 @@ namespace detail
 ///
 template<typename T>
 concept has_paragraph_data = requires(T t) { t.paragraph_data; };
-
-///
-/// Engine checker to check if engine supports layout analysis.
-/// \return true if layout analysis is supported and false otherwise
-///
-[[nodiscard]] constexpr auto supports_layout_analysis(const txt::ocr_engine_uptr_variant_type& engine) -> bool
-{
-  return util::visit_lambdas(
-    engine,
-    []([[maybe_unused]] const std::monostate&) { return false; },
-    []([[maybe_unused]] const txt::ocr_engine<txt::ocr_engine_tag_plain>::uptr_type&) { return false; },
-    []([[maybe_unused]] const txt::ocr_engine<txt::ocr_engine_tag_layout_analysis>::uptr_type&) { return true; }
-  );
-}
 
 ///
 /// Access the name of the OCR engine.
@@ -58,20 +44,6 @@ concept has_paragraph_data = requires(T t) { t.paragraph_data; };
     [](const txt::ocr_engine<txt::ocr_engine_tag_plain>::uptr_type& e) { return e->name(); },
     [](const txt::ocr_engine<txt::ocr_engine_tag_layout_analysis>::uptr_type& e) { return e->name(); }
   );
-}
-
-///
-/// Checks if algorithms data is a valid struct.
-/// \return true if valid, false otherwise
-///
-auto is_valid(const reference_ocr::algorithm_data& data) -> bool
-{
-  auto result = true;
-  if(data.algorithm == decltype(data.algorithm)::recognize_with_paragraph_recognition)
-  {
-    result = result && data.engine_name_layout_recognition.has_value();
-  }
-  return result;
 }
 
 ///
@@ -262,7 +234,7 @@ auto get_character_recognition_engine(
 ) -> std::expected<std::reference_wrapper<const txt::ocr_engine_uptr_variant_type>, reference_ocr::unexpected_ocr_result>
 {
   const auto character_recognition_engine_it =
-    std::ranges::find_if(engines, [&](const auto& e) { return detail::name(e) == ad.engine_name_character_recognition; });
+    std::ranges::find_if(engines, [&](const auto& e) { return name(e) == ad.engine_name_character_recognition; });
   if(character_recognition_engine_it == std::ranges::cend(engines))
   {
     LOG_ERROR("ocr engine for character recognition not found: required=\"{}\"", ad.engine_name_character_recognition);
@@ -293,7 +265,7 @@ auto run_paragraph_recognition(
     return std::unexpected{reference_ocr::unexpected_ocr_result::error};
   }
   const auto engine_it =
-    std::ranges::find_if(engines, [&](const auto& e) { return detail::name(e) == ad.engine_name_layout_recognition; });
+    std::ranges::find_if(engines, [&](const auto& e) { return name(e) == ad.engine_name_layout_recognition; });
   if(engine_it == std::ranges::cend(engines))
   {
     LOG_ERROR("ocr engine for paragraph recognition not found: required=\"{}\"", *ad.engine_name_layout_recognition);
@@ -356,8 +328,8 @@ auto run_paragraph_recognition(
               surrounding_rect.origin().x() - numeric_cast<decltype(surrounding_rect)::value_type>(padding_size),
               surrounding_rect.origin().y() - numeric_cast<decltype(surrounding_rect)::value_type>(padding_size)
             ),
-            math::size(surrounding_rect.horizontal_range()) + 2 * padding_size,
-            math::size(surrounding_rect.vertical_range()) + 2 * padding_size
+            math::size(surrounding_rect.horizontal_range()) + (2 * padding_size),
+            math::size(surrounding_rect.vertical_range()) + (2 * padding_size)
           };
         }
         else
@@ -469,7 +441,7 @@ auto recognize_just_with_line_recognition(
   }
 }
 
-} // namespace detail
+} // namespace
 
 ///
 ///
@@ -483,9 +455,9 @@ auto reference_ocr::run(
   switch(ad.algorithm)
   {
   case algorithm_type::recognize_with_paragraph_recognition:
-    return detail::recognize_with_paragraph_recognition(engines, image, position, ad);
+    return recognize_with_paragraph_recognition(engines, image, position, ad);
   case algorithm_type::recognize_just_with_line_recognition:
-    return detail::recognize_just_with_line_recognition(engines, image, position, ad);
+    return recognize_just_with_line_recognition(engines, image, position, ad);
   default: return std::unexpected{unexpected_ocr_result::unsupported};
   }
 }

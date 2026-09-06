@@ -1,14 +1,12 @@
-#include "bibstd/system/ocr.hpp"
 #include "bibstd/math/coordinates.hpp"
 #include "bibstd/meta/lossless_conversion.hpp"
+#include "bibstd/system/ocr.hpp"
 #include "bibstd/txt/ocr_engine.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/language.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/numeric_cast.hpp"
 
-#include <memory>
-#include <variant>
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Globalization.h>
@@ -18,11 +16,13 @@
 
 #include <algorithm>
 #include <cassert>
+#include <memory>
 #include <ranges>
+#include <variant>
 
 namespace bibstd::system
 {
-namespace detail
+namespace
 {
 
 namespace winrt_ocr = winrt::Windows::Media::Ocr;
@@ -83,7 +83,7 @@ public: // Overrides$
 
 private: // Implementation
   auto create_bitmap(pixel_plane_view_type image, std::optional<pixel_plane_view_type::area_type> subarea) -> void;
-  auto compute_line_bounding_box(const std::vector<word>& words) const -> bounding_box_type;
+  static auto compute_line_bounding_box(const std::vector<word>& words) -> bounding_box_type;
 };
 
 ///
@@ -158,7 +158,7 @@ auto ocr_engine_windows::recognize() const -> recognition_data
     {
       auto words_data = l.Words() | std::views::transform(to_word_data) | std::ranges::to<std::vector>();
       auto combined_bounding_box = compute_line_bounding_box(words_data);
-      auto line_data = line{winrt::to_string(l.Text()), std::move(combined_bounding_box)};
+      auto line_data = line{.text = winrt::to_string(l.Text()), .bounding_box = combined_bounding_box};
       recognition_data_.reserve(words_data.size());
       for(auto& word_data : words_data)
       {
@@ -206,7 +206,10 @@ auto ocr_engine_windows::create_bitmap(
 
   // Create SoftwareBitmap with Bgra8 format (alpha ignored since screen captures have no alpha)
   bitmap_ = winrt_imaging::SoftwareBitmap(
-    winrt_imaging::BitmapPixelFormat::Bgra8, width, height, winrt_imaging::BitmapAlphaMode::Ignore
+    winrt_imaging::BitmapPixelFormat::Bgra8,
+    numeric_cast<int>(width),
+    numeric_cast<int>(height),
+    winrt_imaging::BitmapAlphaMode::Ignore
   );
 
   // Copy pixel data. The pixel_plane is stored top-down (compatible with Tesseract/Leptonica),
@@ -229,10 +232,10 @@ auto ocr_engine_windows::create_bitmap(
     const auto& [i, pixel] = p;
     // pixel is RGBA, SoftwareBitmap expects BGRA. Alpha is set to 255 (opaque)
     // because screen captures do not set the alpha channel.
-    dst_data[i * 4 + 0] = pixel.blue;
-    dst_data[i * 4 + 1] = pixel.green;
-    dst_data[i * 4 + 2] = pixel.red;
-    dst_data[i * 4 + 3] = 255;
+    dst_data[(i * 4) + 0] = pixel.blue;
+    dst_data[(i * 4) + 1] = pixel.green;
+    dst_data[(i * 4) + 2] = pixel.red;
+    dst_data[(i * 4) + 3] = 255;
   };
 
   if(subarea)
@@ -249,22 +252,22 @@ auto ocr_engine_windows::create_bitmap(
 
 ///
 ///
-auto ocr_engine_windows::compute_line_bounding_box(const std::vector<word>& words) const -> bounding_box_type
+auto ocr_engine_windows::compute_line_bounding_box(const std::vector<word>& words) -> bounding_box_type
 {
   auto rect = bounding_box_type(math::coordinates{0, 0}, 0u, 0u);
   std::ranges::for_each(words, [&rect](const auto& word) { rect = math::surrounding_rect(rect, word.bounding_box); });
   return rect;
 }
 
-} // namespace detail
+} // namespace
 
 ///
 ///
 auto ocr::create(const util::language language) -> txt::ocr_engine_uptr_variant_type
 {
   using return_type = std::unique_ptr<txt::ocr_engine<txt::ocr_engine_tag_plain>>;
-  return_type engine = std::make_unique<detail::ocr_engine_windows>(language);
-  if(!static_cast<detail::ocr_engine_windows&>(*engine).initialized())
+  return_type engine = std::make_unique<ocr_engine_windows>(language);
+  if(!static_cast<ocr_engine_windows&>(*engine).initialized())
   {
     LOG_ERROR("failed to initialize Windows OCR engine");
     return std::monostate{};

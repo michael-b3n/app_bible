@@ -25,7 +25,7 @@
 
 namespace bibqml
 {
-namespace detail
+namespace
 {
 
 ///
@@ -173,7 +173,7 @@ toScreenRect(const bibstd::util::screen_rect_type& rect, const bibstd::util::scr
   return std::get<bibstd::util::non_owning_ptr<bibstd::framework::setting_type_erased<bool>>>(setting);
 }
 
-} // namespace detail
+} // namespace
 
 // Constants
 constexpr auto ocrFindPath = "ocr";
@@ -191,8 +191,8 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(
   , workflowBibleRefOcr_{std::move(workflowBibleRefOcr)}
   , workflowBibleRefOcrAuto_{std::move(workflowBibleRefOcrAuto)}
   , manualSearchSig_{workflowHotkey->register_callback(ocrFindPath)}
-  , clickActionSetting_{detail::createClickActionSetting(*workflowSettings)}
-  , autoSearchSetting_{detail::createAutoSearchSetting(*workflowSettings)}
+  , clickActionSetting_{createClickActionSetting(*workflowSettings)}
+  , autoSearchSetting_{createAutoSearchSetting(*workflowSettings)}
   , autoSearchExecutor_{bibstd::framework::thread_pool::strand_id()}
 {
   executor_.connect(*manualSearchSig_, [this]() { runManualSearch(); });
@@ -263,10 +263,15 @@ void BridgeBibleRefOcr::runManualSearch()
   // This is usually called from the main thread and takes only a few milliseconds.
   // This also ensures that no displayed windows are blocking the screen capture.
   const auto cursorPosition = bibstd::system::screen::cursor_position();
-  const auto capture = detail::captureScreen(cursorPosition);
+  if(!cursorPosition)
+  {
+    LOG_WARN("identify cursor position failed: not found");
+    return;
+  }
+  const auto capture = captureScreen(*cursorPosition);
   if(!capture)
   {
-    LOG_WARN("capture screen failed: cursor_position={}", cursorPosition);
+    LOG_WARN("capture screen failed: cursor_position={}", *cursorPosition);
     return;
   }
 
@@ -274,7 +279,7 @@ void BridgeBibleRefOcr::runManualSearch()
   notifyManualSearchStarted(processId);
 
   const auto result = workflowBibleRefOcr_->find({
-    {capture->image, capture->relativeCursorPosition}
+    {.image = capture->image, .position = capture->relativeCursorPosition}
   });
   if(!result.has_value() || result->reference_ranges.empty())
   {
@@ -285,7 +290,7 @@ void BridgeBibleRefOcr::runManualSearch()
   auto boundingBox = std::optional<bibstd::util::screen_rect_type>{};
   if(result->reference_bounding_box)
   {
-    boundingBox = detail::toScreenRect(*result->reference_bounding_box, capture->origin);
+    boundingBox = toScreenRect(*result->reference_bounding_box, capture->origin);
   }
   // The ranges are ordered canonically, the first one is the reference the passage belongs to.
   notifyManualSearchFinished(processId, result->reference_ranges.front(), boundingBox);
@@ -408,7 +413,7 @@ void BridgeBibleRefOcr::emitReference(
   decltype(auto) begin = referenceRange.begin();
   decltype(auto) end = referenceRange.end();
   const auto bookId = QString::fromStdString(std::string{bibstd::util::enum_name(begin.book())});
-  const auto mapping = boundingBox ? detail::monitorMappingAt(boundingBox->origin()) : std::optional<detail::MonitorMapping>{};
+  const auto mapping = boundingBox ? monitorMappingAt(boundingBox->origin()) : std::optional<MonitorMapping>{};
 
   emit referenceFound(bookId, numeric_cast<int>(begin.chapter().value), numeric_cast<int>(begin.verse().value));
   emit referenceRangeFound(

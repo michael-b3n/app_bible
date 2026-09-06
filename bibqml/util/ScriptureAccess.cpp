@@ -49,7 +49,7 @@ auto bookName(bibstd::workflow::workflow_scripture& workflowScripture, const bib
   }
   // the short name is the form meant for display, the others only serve as fallbacks
   const auto candidates = std::array{&names->short_name, &names->abbreviation, &names->long_name};
-  const auto found = std::ranges::find_if(candidates, [](const auto* name) { return !name->empty(); });
+  const auto* const found = std::ranges::find_if(candidates, [](const auto* name) { return !name->empty(); });
   return found != std::ranges::cend(candidates) ? QString::fromStdString(**found) : identifier(book);
 }
 

@@ -23,7 +23,7 @@
 
 namespace bibstd::workflow
 {
-namespace detail
+namespace
 {
 
 ///
@@ -49,7 +49,7 @@ auto sleep_until_stopped(const std::stop_token& token, const std::chrono::millis
   std::ignore = wake.try_acquire_for(duration);
 }
 
-} // namespace detail
+} // namespace
 
 ///
 /// Holds the transition table of the automatic search \see workflow_bible_ref_ocr_auto_sm_builder.
@@ -159,16 +159,21 @@ auto workflow_bible_ref_ocr_auto::search(const std::stop_token token, const fram
   while(!token.stop_requested())
   {
     const auto local = local_settings();
-    detail::sleep_until_stopped(token, local.poll_interval);
+    sleep_until_stopped(token, local.poll_interval);
     if(token.stop_requested())
     {
       break;
     }
-
     const auto position = system::screen::cursor_position();
+    if(!position)
+    {
+      LOG_WARN("auto reference search failed to identify cursor position");
+      continue;
+    }
+
     const auto now = clock_type::now();
     const auto moved = [&](const auto& reference)
-    { return util::screen_coordinates_type::distance(reference, position) > static_cast<double>(local.movement_tolerance); };
+    { return util::screen_coordinates_type::distance(reference, *position) > static_cast<double>(local.movement_tolerance); };
 
     if(!resting_position || moved(*resting_position))
     {
@@ -182,7 +187,7 @@ auto workflow_bible_ref_ocr_auto::search(const std::stop_token token, const fram
     if(!examined && now - resting_since >= local.dwell_duration)
     {
       examined = *resting_position;
-      examine(token, position, id);
+      examine(token, *position, id);
     }
   }
 }
@@ -209,7 +214,7 @@ auto workflow_bible_ref_ocr_auto::examine(
     }
 
     auto result = workflow_bible_ref_ocr_->find({
-      {image, position - window->origin()}
+      {.image = image, .position = position - window->origin()}
     });
     if(!result || result->reference_ranges.empty())
     {
@@ -225,7 +230,7 @@ auto workflow_bible_ref_ocr_auto::examine(
     auto bounding_box = std::optional<util::screen_rect_type>{};
     if(result->reference_bounding_box)
     {
-      bounding_box = detail::to_screen_rect(*result->reference_bounding_box, window->origin());
+      bounding_box = to_screen_rect(*result->reference_bounding_box, window->origin());
     }
     LOG_INFO(
       "auto reference search detected references: id={}, references=[{}]",

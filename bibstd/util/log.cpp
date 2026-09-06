@@ -11,13 +11,13 @@
 
 namespace bibstd::util
 {
-namespace detail
+namespace
 {
 
 ///
 /// Constants
 ///
-static const auto logger_name = std::string{"main"};
+const auto logger_name = std::string{"main"};
 
 ///
 /// Convert u8 string view to normal string.
@@ -33,10 +33,10 @@ inline auto to_string(const std::u8string& u8string) -> std::string
 ///
 /// Lock logger mutex.
 ///
-inline auto lock_logger() -> std::lock_guard<std::mutex>
+inline auto lock_logger() -> std::scoped_lock<std::mutex>
 {
   static std::mutex mtx;
-  return std::lock_guard(mtx);
+  return std::scoped_lock{mtx};
 }
 
 ///
@@ -50,7 +50,7 @@ inline auto init_log() -> void
   const auto local_data_path = system::filesystem::local_data_folder();
   std::filesystem::create_directories(local_data_path / log_dir);
   const auto log_directory_name = local_data_path / log_dir;
-  const auto log_filename = format_current_time_CET() + std::string{".log"};
+  const auto log_filename = format_current_time_cet() + std::string{".log"};
   const auto log_file = log_directory_name / log_filename;
   const auto log_file_latest = log_directory_name / std::string{"latest.log"};
 
@@ -76,12 +76,12 @@ inline auto init_log() -> void
 ///
 /// Access logger.
 ///
-inline auto logger() -> std::shared_ptr<spdlog::logger>
+inline auto get_logger() -> std::shared_ptr<spdlog::logger>
 {
   return spdlog::get(logger_name);
 }
 
-} // namespace detail
+} // namespace
 
 ///
 ///
@@ -94,10 +94,10 @@ auto global_log_level() -> logger_level
 ///
 auto log_debug(std::string_view&& msg) -> void
 {
-  const auto lock = detail::lock_logger();
-  if(const auto logger = detail::logger())
+  const auto lock = lock_logger();
+  if(const auto logger = get_logger())
   {
-    logger->debug(std::move(msg));
+    logger->debug(msg);
   }
 }
 
@@ -105,10 +105,10 @@ auto log_debug(std::string_view&& msg) -> void
 ///
 auto log_info(std::string_view&& msg) -> void
 {
-  const auto lock = detail::lock_logger();
-  if(const auto logger = detail::logger())
+  const auto lock = lock_logger();
+  if(const auto logger = get_logger())
   {
-    logger->info(std::move(msg));
+    logger->info(msg);
   }
 }
 
@@ -116,10 +116,10 @@ auto log_info(std::string_view&& msg) -> void
 ///
 auto log_warn(std::string_view&& msg) -> void
 {
-  const auto lock = detail::lock_logger();
-  if(const auto logger = detail::logger())
+  const auto lock = lock_logger();
+  if(const auto logger = get_logger())
   {
-    logger->warn(std::move(msg));
+    logger->warn(msg);
   }
 }
 
@@ -127,10 +127,10 @@ auto log_warn(std::string_view&& msg) -> void
 ///
 auto log_error(std::string_view&& msg) -> void
 {
-  const auto lock = detail::lock_logger();
-  if(const auto logger = detail::logger())
+  const auto lock = lock_logger();
+  if(const auto logger = get_logger())
   {
-    logger->error(std::move(msg));
+    logger->error(msg);
   }
 }
 
@@ -138,7 +138,7 @@ auto log_error(std::string_view&& msg) -> void
 ///
 logger::logger()
 {
-  detail::init_log();
+  init_log();
 }
 
 ///

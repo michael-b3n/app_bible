@@ -125,9 +125,9 @@ constexpr auto value_range<ValueType>::create_from_begin_and_size(T1 begin, T2 s
 ///
 template<arithmetic_type ValueType>
 template<meta::lossless_convertible<ValueType> T1, meta::lossless_convertible<ValueType> T2>
-constexpr value_range<ValueType>::value_range(T1 begin_, T2 to_)
-  : begin{std::min(static_cast<value_type>(begin_), static_cast<value_type>(to_))}
-  , end{std::max(static_cast<value_type>(begin_), static_cast<value_type>(to_))}
+constexpr value_range<ValueType>::value_range(T1 begin_, T2 end_)
+  : begin{std::min(static_cast<value_type>(begin_), static_cast<value_type>(end_))}
+  , end{std::max(static_cast<value_type>(begin_), static_cast<value_type>(end_))}
 {
   if(!arithmetic::subtract(end, begin).has_value() || !arithmetic::add(begin, static_cast<value_type>(1)).has_value())
   {

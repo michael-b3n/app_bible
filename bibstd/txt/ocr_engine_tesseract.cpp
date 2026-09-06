@@ -18,7 +18,7 @@
 
 namespace bibstd::txt
 {
-namespace detail
+namespace
 {
 
 ///
@@ -29,23 +29,21 @@ namespace detail
 auto forward_as_pix(auto& data, const std::uint32_t width, const std::uint32_t height) -> Pix
 {
   return Pix{
-    /*l_uint32          */ width,                                   // width in pixels
-    /*l_uint32          */ height,                                  // height in pixels
-    /*l_uint32          */ data::pixel::bits_per_pixel,             // depth in bits
-    /*l_uint32          */ 4u,                                      // number of samples per pixel
-    /*l_uint32          */ width,                                   // 32-bit words/line
-    /*l_uint32          */ 1u,                                      // reference count (1 if no clones)
-    /*l_int32           */ 0,                                       // image res (ppi) in x direction (use 0 if unknown)
-    /*l_int32           */ 0,                                       // image res (ppi) in y direction (use 0 if unknown)
-    /*l_int32           */ IFF_UNKNOWN,                             // input file format, IFF_*
-    /*l_int32           */ 0,                                       // special instructions for I/O, etc
-    /*char              */ nullptr,                                 // text string associated with pix
-    /*struct PixColormap*/ nullptr,                                 // colormap (may be null)
-    /*l_uint32          */ reinterpret_cast<l_uint32*>(data.data()) // the image data
+    /*l_uint32          */ .w = width,                                      // width in pixels
+    /*l_uint32          */ .h = height,                                     // height in pixels
+    /*l_uint32          */ .d = data::pixel::bits_per_pixel,                // depth in bits
+    /*l_uint32          */ .spp = 4u,                                       // number of samples per pixel
+    /*l_uint32          */ .wpl = width,                                    // 32-bit words/line
+    /*l_uint32          */ .refcount = 1u,                                  // reference count (1 if no clones)
+    /*l_int32           */ .xres = 0,                                       // image res (ppi) in x direction (use 0 if unknown)
+    /*l_int32           */ .yres = 0,                                       // image res (ppi) in y direction (use 0 if unknown)
+    /*l_int32           */ .informat = IFF_UNKNOWN,                         // input file format, IFF_*
+    /*l_int32           */ .special = 0,                                    // special instructions for I/O, etc
+    /*char              */ .text = nullptr,                                 // text string associated with pix
+    /*struct PixColormap*/ .colormap = nullptr,                             // colormap (may be null)
+    /*l_uint32          */ .data = reinterpret_cast<l_uint32*>(data.data()) // the image data
   };
 }
-
-} // namespace detail
 
 ///
 /// Get the tesseract page iterator level from the resolution tag.
@@ -87,6 +85,8 @@ auto get_bounding_box(const auto& ri, const auto level) -> std::optional<ocr_eng
     return std::nullopt;
   }
 }
+
+} // namespace
 
 ///
 ///
@@ -169,7 +169,7 @@ auto ocr_engine_tesseract::initialize(
     std::ranges::copy(image, image_data_.begin());
   }
   // copy needed since pix requires to be non const
-  auto pix = detail::forward_as_pix(image_data_, image.width(), image.height());
+  auto pix = forward_as_pix(image_data_, image.width(), image.height());
   tesseract_->SetImage(&pix);
   tesseract_->SetPageSegMode(tesseract::PSM_AUTO_OSD);
 }
@@ -196,7 +196,7 @@ auto ocr_engine_tesseract::recognize() const -> recognition_data
 
   const auto get_txt = [&ri](const auto level) -> std::optional<std::string>
   {
-    std::unique_ptr<char[]> txt(ri->GetUTF8Text(level));
+    const std::unique_ptr<char[]> txt(ri->GetUTF8Text(level));
     if(txt)
     {
       return std::string{txt.get()};
@@ -245,7 +245,9 @@ auto ocr_engine_tesseract::layout_analysis() const -> std::vector<line_layout>
       if(auto line_bounding_box = get_bounding_box(pi, line_level))
       {
         auto paragraph_bounding_box = get_bounding_box(pi, page_iterator_level(tag<paragraph>{}));
-        result.emplace_back(line_layout{std::move(*line_bounding_box), std::move(paragraph_bounding_box)});
+        result.emplace_back(
+          line_layout{.line_bounding_box = *line_bounding_box, .paragraph_bounding_box = paragraph_bounding_box}
+        );
       }
     }
     while(pi->Next(line_level));

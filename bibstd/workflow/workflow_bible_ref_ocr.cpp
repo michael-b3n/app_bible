@@ -18,7 +18,7 @@
 
 namespace bibstd::workflow
 {
-namespace detail
+namespace
 {
 
 ///
@@ -43,7 +43,7 @@ namespace detail
   return result;
 }
 
-} // namespace detail
+} // namespace
 
 ///
 ///
@@ -113,7 +113,7 @@ auto workflow_bible_ref_ocr::find(const params& params) -> result
       .language = settings().language->value(),
       .versification = versification()
     };
-    LOG_INFO(
+    LOG_DEBUG(
       "find references: image=[width={}, height={}], position=[{}]",
       params->image.width(),
       params->image.height(),
@@ -138,12 +138,12 @@ auto workflow_bible_ref_ocr::find(const params& params) -> result
       references && !references->ranges.empty()
     )
     {
-      LOG_INFO("reference search finished: references=[{}]", util::format::join(references->ranges, ", "));
+      LOG_DEBUG("reference search finished: references=[{}]", util::format::join(references->ranges, ", "));
       return construct_result(*references);
     }
     else if(const auto references = find_references(params, local_settings, atype::recognize_just_with_line_recognition))
     {
-      LOG_INFO("reference search finished: references=[{}]", util::format::join(references->ranges, ", "));
+      LOG_DEBUG("reference search finished: references=[{}]", util::format::join(references->ranges, ", "));
       return construct_result(*references);
     }
     else
@@ -173,7 +173,7 @@ auto workflow_bible_ref_ocr::init() -> void
     if(const auto found_tessdata_folder = txt::ocr_engine_tesseract::tessdata_folder_finder())
     {
       LOG_WARN("tessdata path setting invalid: used_alternative_folder=\"{}\"", found_tessdata_folder->generic_string());
-      settings().tessdata_path->value(*found_tessdata_folder);
+      settings().tessdata_path->value(found_tessdata_folder);
     }
   }
   const auto path = settings().tessdata_path->value();
@@ -260,7 +260,7 @@ auto workflow_bible_ref_ocr::find_references(const auto& params, const settings_
     );
     return find_references_result_t{
       .ranges = std::move(parse_result.ranges),
-      .bounding_box = detail::reference_bounding_box(*position_data, parse_result.index_range_origin)
+      .bounding_box = reference_bounding_box(*position_data, parse_result.index_range_origin)
     };
   }
   else

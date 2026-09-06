@@ -37,7 +37,7 @@ auto core_fetch_web_content::fetch(std::string_view url) const -> std::expected<
 
   // Initialize CURL
   CURL* curl = curl_easy_init();
-  if(!curl)
+  if(curl == nullptr)
   {
     LOG_ERROR("failed to initialize curl");
     return std::unexpected(error_code::init_failed);
@@ -62,7 +62,7 @@ auto core_fetch_web_content::fetch(std::string_view url) const -> std::expected<
   // Check for errors
   if(res != CURLE_OK)
   {
-    const auto error_msg = curl_easy_strerror(res);
+    const auto* const error_msg = curl_easy_strerror(res);
     LOG_ERROR("fetch url content failed on curl perform: url=\"{}\", error=\"{}\"", url, error_msg);
 
     // Cleanup before returning error

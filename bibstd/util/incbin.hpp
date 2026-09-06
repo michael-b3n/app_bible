@@ -31,7 +31,7 @@ namespace bibstd::util::incbin
 ///
 inline auto to_string_view(const std::byte* const data, const unsigned int size) -> std::string_view
 {
-  return std::string_view(reinterpret_cast<const char* const>(data), size);
+  return {reinterpret_cast<const char* const>(data), size};
 }
 
 ///

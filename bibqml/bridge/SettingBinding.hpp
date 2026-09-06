@@ -54,8 +54,8 @@ class SettingBinding final : public QObject
   // Variables
   const QString path_;
   const QVariant defaultValue_;
-  std::optional<SettingVariantType> setting_{};
-  bibstd::signal::synchronized_executor executor_{};
+  std::optional<SettingVariantType> setting_;
+  bibstd::signal::synchronized_executor executor_;
 
 public: // Structors
   ///

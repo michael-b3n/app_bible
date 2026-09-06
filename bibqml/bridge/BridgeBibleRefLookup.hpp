@@ -37,7 +37,7 @@ class BridgeBibleRefLookup final : public QObject
   // Variables
   const std::shared_ptr<bibstd::workflow::workflow_bible_ref_lookup> workflowBibleRefLookup_;
   const std::shared_ptr<bibstd::workflow::workflow_scripture> workflowScripture_;
-  bibstd::framework::process_id_type processId_{};
+  bibstd::framework::process_id_type processId_;
   bool running_{false};
   bibstd::signal::synchronized_executor executor_;
 

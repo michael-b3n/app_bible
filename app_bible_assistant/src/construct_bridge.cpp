@@ -40,7 +40,7 @@ auto disconnect_bridge(bridge_instance& instance) -> void
 
 ///
 ///
-auto construct_bridge(QGuiApplication& app, backend_instance& backend) -> bridge_instance
+auto construct_bridge([[maybe_unused]] QGuiApplication& /*app*/, backend_instance& backend) -> bridge_instance
 {
   // clang-format off
   auto workflow_settings = backend.workflow_settings;

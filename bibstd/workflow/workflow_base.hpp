@@ -36,7 +36,7 @@ class workflow_base<void> : public workflow_ground
 {
 protected: // Structors
   workflow_base() = default;
-  virtual ~workflow_base() noexcept = default;
+  ~workflow_base() noexcept override = default;
 };
 
 ///
@@ -47,7 +47,7 @@ class workflow_base<S> : public workflow_ground
 {
 protected: // Structors
   workflow_base(std::shared_ptr<workflow_settings> workflow_settings);
-  virtual ~workflow_base() noexcept = default;
+  ~workflow_base() noexcept override = default;
 
 public: // Typedefs
   using settings_type = std::conditional_t<std::is_void_v<S>, void, std::unique_ptr<S>>;

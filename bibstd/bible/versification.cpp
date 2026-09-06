@@ -39,7 +39,7 @@ versification::versification(const std::string_view name, const std::vector<refe
         const auto count =
           std::ranges::fold_left(data, std::uint32_t{0}, [](const auto n, const auto& r) { return n + r.verse().value; });
         return versification_dynamic{
-          .name{name}, .data{std::move(data)}, .book_start_indices{std::move(book_start_indices)}, .reference_count = count
+          .name{name}, .data{std::move(data)}, .book_start_indices{book_start_indices}, .reference_count = count
         };
       }()
     }

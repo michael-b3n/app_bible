@@ -21,7 +21,7 @@
 
 namespace bibstd::core
 {
-namespace detail
+namespace
 {
 
 ///
@@ -45,7 +45,7 @@ auto match_passage_template_section(
     const auto ref2 = bible::reference::create(book, numbers.at(2), numbers.at(3), versification);
     if(ref1 && ref2)
     {
-      result.emplace_back(bible::reference_range(ref1.value(), ref2.value()));
+      result.emplace_back(ref1.value(), ref2.value());
     }
     current_level = passage_level::verse;
     current_chapter = numbers.at(2);
@@ -56,7 +56,7 @@ auto match_passage_template_section(
     const auto ref2 = bible::reference::create(book, numbers.at(0), numbers.at(2), versification);
     if(ref1 && ref2)
     {
-      result.emplace_back(bible::reference_range(ref1.value(), ref2.value()));
+      result.emplace_back(ref1.value(), ref2.value());
     }
     current_level = passage_level::verse;
     current_chapter = numbers.at(0);
@@ -69,7 +69,7 @@ auto match_passage_template_section(
       const auto ref2 = bible::reference::create(book, numbers.at(1), numbers.at(2), versification);
       if(ref1 && ref2)
       {
-        result.emplace_back(bible::reference_range(ref1.value(), ref2.value()));
+        result.emplace_back(ref1.value(), ref2.value());
       }
     }
     else
@@ -78,7 +78,7 @@ auto match_passage_template_section(
       const auto ref2 = bible::reference::create(book, numbers.at(1), numbers.at(2), versification);
       if(ref1 && ref2)
       {
-        result.emplace_back(bible::reference_range(ref1.value(), ref2.value()));
+        result.emplace_back(ref1.value(), ref2.value());
       }
       current_level = passage_level::verse;
     }
@@ -89,7 +89,7 @@ auto match_passage_template_section(
     const auto ref = bible::reference::create(book, numbers.at(0), numbers.at(1), versification);
     if(ref)
     {
-      result.emplace_back(bible::reference_range(ref.value()));
+      result.emplace_back(ref.value());
     }
     current_level = passage_level::verse;
     current_chapter = numbers.at(0);
@@ -102,7 +102,7 @@ auto match_passage_template_section(
       const auto ref2 = bible::reference::create(book, current_chapter, numbers.at(1), versification);
       if(ref1 && ref2)
       {
-        result.emplace_back(bible::reference_range(ref1.value(), ref2.value()));
+        result.emplace_back(ref1.value(), ref2.value());
       }
     }
     else
@@ -112,7 +112,7 @@ auto match_passage_template_section(
       const auto ref2 = bible::reference::create(book, numbers.at(1), verse_count, versification);
       if(ref1 && ref2)
       {
-        result.emplace_back(bible::reference_range(ref1.value(), ref2.value()));
+        result.emplace_back(ref1.value(), ref2.value());
       }
       current_chapter = numbers.at(1);
     }
@@ -124,7 +124,7 @@ auto match_passage_template_section(
       const auto ref = bible::reference::create(book, current_chapter, numbers.front(), versification);
       if(ref)
       {
-        result.emplace_back(bible::reference_range(ref.value()));
+        result.emplace_back(ref.value());
       }
     }
     else
@@ -134,7 +134,7 @@ auto match_passage_template_section(
       const auto ref2 = bible::reference::create(book, numbers.front(), verse_count, versification);
       if(ref1 && ref2)
       {
-        result.emplace_back(bible::reference_range(ref1.value(), ref2.value()));
+        result.emplace_back(ref1.value(), ref2.value());
       }
       current_chapter = numbers.front();
     }
@@ -142,7 +142,7 @@ auto match_passage_template_section(
   return result;
 }
 
-} // namespace detail
+} // namespace
 
 ///
 ///
@@ -230,7 +230,8 @@ auto core_bible_ref_finder::find_book(const std::string_view text, const std::si
       auto pos_offset = std::size_t{0};
       std::ranges::for_each(
         util::ranges::index_view(normalized_text_view) |
-          std::views::take_while([&](const auto i) { return pos_rel != std::string_view::npos && !found_book.has_value(); }),
+          std::views::take_while([&]([[maybe_unused]] const auto /*i*/)
+                                 { return pos_rel != std::string_view::npos && !found_book.has_value(); }),
         [&]([[maybe_unused]] const auto)
         {
           pos_rel = normalized_text_view.find(name_variant);
@@ -357,7 +358,7 @@ auto core_bible_ref_finder::create_passage_template(const std::string_view passa
     {
       if(const auto number = identify_number(passage_substring, pos); number)
       {
-        passage_template.push_back(number.value());
+        passage_template.emplace_back(number.value());
         transition_char = std::nullopt;
       }
       if(const auto transition_char = identify_transition(passage_substring, pos); transition_char)
@@ -365,7 +366,7 @@ auto core_bible_ref_finder::create_passage_template(const std::string_view passa
         if(!passage_template.empty() && std::holds_alternative<std::uint32_t>(passage_template.back()))
         {
           // Take first found transition chars and ignore further chars.
-          passage_template.push_back(transition_char.value());
+          passage_template.emplace_back(transition_char.value());
         }
       }
       else // Exit when no transition char is found.
@@ -400,7 +401,7 @@ auto core_bible_ref_finder::normalize_passage_text(const std::string_view text, 
       std::string normalized_text;
       auto counter = std::size_t{0};
       std::ranges::for_each(
-        util::ranges::index_view(text) | std::views::take_while([&](const auto i) { return counter < text.size(); }),
+        util::ranges::index_view(text) | std::views::take_while([&](const auto /*i*/) { return counter < text.size(); }),
         [&]([[maybe_unused]] const auto)
         {
           const auto subview = text.substr(counter);
@@ -483,7 +484,7 @@ auto core_bible_ref_finder::match_passage_template(
   {
     if(const auto ref = bible::reference::create(book, 1u, 1u, versification))
     {
-      result.emplace_back(bible::reference_range(ref.value()));
+      result.emplace_back(ref.value());
     }
     return result;
   }
@@ -502,7 +503,7 @@ auto core_bible_ref_finder::match_passage_template(
     }
     auto current_level = passage_level::chapter;
     auto current_chapter = numbers.front();
-    const auto found = detail::match_passage_template_section(
+    const auto found = match_passage_template_section(
       book,
       passage_sections.front().numbers,
       passage_sections.front().generic_template,
@@ -524,7 +525,7 @@ auto core_bible_ref_finder::match_passage_template(
       passage_sections,
       [&](const auto& passage_section)
       {
-        const auto found = detail::match_passage_template_section(
+        const auto found = match_passage_template_section(
           book, passage_section.numbers, passage_section.generic_template, current_level, current_chapter, versification
         );
         const auto result = !found.empty();
@@ -604,9 +605,18 @@ auto core_bible_ref_finder::create_passage_sections(
 {
   const auto to_transition_char = [down_transition_char](const char c) -> std::optional<char>
   {
-    if(c == '-') return '-';
-    else if(c == down_transition_char) return 'X';
-    else return std::nullopt;
+    if(c == '-')
+    {
+      return '-';
+    }
+    else if(c == down_transition_char)
+    {
+      return 'X';
+    }
+    else
+    {
+      return std::nullopt;
+    }
   };
 
   std::vector<passage_section> result;

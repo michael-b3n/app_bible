@@ -6,7 +6,8 @@
   fill="none"
   xmlns="http://www.w3.org/2000/svg"
 >
-  <path d="M15 9H9V15H15V9Z" fill="#000000" />
+  <path d="M9 9H11V15H9V9Z" fill="#000000" />
+  <path d="M15 15H13V9H15V15Z" fill="#000000" />
   <path
     fill-rule="evenodd"
     clip-rule="evenodd"

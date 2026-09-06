@@ -103,7 +103,7 @@ public: // Structors
   workflow_bible_ref_ocr(
     std::shared_ptr<workflow_settings> workflow_settings, std::shared_ptr<workflow_scripture> workflow_scripture
   );
-  ~workflow_bible_ref_ocr() noexcept;
+  ~workflow_bible_ref_ocr() noexcept override;
 
 public: // Modifiers
   ///

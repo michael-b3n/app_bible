@@ -38,7 +38,7 @@ class BridgeSettings final : public QObject
 
   // Variables
   const std::shared_ptr<bibstd::workflow::workflow_settings> workflowSettings_;
-  std::map<QString, std::unique_ptr<SettingBinding>> bindings_{};
+  std::map<QString, std::unique_ptr<SettingBinding>> bindings_;
 
 public: // Static interface
   ///

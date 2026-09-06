@@ -36,7 +36,7 @@ class workflow_bible_ref_lookup_settings final : public framework::settings_base
 {
 public: // Structors
   workflow_bible_ref_lookup_settings(std::shared_ptr<workflow_settings> workflow_settings);
-  ~workflow_bible_ref_lookup_settings() noexcept = default;
+  ~workflow_bible_ref_lookup_settings() noexcept override = default;
 
 public: // Variables
   const setting_type<std::vector<bible::translation>> translations;
@@ -67,7 +67,7 @@ public: // Typedefs
 
 public: // Structors
   workflow_bible_ref_lookup(std::shared_ptr<workflow_settings> workflow_settings);
-  ~workflow_bible_ref_lookup() noexcept;
+  ~workflow_bible_ref_lookup() noexcept override;
 
 public: // Modifiers
   ///

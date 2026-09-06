@@ -14,7 +14,7 @@
 
 namespace bibstd::core
 {
-namespace detail
+namespace
 {
 
 ///
@@ -41,7 +41,7 @@ auto file_type(const std::filesystem::path& path) -> std::optional<core_scriptur
   return std::nullopt;
 }
 
-} // namespace detail
+} // namespace
 
 ///
 ///
@@ -54,10 +54,10 @@ core_scripture_store::core_scripture_store()
     {
       const auto file_name = res::scripture::file_name(index);
       LOG_INFO("loading scripture data: file_name=\"{}\"", file_name.stem().string());
-      if(const auto file_type = detail::file_type(file_name))
+      if(const auto type = file_type(file_name))
       {
         const auto file_data = res::scripture::file_raw(index);
-        switch(*file_type)
+        switch(*type)
         {
         case core_scripture_store::supported_file_type::zip: load_usx(io::zip_file_reader(file_data)); return;
         }

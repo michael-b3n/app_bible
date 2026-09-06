@@ -57,7 +57,7 @@ auto ocr_book_variants::name_variant_aliases(const std::string_view name_variant
 ///
 auto ocr_book_variants::name_variants_with_aliases(util::language language) -> std::span<const std::pair<book_id, std::string>>
 {
-  const auto create = [](const auto& name_variants, const util::language language)
+  const auto create = [](const util::language language)
   {
     auto result = std::vector<std::pair<book_id, std::string>>{};
     std::ranges::for_each(
@@ -74,8 +74,8 @@ auto ocr_book_variants::name_variants_with_aliases(util::language language) -> s
     return result;
   };
 
-  static const auto name_variants_with_aliases_de = create(name_variants_list_de, util::language::german);
-  static const auto name_variants_with_aliases_en = create(name_variants_list_en, util::language::english);
+  static const auto name_variants_with_aliases_de = create(util::language::german);
+  static const auto name_variants_with_aliases_en = create(util::language::english);
   switch(language)
   {
   case util::language::german: return name_variants_with_aliases_de;

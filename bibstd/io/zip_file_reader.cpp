@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <utility>
 
 namespace bibstd::io
 {
@@ -74,12 +75,12 @@ zip_file_reader::zip_file_reader(const std::filesystem::path& zip_path, const st
   , zip_handle_{nullptr}
 {
   int error_code = 0;
-  int flags = ZIP_RDONLY;
+  const int flags = ZIP_RDONLY;
 #ifdef BIBSTD_DEBUG
   flags |= ZIP_CHECKCONS;
 #endif
   zip_handle_ = zip_open(zip_path.string().c_str(), flags, &error_code);
-  if(!zip_handle_)
+  if(zip_handle_ == nullptr)
   {
     const auto msg = [&]() -> std::string_view
     {
@@ -114,23 +115,23 @@ zip_file_reader::zip_file_reader(const std::span<const std::byte> data, const st
   , zip_handle_{nullptr}
 {
   zip_error_t error;
-  auto source = zip_source_buffer_create(data.data(), static_cast<zip_uint64_t>(data.size()), 0, &error);
-  if(!source)
+  auto* source = zip_source_buffer_create(data.data(), static_cast<zip_uint64_t>(data.size()), 0, &error);
+  if(source == nullptr)
   {
-    const auto msg = zip_error_strerror(&error);
+    const auto* const msg = zip_error_strerror(&error);
     LOG_ERROR("failed to create zip source from memory buffer: error=\"{}\"", msg);
     zip_error_fini(&error);
     return;
   }
 
-  int flags = ZIP_RDONLY;
+  const int flags = ZIP_RDONLY;
 #ifdef BIBSTD_DEBUG
   flags |= ZIP_CHECKCONS;
 #endif
   zip_handle_ = zip_open_from_source(source, flags, &error); // takes ownership of source
-  if(!zip_handle_)
+  if(zip_handle_ == nullptr)
   {
-    const auto msg = zip_error_strerror(&error);
+    const auto* const msg = zip_error_strerror(&error);
     LOG_ERROR("failed to open zip archive from memory buffer: error=\"{}\"", msg);
     zip_error_fini(&error);
   }
@@ -144,7 +145,7 @@ zip_file_reader::zip_file_reader(const std::span<const std::byte> data, const st
 ///
 zip_file_reader::~zip_file_reader() noexcept
 {
-  if(zip_handle_)
+  if(zip_handle_ != nullptr)
   {
     zip_discard(zip_handle_);
     zip_handle_ = nullptr;
@@ -174,8 +175,8 @@ auto zip_file_reader::comment() const -> std::string
   if(is_open())
   {
     int length = 0;
-    const auto c = zip_get_archive_comment(zip_handle_, &length, unchanged_flag);
-    if(c && length > 0)
+    const auto* const c = zip_get_archive_comment(zip_handle_, &length, unchanged_flag);
+    if((c != nullptr) && length > 0)
     {
       return std::string(c, static_cast<std::size_t>(length));
     }
@@ -248,14 +249,14 @@ auto zip_file_reader::read_entry(const zip_entry& entry) const -> std::vector<st
     return {};
   }
 
-  if(const auto file = zip_fopen_index(zip_handle_, static_cast<zip_uint64_t>(entry.index.value()), unchanged_flag))
+  if(auto* const file = zip_fopen_index(zip_handle_, static_cast<zip_uint64_t>(entry.index.value()), unchanged_flag))
   {
     const auto size = entry.size.value();
     std::vector<std::byte> buffer(size);
     if(size > 0)
     {
       const auto bytes_read = zip_fread(file, buffer.data(), size);
-      if(bytes_read < 0 || static_cast<std::uint64_t>(bytes_read) != size)
+      if(bytes_read < 0 || std::cmp_not_equal(bytes_read, size))
       {
         LOG_WARN("file reading failed or incomplete: index={}, name=\"{}\"", *entry.index, entry.name.value_or("unknown"));
       }
@@ -338,21 +339,21 @@ auto zip_file_reader::create_entry(const zip_stat_t& stat) const -> zip_entry
       if(is_open())
       {
         zip_uint32_t length = 0;
-        const auto c = zip_file_get_comment(zip_handle_, stat.index, &length, unchanged_flag);
+        const auto* const c = zip_file_get_comment(zip_handle_, stat.index, &length, unchanged_flag);
         if(c && length >= 0)
         {
           return std::string(c, static_cast<std::size_t>(length));
         }
         else
         {
-          const auto name = valid(ZIP_STAT_NAME) && stat.name ? stat.name : "unknown";
+          const auto* const name = valid(ZIP_STAT_NAME) && stat.name ? stat.name : "unknown";
           LOG_ERROR("failed to get comment for zip entry: name=\"{}\", error=\"{}\"", name, error_message());
         }
       }
       return {};
     }(),
     // clang-format off
-    .name = valid(ZIP_STAT_NAME) ? (stat.name ? std::string{stat.name} : "") : decltype(zip_entry::name){},
+    .name = valid(ZIP_STAT_NAME) ? ((stat.name != nullptr) ? std::string{stat.name} : "") : decltype(zip_entry::name){},
     .index = valid(ZIP_STAT_INDEX) ? static_cast<std::uint64_t>(stat.index) : decltype(zip_entry::index){},
     .compression = valid(ZIP_STAT_COMP_METHOD) ? convert_compression_method(stat.comp_method) : decltype(zip_entry::compression){},
     .encryption = valid(ZIP_STAT_ENCRYPTION_METHOD) ? convert_encryption_method(stat.encryption_method) : decltype(zip_entry::encryption){},
@@ -371,10 +372,10 @@ auto zip_file_reader::error_message() const -> std::string
   {
     return std::string{"archive not open"};
   }
-  else if(const auto error = zip_get_error(zip_handle_))
+  else if(auto* const error = zip_get_error(zip_handle_))
   {
-    const auto strerror = zip_error_strerror(error);
-    if(strerror)
+    const auto* const strerror = zip_error_strerror(error);
+    if(strerror != nullptr)
     {
       return std::string(strerror);
     }

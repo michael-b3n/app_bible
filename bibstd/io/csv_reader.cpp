@@ -76,7 +76,7 @@ csv_reader::csv_reader(const std::filesystem::path& csv_path, const params& p)
   }
   catch(const std::exception& e)
   {
-    throw util::exception{std::format("read csv file failed: path=\"{}\", what=\"{}\"", csv_path.string(), e.what())};
+    throw util::exception{std::format(R"(read csv file failed: path="{}", what="{}")", csv_path.string(), e.what())};
   }
 }
 

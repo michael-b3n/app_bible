@@ -50,7 +50,7 @@ public: // Typedefs
 
 public: // Structors
   workflow_hotkey();
-  ~workflow_hotkey() noexcept;
+  ~workflow_hotkey() noexcept override;
 
 public: // Accessors
   ///

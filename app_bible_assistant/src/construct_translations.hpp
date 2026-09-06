@@ -26,7 +26,7 @@ class translations_instance final
   // Variables
   const std::unique_ptr<qml::Translations> translations_;
   const language_setting_type language_setting_;
-  bibstd::signal::synchronized_executor executor_{};
+  bibstd::signal::synchronized_executor executor_;
 
 public: // Structors
   ///

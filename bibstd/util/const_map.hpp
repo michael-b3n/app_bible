@@ -285,7 +285,7 @@ namespace detail
 /// \return const_map instance
 ///
 template<typename F, typename S, std::size_t N, bool BidirectionalFlag, std::size_t... Is>
-consteval auto make_const_map_impl(std::pair<F, S> (&&p)[N], std::index_sequence<Is...>) -> auto
+consteval auto make_const_map_impl(std::pair<F, S> (&&p)[N], [[maybe_unused]] std::index_sequence<Is...> /*sequence*/) -> auto
 {
   return const_map<F, S, N, BidirectionalFlag>(std::forward<decltype(p[Is])>(p[Is])...);
 }

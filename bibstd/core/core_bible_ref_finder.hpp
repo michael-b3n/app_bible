@@ -22,7 +22,7 @@ public: // Typedefs
   using index_range_type = math::value_range<std::size_t>;
   struct parse_result final
   {
-    std::vector<bible::reference_range> ranges{};
+    std::vector<bible::reference_range> ranges;
     index_range_type index_range_origin{0u, 0u};
   };
 

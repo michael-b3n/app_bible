@@ -79,8 +79,8 @@ class workflow_settings final : public signal::adapter<workflow_settings_signals
 
   // Variables
   const framework::property_tree::sptr_type tree_{framework::property_tree::create(settings_file_path())};
-  mutable std::mutex mtx_{};
-  std::vector<setting_uptr_data> settings_{};
+  mutable std::mutex mtx_;
+  std::vector<setting_uptr_data> settings_;
 
 public: // Typedefs
   using setting_type_erased_non_owning_ptr_variant_type =
@@ -229,7 +229,7 @@ auto workflow_settings::create_setting(const std::string& path, T default_value,
   const auto setting_ptr = setting.get();
   using underlying_setting_type_erased_type = framework::setting_type_erased<framework::setting_type_erased_type_from<T>>;
   {
-    const auto lock = std::lock_guard{mtx_};
+    const auto lock = std::scoped_lock{mtx_};
     const auto contains_path = util::contains(settings_, [&path](const auto& data) { return data.path == path; });
     if(contains_path)
     {

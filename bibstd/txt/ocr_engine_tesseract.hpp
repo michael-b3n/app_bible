@@ -51,7 +51,7 @@ public: // Static
 
 public: // Structors
   ocr_engine_tesseract(const std::filesystem::path& tessdata_path, util::language language);
-  ~ocr_engine_tesseract() noexcept;
+  ~ocr_engine_tesseract() noexcept override;
 
 public: // Overrides
   ///

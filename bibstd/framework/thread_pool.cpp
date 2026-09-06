@@ -20,11 +20,11 @@ auto thread_pool::strand_id() -> strand_id_type
 ///
 auto thread_pool::init() -> util::shared_scope_guard
 {
-  static util::shared_scope_guard::creator _guard_creator{};
-  static std::condition_variable _cv_init{};
+  static util::shared_scope_guard::creator guard_creator{};
+  static std::condition_variable cv_init{};
 
   auto lock = std::unique_lock{mtx_};
-  auto guard = _guard_creator.create(
+  auto guard = guard_creator.create(
     []()
     {
       initialized_ = false;
@@ -34,14 +34,14 @@ auto thread_pool::init() -> util::shared_scope_guard
         const auto lock = std::scoped_lock{mtx_};
         pool_.clear();
       }
-      _cv_init.notify_all();
+      cv_init.notify_all();
     }
   );
   if(guard.is_initial_instance())
   {
     if(!pool_.empty())
     {
-      _cv_init.wait(lock, []() { return pool_.empty(); });
+      cv_init.wait(lock, []() { return pool_.empty(); });
     }
     initialized_ = true;
     pool_.emplace_back(std::make_unique<pool_element>());
@@ -59,7 +59,7 @@ auto thread_pool::queue_task(task_type&& task) -> void
   }
   auto lock = std::unique_lock{mtx_};
   static const auto internal_strand_id = strand_id();
-  queue_task_auto(task_data{std::move(task), task_id_type::new_uid(), internal_strand_id});
+  queue_task_auto(task_data{.task = std::move(task), .task_id = task_id_type::new_uid(), .strand_id = internal_strand_id});
   auto abandoned = extract_abandoned_workers();
   lock.unlock();
   abandoned.clear();
@@ -80,11 +80,11 @@ auto thread_pool::queue_task(task_type&& task, const strand_id_type id) -> void
   const auto index = static_cast<std::size_t>(std::ranges::distance(std::ranges::cbegin(pool_), dest_thread));
   if(index < pool_.size())
   {
-    queue_task_index(task_data{std::move(task), task_id_type::new_uid(), id}, index);
+    queue_task_index(task_data{.task = std::move(task), .task_id = task_id_type::new_uid(), .strand_id = id}, index);
   }
   else
   {
-    queue_task_auto(task_data{std::move(task), task_id_type::new_uid(), id});
+    queue_task_auto(task_data{.task = std::move(task), .task_id = task_id_type::new_uid(), .strand_id = id});
   }
   auto abandoned = extract_abandoned_workers();
   lock.unlock();
@@ -96,7 +96,7 @@ auto thread_pool::queue_task(task_type&& task, const strand_id_type id) -> void
 auto thread_pool::queue_task_index(task_data&& data, const std::size_t index) -> void
 {
   decltype(auto) element = pool_.at(index);
-  element->ids.emplace_back(id_pair{data.task_id, data.strand_id});
+  element->ids.emplace_back(id_pair{.task_id = data.task_id, .strand_id = data.strand_id});
   element->worker.queue_task(create_task_wrapper(std::move(data), element.get()));
 }
 
@@ -112,7 +112,7 @@ auto thread_pool::queue_task_auto(task_data&& data) -> void
     index = pool_.size() - 1;
   }
   decltype(auto) element = pool_.at(index);
-  element->ids.emplace_back(id_pair{data.task_id, data.strand_id});
+  element->ids.emplace_back(id_pair{.task_id = data.task_id, .strand_id = data.strand_id});
   element->worker.queue_task(create_task_wrapper(std::move(data), element.get()));
 }
 

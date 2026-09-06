@@ -38,7 +38,7 @@ qreal DashedBorder::period() const
 qreal DashedBorder::strokes() const
 {
   // The four corner arcs of a rounded rectangle replace eight radii by one full circle.
-  const auto length = 2.0 * (borderWidth_ + borderHeight_) - (8.0 - 2.0 * std::numbers::pi) * radius_;
+  const auto length = (2.0 * (borderWidth_ + borderHeight_)) - ((8.0 - (2.0 * std::numbers::pi)) * radius_);
   return std::max(0.0, length) / std::max(strokeWidth_, 1.0);
 }
 

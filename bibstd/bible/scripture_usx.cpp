@@ -17,7 +17,7 @@
 
 namespace bibstd::bible
 {
-namespace detail
+namespace
 {
 
 ///
@@ -79,7 +79,7 @@ auto load_content(const io::zip_file_reader& zip_reader) -> std::optional<script
   }
 }
 
-} // namespace detail
+} // namespace
 
 ///
 ///
@@ -92,7 +92,7 @@ auto scripture_usx::create(const io::zip_file_reader& zip_reader) -> std::unique
     LOG_ERROR("failed to load scripture information data");
     return nullptr;
   }
-  auto content = detail::load_content(zip_reader);
+  auto content = load_content(zip_reader);
   if(!content)
   {
     LOG_ERROR("failed to load scripture book data");
@@ -120,7 +120,7 @@ scripture_usx::scripture_usx(info_type info_data, book_name_map_type book_name_d
                    {
                      auto view = verse_data_ | std::views::keys;
                      const auto v = versification_type{info_data_.name, view | std::ranges::to<std::vector>()};
-                     const auto it = std::ranges::find(versifications_default, v);
+                     const auto* const it = std::ranges::find(versifications_default, v);
                      return it != std::ranges::cend(versifications_default) ? *it : v;
                    }()}
 {

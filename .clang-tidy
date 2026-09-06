@@ -84,6 +84,8 @@ CheckOptions:
   readability-identifier-naming.MemberCase: lower_case
   readability-identifier-naming.PrivateMemberSuffix: _
   readability-identifier-naming.ProtectedMemberSuffix: _
+  readability-identifier-naming.ClassMemberCase: lower_case
+  readability-identifier-naming.ClassMemberSuffix: _
   readability-identifier-naming.TypeAliasCase: lower_case
   readability-identifier-naming.TypedefCase: lower_case
   readability-identifier-naming.ConceptCase: lower_case
@@ -95,11 +97,14 @@ CheckOptions:
   readability-identifier-naming.TypeTemplateParameterCase: CamelCase
   readability-identifier-naming.ValueTemplateParameterCase: CamelCase
   readability-identifier-naming.TemplateTemplateParameterCase: CamelCase
-  # Nested template parameters carry a trailing underscore to shadow the enclosing ones.
   readability-identifier-naming.TemplateParameterIgnoredRegexp: '.*_+'
   readability-identifier-naming.TypeTemplateParameterIgnoredRegexp: '.*_+'
   readability-identifier-naming.ValueTemplateParameterIgnoredRegexp: '.*_+'
   readability-identifier-naming.TemplateTemplateParameterIgnoredRegexp: '.*_+'
+  readability-identifier-naming.ParameterIgnoredRegexp: '.*_+'
+  readability-identifier-naming.TypeAliasIgnoredRegexp: '.*_+'
+  readability-identifier-naming.ClassIgnoredRegexp: 'Document|TessBaseAPI'
+  readability-identifier-naming.MacroDefinitionIgnoredRegexp: 'numeric_cast|_WIN32_WINNT'
 
   #
   # The sources consistently use east const free `const auto` locals and `auto` returns.

@@ -60,7 +60,7 @@ public: // Modifiers
 template<typename T>
 auto property_tree::create_property(const property_path_type& path, T&& default_value) -> property<T>
 {
-  const auto lock = std::lock_guard(mtx_);
+  const auto lock = std::scoped_lock{mtx_};
   if(path.empty())
   {
     throw util::exception("register property failed: empty path");

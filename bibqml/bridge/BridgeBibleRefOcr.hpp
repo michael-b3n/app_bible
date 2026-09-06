@@ -54,8 +54,7 @@ class BridgeBibleRefOcr final : public QObject
   const bibstd::workflow::workflow_hotkey::shared_sig_type manualSearchSig_;
   const ClickActionSettingType clickActionSetting_;
   const AutoSearchSettingType autoSearchSetting_;
-  // The manual search that is current, none while none runs. It is what manualSearchRunning_
-  // follows, so the running state has one owner and cannot be cleared twice
+
   std::optional<bibstd::framework::process_id_type> manualSearchProcessId_;
   bool manualSearchRunning_{false};
   bool autoSearchRunning_{false};

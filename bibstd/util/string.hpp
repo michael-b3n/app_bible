@@ -59,7 +59,7 @@ constexpr auto split(const std::string_view data, const auto delimiter) -> std::
 
   std::ranges::for_each(
     util::ranges::index_view(data) |
-      std::views::take_while([&](const auto i) { return current_index != std::string_view::npos; }),
+      std::views::take_while([&]([[maybe_unused]] const auto /*i*/) { return current_index != std::string_view::npos; }),
     [&]([[maybe_unused]] const auto)
     {
       const auto pos = data.substr(current_index).find(delimiter);
@@ -191,8 +191,10 @@ constexpr auto ends_with_formatted_uint(const std::string_view data, const std::
     if(number_start < data.size() && suffix_pos != std::string_view::npos && suffix_pos > number_start)
     {
       const auto number_size = suffix_pos - number_start;
-      if(const auto result = txt::find_uint(data.substr(number_start, number_size));
-         result.has_value() && result->post_value_offset == number_size)
+      if(
+        const auto result = txt::find_uint(data.substr(number_start, number_size));
+        result.has_value() && result->post_value_offset == number_size
+      )
       {
         return result->value;
       }

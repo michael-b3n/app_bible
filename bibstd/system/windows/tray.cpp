@@ -13,29 +13,29 @@ namespace bibstd::system
 ///
 auto tray::init(const icon_buffer icon, std::vector<entry_type>&& entries) -> util::shared_scope_guard
 {
-  static std::mutex _mtx;
-  static util::shared_scope_guard::creator _guard_creator;
-  static util::shared_scope_guard _thread_pool_guard;
-  static std::condition_variable _cv_init;
+  static std::mutex mtx;
+  static util::shared_scope_guard::creator guard_creator;
+  static util::shared_scope_guard thread_pool_guard;
+  static std::condition_variable cv_init;
 
-  auto lock = std::unique_lock{_mtx};
-  auto guard = _guard_creator.create(
+  auto lock = std::unique_lock{mtx};
+  auto guard = guard_creator.create(
     []()
     {
       tray_->exit();
       tray_.reset();
       worker_.reset();
-      _thread_pool_guard.reset();
-      _cv_init.notify_all();
+      thread_pool_guard.reset();
+      cv_init.notify_all();
     }
   );
   if(guard.is_initial_instance())
   {
     if(worker_)
     {
-      _cv_init.wait(lock, []() { return !worker_; });
+      cv_init.wait(lock, []() { return !worker_; });
     }
-    _thread_pool_guard = framework::thread_pool::init();
+    thread_pool_guard = framework::thread_pool::init();
     worker_ = std::make_unique<framework::active_worker>();
     std::promise<void> promise{};
     auto future = promise.get_future();
@@ -67,7 +67,7 @@ auto tray::init(const icon_buffer icon, std::vector<entry_type>&& entries) -> ut
               entry,
               [&](const button& v) { tray_->addEntry(Tray::Button(v.text, void_callback_wrapper(v.callback))); },
               [&](const label& v) { tray_->addEntry(Tray::Label(v.text)); },
-              [&](const separator& v) { tray_->addEntry(Tray::Separator()); },
+              [&]([[maybe_unused]] const separator& /*v*/) { tray_->addEntry(Tray::Separator()); },
               [&](const toggle& v) { tray_->addEntry(Tray::Toggle(v.text, v.state, toggle_callback_wrapper(v.callback))); }
             );
           }

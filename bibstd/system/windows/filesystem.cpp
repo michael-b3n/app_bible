@@ -10,8 +10,8 @@ namespace bibstd::system
 ///
 auto filesystem::local_data_folder() -> std::filesystem::path
 {
-  auto appdata = std::getenv("LOCALAPPDATA");
-  if(!appdata)
+  const auto* const appdata = std::getenv("LOCALAPPDATA");
+  if(appdata == nullptr)
   {
     throw util::exception("local appdata not found");
   }

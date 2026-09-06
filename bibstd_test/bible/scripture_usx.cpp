@@ -106,7 +106,7 @@ TEST_CASE("scripture_usx book names are read from the book documents", "[bible]"
 
   SECTION("german scripture")
   {
-    const auto loaded = find_bundle(scriptures, "text-542b32484b6e38c2-246437.zip");
+    const auto* const loaded = find_bundle(scriptures, "text-542b32484b6e38c2-246437.zip");
     REQUIRE(loaded != nullptr);
 
     const auto genesis = loaded->book_information(book_id::genesis);
@@ -122,7 +122,7 @@ TEST_CASE("scripture_usx book names are read from the book documents", "[bible]"
 
   SECTION("english scripture")
   {
-    const auto loaded = find_bundle(scriptures, "text-de4e12af7f28f599-245514.zip");
+    const auto* const loaded = find_bundle(scriptures, "text-de4e12af7f28f599-245514.zip");
     REQUIRE(loaded != nullptr);
 
     const auto genesis = loaded->book_information(book_id::genesis);
@@ -135,7 +135,7 @@ TEST_CASE("scripture_usx book names are read from the book documents", "[bible]"
   SECTION("scripture without running header paragraphs")
   {
     // This bundle ships no "h" paragraph at all, the table of contents entries have to carry the names.
-    const auto loaded = find_bundle(scriptures, "text-f492a38d0e52db0f-258505.zip");
+    const auto* const loaded = find_bundle(scriptures, "text-f492a38d0e52db0f-258505.zip");
     REQUIRE(loaded != nullptr);
 
     const auto song = loaded->book_information(book_id::song_of_solomon);

@@ -9,6 +9,8 @@
 
 namespace bibstd::io
 {
+namespace
+{
 
 ///
 /// BMP-specific format data
@@ -47,6 +49,8 @@ struct bmp_file_dib_info final
   std::uint32_t num_colors;
   std::uint32_t num_important_colors;
 };
+
+} // namespace
 
 ///
 ///
@@ -95,19 +99,19 @@ auto save_as_bitmap(
   const auto height = math::size(rect.vertical_range());
   // Calculate row and pixels size
   const std::uint32_t row_size =
-    width * 3 + width % 4; // The size of each row is rounded up to a multiple of 4 bytes by padding.
+    (width * 3) + (width % 4); // The size of each row is rounded up to a multiple of 4 bytes by padding.
   const std::uint32_t bitmap_size = row_size * height;
 
   // Write all the header information that the BMP file format requires.
-  bmp_file_magic magic;
+  bmp_file_magic magic{};
   magic.magic[0] = 'B';
   magic.magic[1] = 'M';
-  file.write((char*)(&magic), sizeof(magic));
-  bmp_file_header header = {0};
+  file.write(reinterpret_cast<char*>(&magic), sizeof(magic));
+  bmp_file_header header = {.file_size = 0};
   header.bmp_offset = sizeof(bmp_file_magic) + sizeof(bmp_file_header) + sizeof(bmp_file_dib_info);
   header.file_size = header.bmp_offset + bitmap_size;
-  file.write((char*)(&header), sizeof(header));
-  bmp_file_dib_info dib_info = {0};
+  file.write(reinterpret_cast<char*>(&header), sizeof(header));
+  bmp_file_dib_info dib_info = {.header_size = 0};
   dib_info.header_size = sizeof(bmp_file_dib_info);
   dib_info.width = width;
   dib_info.height = height;
@@ -119,7 +123,7 @@ auto save_as_bitmap(
   dib_info.vres = 2835;
   dib_info.num_colors = 0;
   dib_info.num_important_colors = 0;
-  file.write((char*)(&dib_info), sizeof(dib_info));
+  file.write(reinterpret_cast<char*>(&dib_info), sizeof(dib_info));
 
   const auto full_image_width = data.width();
   const auto full_image_height = data.height();
@@ -137,7 +141,7 @@ auto save_as_bitmap(
         util::ranges::index_view_to(full_image_width) | std::views::filter(contains_coord),
         [&](const auto column_idx)
         {
-          const auto index = full_image_width * row_idx + column_idx;
+          const auto index = (full_image_width * row_idx) + column_idx;
           const auto& p = data.at(index);
           file.put(static_cast<unsigned char>(p.blue));
           file.put(static_cast<unsigned char>(p.green));

@@ -11,7 +11,7 @@ TEST_CASE("reference_parser", "[bible]")
 {
   static constexpr auto versification = bible::versification_esv;
 
-  core_bible_ref_finder core;
+  const core_bible_ref_finder core;
   const auto ref_genesis_1_1 = bible::reference::create_unguarded(bible::book_id::genesis, 1u, 1u);
   const auto ref_genesis_1_2 = bible::reference::create_unguarded(bible::book_id::genesis, 1u, 2u);
   const auto genesis_1_1 = bible::reference_range(ref_genesis_1_1);

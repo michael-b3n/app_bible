@@ -92,8 +92,8 @@ void SettingBinding::bind()
     LOG_ERROR("bind setting failed: no path provided");
     return;
   }
-  const auto registry = BridgeSettings::instance();
-  if(!registry)
+  const auto* const registry = BridgeSettings::instance();
+  if(registry == nullptr)
   {
     LOG_ERROR("bind setting failed: settings registry does not exist: path=\"{}\"", path_.toStdString());
     return;

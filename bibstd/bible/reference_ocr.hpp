@@ -36,9 +36,9 @@ struct reference_ocr final
     using bounding_box_type = util::screen_rect_type;
 
     // Variables
-    std::string text{""};
+    std::string text;
     std::size_t cursor_character_index{0};
-    std::vector<std::optional<bounding_box_type>> character_bounding_boxes{};
+    std::vector<std::optional<bounding_box_type>> character_bounding_boxes;
   };
 
   ///
@@ -74,18 +74,11 @@ struct reference_ocr final
   // Operations
   ///
   /// Run OCR recognition and algorithms on the provided image to find a bible reference at a certain position.
-  /// \param engines OCR engines available
-  /// \param image Image that shall be recognized
-  /// \param position Position where to look for the reference
-  /// \param algorithms Flags and data used for the algorithm that shall be run
   /// \return reference position data or unexpected result value
   ///
-  static auto run(
-    const ocr_engine_list_type& engines,
-    const pixel_plane_view_type& image,
-    position_type position,
-    const algorithm_data& algorithm
-  ) -> std::expected<reference_position_data, unexpected_ocr_result>;
+  static auto
+  run(const ocr_engine_list_type& engines, const pixel_plane_view_type& image, position_type position, const algorithm_data& ad)
+    -> std::expected<reference_position_data, unexpected_ocr_result>;
 };
 
 } // namespace bibstd::bible

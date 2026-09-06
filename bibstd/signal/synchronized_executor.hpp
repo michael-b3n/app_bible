@@ -26,14 +26,14 @@ class synchronized_executor final
   struct sync_wrapper final
   {
     bool disconnected{false};
-    std::mutex mtx{};
+    std::mutex mtx;
   };
 
   // Variables
   const util::shared_scope_guard thread_pool_guard_;
   const std::optional<framework::thread_pool::strand_id_type> strand_id_;
   mutable std::mutex mtx_;
-  std::vector<std::shared_ptr<sync_wrapper>> syncs_{};
+  std::vector<std::shared_ptr<sync_wrapper>> syncs_;
   connection_store connections_;
 
 public: // Structors
@@ -98,7 +98,8 @@ auto synchronized_executor::connect(T& sig, typename T::slot_type slot) -> void
   syncs_.push_back(se);
   auto st = std::make_shared<sync_wrapper>();
   syncs_.push_back(st);
-  function_type func = [this, sync_e = std::move(se), sync_t = std::move(st), slot = std::move(slot)](auto&&... args) mutable
+  const function_type func =
+    [this, sync_e = std::move(se), sync_t = std::move(st), slot = std::move(slot)](auto&&... args) mutable
   {
     // std::make_tuple ensures that args are copied.
     // see https://en.cppreference.com/cpp/utility/tuple/make_tuple

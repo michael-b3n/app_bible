@@ -17,7 +17,7 @@ namespace bibstd::framework
 auto property_tree::create(const std::filesystem::path& tree_file_path) -> property_tree::sptr_type
 {
   auto result = property_tree::sptr_type{};
-  const auto lock = std::lock_guard(trees_mtx_);
+  const auto lock = std::scoped_lock{trees_mtx_};
   std::ranges::for_each(
     trees_ | std::views::transform([](const auto t) { return t.lock(); }) |
       std::views::filter([](const auto t) { return static_cast<bool>(t); }) |
@@ -62,7 +62,7 @@ property_tree::property_tree(const std::filesystem::path& tree_file_path)
     std::filesystem::create_directories(path.parent_path());
     if(auto file = std::ofstream{path})
     {
-      file << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
+      file << R"(<?xml version="1.0" encoding="UTF-8"?>)";
       file.close();
     }
   };
@@ -87,7 +87,7 @@ property_tree::property_tree(const std::filesystem::path& tree_file_path)
 ///
 property_tree::~property_tree() noexcept
 {
-  const auto lock = std::lock_guard(mtx_);
+  const auto lock = std::scoped_lock{mtx_};
   try
   {
     boost::property_tree::write_xml(tree_file_path_.generic_string(), tree_);

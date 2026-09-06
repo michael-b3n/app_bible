@@ -17,7 +17,7 @@ auto toQColor(std::string color) -> QColor
     // convert from #RRGGBBAA to #AARRGGBB format
     std::ranges::rotate(color.begin() + 1, color.end() - 2, color.end());
   }
-  return QColor(color.data());
+  return {color.data()};
 }
 
 } // namespace detail

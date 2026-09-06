@@ -25,8 +25,8 @@ class thread_pool final
 
   struct id_pair final
   {
-    task_id_type task_id{};
-    util::uid<struct strand_id_tag> strand_id{};
+    task_id_type task_id;
+    util::uid<struct strand_id_tag> strand_id;
   };
 
   ///
@@ -36,16 +36,16 @@ class thread_pool final
   ///
   struct pool_element final
   {
-    std::vector<id_pair> ids{};
+    std::vector<id_pair> ids;
     std::chrono::system_clock::time_point last_use{std::chrono::system_clock::now()};
-    active_worker worker{};
+    active_worker worker;
   };
 
   struct task_data final
   {
     task_queue::task_type task{[] {}};
-    task_id_type task_id{};
-    decltype(id_pair::strand_id) strand_id{};
+    task_id_type task_id;
+    decltype(id_pair::strand_id) strand_id;
   };
 
   using pool_type = std::vector<std::unique_ptr<pool_element>>;
