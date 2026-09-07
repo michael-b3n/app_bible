@@ -18,9 +18,7 @@ namespace
 {
 
 ///
-/// Check if the given path is a zip file.
-/// \param path Filesystem path to check
-/// \return true if the file is a zip file, false otherwise
+/// \return true if the given path is a zip file, false otherwise
 ///
 auto is_zip_file(const std::filesystem::path& path) -> bool
 {
@@ -28,9 +26,7 @@ auto is_zip_file(const std::filesystem::path& path) -> bool
 }
 
 ///
-/// Get the supported file type from the given path.
-/// \param path Filesystem path to check
-/// \return supported file type if recognized, std::nullopt otherwise
+/// \return Supported file type of the given path, std::nullopt if it is not supported
 ///
 auto file_type(const std::filesystem::path& path) -> std::optional<core_scripture_store::supported_file_type>
 {
@@ -88,25 +84,26 @@ auto core_scripture_store::load_usx(const io::zip_file_reader& zip_reader) -> bo
     return false;
   }
   auto reader = bible::scripture_usx::create(zip_reader);
-  if(reader)
+  if(!reader)
   {
-    static constexpr auto uint_ending_format = " ({})";
-    auto name = reader->information().name;
-    if(scripture_data_.contains(name))
-    {
-      auto found_max_uint_ending = std::uint32_t{0};
-      std::ranges::for_each(
-        scripture_data_ | std::views::keys |
-          std::views::filter([&](const auto& n) { return util::string::starts_with(name, n); }) |
-          std::views::transform([](const auto& n)
-                                { return util::string::ends_with_formatted_uint(n, uint_ending_format).value_or(0); }),
-        [&](const auto i) { found_max_uint_ending = std::max(found_max_uint_ending, i); }
-      );
-      name = name + std::format(uint_ending_format, found_max_uint_ending + 1);
-    }
-    scripture_data_.emplace(name, std::move(reader));
+    return false;
   }
-  return reader != nullptr;
+  static constexpr auto uint_ending_format = " ({})";
+  auto name = reader->information().name;
+  if(scripture_data_.contains(name))
+  {
+    auto found_max_uint_ending = std::uint32_t{0};
+    std::ranges::for_each(
+      scripture_data_ | std::views::keys |
+        std::views::filter([&](const auto& n) { return util::string::starts_with(name, n); }) |
+        std::views::transform([](const auto& n)
+                              { return util::string::ends_with_formatted_uint(n, uint_ending_format).value_or(0); }),
+      [&](const auto i) { found_max_uint_ending = std::max(found_max_uint_ending, i); }
+    );
+    name = name + std::format(uint_ending_format, found_max_uint_ending + 1);
+  }
+  scripture_data_.emplace(name, std::move(reader));
+  return true;
 }
 
 } // namespace bibstd::core

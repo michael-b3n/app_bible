@@ -21,7 +21,6 @@ public: // Operations
   ///
   /// Open reference range with the bibleserver in the default web browser. Multiple tabs might be opened.
   /// This function does not support reference ranges over multiple books.
-  /// \param range Reference range that shall be opened
   /// \return true if successful, false otherwise
   ///
   auto open(const bible::reference_range& range, const std::vector<bible::translation>& translations) -> bool;

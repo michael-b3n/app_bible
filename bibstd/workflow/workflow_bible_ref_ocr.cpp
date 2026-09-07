@@ -1,6 +1,6 @@
 #include "bibstd/workflow/workflow_bible_ref_ocr.hpp"
 #include "bibstd/bible/reference_ocr.hpp"
-#include "bibstd/core/core_bible_ref_finder.hpp"
+#include "bibstd/bible/reference_parser.hpp"
 #include "bibstd/system/ocr.hpp"
 #include "bibstd/txt/ocr_engine.hpp"
 #include "bibstd/txt/ocr_engine_tesseract.hpp"
@@ -28,7 +28,7 @@ namespace
 ///
 [[nodiscard]] auto reference_bounding_box(
   const bible::reference_ocr::reference_position_data& position_data,
-  const core::core_bible_ref_finder::index_range_type& index_range
+  const bible::reference_parser::index_range_type& index_range
 ) -> std::optional<util::screen_rect_type>
 {
   decltype(auto) boxes = position_data.character_bounding_boxes;
@@ -83,7 +83,6 @@ workflow_bible_ref_ocr::workflow_bible_ref_ocr(
   std::shared_ptr<workflow_settings> workflow_settings, std::shared_ptr<workflow_scripture> workflow_scripture
 )
   : workflow_base{std::move(workflow_settings)}
-  , core_bible_ref_finder_{std::make_unique<core::core_bible_ref_finder>()}
   , workflow_scripture_{std::move(workflow_scripture)}
 {
   init();
@@ -255,7 +254,7 @@ auto workflow_bible_ref_ocr::find_references(const auto& params, const settings_
   {
     decltype(auto) versification = settings.versification.get();
 
-    auto parse_result = core_bible_ref_finder_->parse(
+    auto parse_result = bible::reference_parser::parse(
       position_data->text, position_data->cursor_character_index, settings.language, versification
     );
     return find_references_result_t{

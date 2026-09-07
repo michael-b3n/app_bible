@@ -52,8 +52,7 @@ public: // Structors
 
 public: // Accessors
   ///
-  /// Get a reference to the map of all loaded scriptures,
-  /// \return The map of all scriptures
+  /// \return Map of all loaded scriptures
   ///
   auto scriptures() const -> const scripture_map_type&;
 

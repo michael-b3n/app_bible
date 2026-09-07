@@ -14,13 +14,6 @@
 #include <optional>
 #include <vector>
 
-// Forward declarations
-namespace bibstd::core
-{
-class core_bible_ref_ocr;
-class core_bible_ref_finder;
-} // namespace bibstd::core
-
 namespace bibstd::workflow
 {
 
@@ -86,7 +79,6 @@ class workflow_bible_ref_ocr final : public workflow_base<workflow_bible_ref_ocr
 
   // Variables
   mutable std::mutex mtx_;
-  const std::unique_ptr<core::core_bible_ref_finder> core_bible_ref_finder_;
   const std::shared_ptr<workflow_scripture> workflow_scripture_;
   bible::reference_ocr::ocr_engine_list_type ocr_engines_;
 
