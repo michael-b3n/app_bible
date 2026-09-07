@@ -29,6 +29,15 @@ target_compile_definitions(bibstd_test
 )
 
 #
+# Provide the OCR image folder and the tessdata folder. Both are only needed by the one off capture
+# that turns a screenshot into the OCR test data, see bibstd_test/res/ocr/README.md.
+#
+target_compile_definitions(bibstd_test
+  PRIVATE BIBSTD_TEST_OCR_DIR="${CMAKE_CURRENT_LIST_DIR}/res/ocr"
+  PRIVATE BIBSTD_TEST_TESSDATA_DIR="${bibstd_test_PARENT_DIR}/app_bible_assistant/res/tessdata"
+)
+
+#
 # Link libaries.
 #
 target_link_libraries(

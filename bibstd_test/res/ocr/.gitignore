@@ -1,0 +1,5 @@
+# The images and the OCR data captured from them stay local: they are screenshots of whatever
+# the user happened to have on screen. Only this folder's documentation is tracked.
+*
+!.gitignore
+!README.md
