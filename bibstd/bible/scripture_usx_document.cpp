@@ -59,8 +59,8 @@ auto is_header_paragraph(const std::string_view style) -> bool
 auto trimmed(const std::string_view text) -> std::string
 {
   static constexpr auto is_space = [](const char c) { return std::isspace(static_cast<unsigned char>(c)) != 0; };
-  const auto* const begin = std::ranges::find_if_not(text, is_space);
-  const auto* const end = std::ranges::find_if_not(text | std::views::reverse, is_space).base();
+  const auto begin = std::ranges::find_if_not(text, is_space);
+  const auto end = std::ranges::find_if_not(text | std::views::reverse, is_space).base();
   return begin < end ? std::string{begin, end} : std::string{};
 }
 

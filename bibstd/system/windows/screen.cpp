@@ -1,9 +1,10 @@
 #include "bibstd/system/screen.hpp"
-#include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
+#include "bibstd/util/non_owning_ptr.hpp"
 #include "bibstd/util/numeric_cast.hpp"
 #include "bibstd/util/ranges.hpp"
 
+#include "bibstd/system/windows/screen_capture.hpp"
 #include "bibstd/system/windows/win.hpp"
 
 #include <algorithm>
@@ -15,96 +16,21 @@
 namespace bibstd::system
 {
 
-///
-///
-auto screen::init() -> bool
+namespace
 {
-  // Declare per-monitor DPI awareness for proper screen capture at native resolution.
-  // This is also declared in the app manifest. The call here is a no-op if already set.
-  SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-  return true;
-}
 
 ///
+/// Capture a screen region through gdi. This is the fallback of the platform capture backend: it
+/// works everywhere, but it reads back the region over the cpu and it sees hardware composited
+/// content as black.
+/// \return true if the region was captured, false otherwise
 ///
-auto screen::metrics() -> screen_rect_type
-{
-  SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-  const auto x = GetSystemMetrics(SM_XVIRTUALSCREEN);
-  const auto y = GetSystemMetrics(SM_YVIRTUALSCREEN);
-  const auto width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-  const auto height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-  return screen_rect_type(math::coordinates{x, y}, static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height));
-}
-
-///
-///
-auto screen::cursor_position() -> screen_coordinates_type
-{
-  POINT point;
-  SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-  if(!GetCursorPos(&point))
-  {
-    throw util::exception("failed to get cursor position");
-  }
-  return screen_coordinates_type(point.x, point.y);
-}
-
-///
-///
-auto screen::window_at(const screen_coordinates_type coordinates) -> std::optional<screen_rect_type>
-{
-  SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-  const auto hwnd = WindowFromPoint(POINT{coordinates.x(), coordinates.y()});
-  if(hwnd != nullptr)
-  {
-    RECT rect;
-    if(GetWindowRect(hwnd, &rect))
-    {
-      return screen_rect_type(
-        math::coordinates{numeric_cast<std::int32_t>(rect.left), numeric_cast<std::int32_t>(rect.bottom)},
-        math::coordinates{numeric_cast<std::int32_t>(rect.right), numeric_cast<std::int32_t>(rect.top)}
-      );
-    }
-  }
-  return std::nullopt;
-}
-
-///
-///
-auto screen::monitor_at(const screen_coordinates_type coordinates) -> std::optional<monitor_type>
-{
-  SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-  const auto monitor = MonitorFromPoint(POINT{coordinates.x(), coordinates.y()}, MONITOR_DEFAULTTONULL);
-  if(monitor == nullptr)
-  {
-    return std::nullopt;
-  }
-  // The ansi variant is used since monitor device names are ascii only.
-  MONITORINFOEXA info;
-  info.cbSize = sizeof(info);
-  if(!GetMonitorInfoA(monitor, &info))
-  {
-    return std::nullopt;
-  }
-  decltype(auto) rect = info.rcMonitor;
-  return monitor_type{
-    .rect = screen_rect_type(
-      math::coordinates{numeric_cast<std::int32_t>(rect.left), numeric_cast<std::int32_t>(rect.top)},
-      math::coordinates{numeric_cast<std::int32_t>(rect.right), numeric_cast<std::int32_t>(rect.bottom)}
-    ),
-    .device_name = std::string{static_cast<const char*>(info.szDevice)}
-  };
-}
-
-///
-///
-auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) -> bool
+auto capture_gdi(const util::screen_rect_type rect, util::pixel_plane_type& pix) -> bool
 {
   static std::mutex mtx;
   static std::vector<std::byte> pixels_bytes;
 
-  const auto lock = std::lock_guard(mtx);
+  const auto lock = std::scoped_lock{mtx};
 
   HDC hdc = GetDC(nullptr);
   HBITMAP bitmap = [&]
@@ -113,11 +39,14 @@ auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) -> bool
     const auto vr = numeric_cast<int>(math::size(rect.vertical_range()));
 
     HDC sdc = CreateCompatibleDC(hdc);
-    auto hbitmap = CreateCompatibleBitmap(hdc, hr, vr);
-    HGDIOBJ hOld = SelectObject(sdc, hbitmap);
+    auto* hbitmap = CreateCompatibleBitmap(hdc, hr, vr);
+    HGDIOBJ old_bitmap = SelectObject(sdc, hbitmap);
     const auto origin = rect.origin();
-    BitBlt(sdc, 0, 0, hr, vr, hdc, origin.x(), origin.y(), SRCCOPY | CAPTUREBLT);
-    SelectObject(sdc, hOld);
+    // No CAPTUREBLT: it makes the system hide and redraw the cursor, which blinks on every capture.
+    // The cursor is never part of the screen DC anyway, so leaving the flag out costs nothing here.
+    // NOLINTNEXTLINE(readability-suspicious-call-argument)
+    BitBlt(sdc, 0, 0, hr, vr, hdc, origin.x(), origin.y(), SRCCOPY);
+    SelectObject(sdc, old_bitmap);
     DeleteDC(sdc);
     return hbitmap;
   }();
@@ -153,7 +82,7 @@ auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) -> bool
   const auto height = numeric_cast<std::uint32_t>(info.bmiHeader.biHeight);
   const auto width = numeric_cast<std::uint32_t>(info.bmiHeader.biWidth);
 
-  pix = pixel_plane_type(width, height);
+  pix = util::pixel_plane_type(width, height);
   std::ranges::for_each(
     util::ranges::index_view_to(height) | std::views::reverse,
     [&, counter = 0u](const auto row_idx) mutable
@@ -172,6 +101,121 @@ auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) -> bool
     }
   );
   return true;
+}
+
+///
+/// Access the capture backend of this platform. The first call brings it up,
+/// every later call hands out the same one.
+/// \return The backend, or nullptr if the platform offers none
+///
+auto capture_backend() -> util::non_owning_ptr<screen_capture>
+{
+  static const auto backend = screen_capture::create();
+  return backend.get();
+}
+
+} // namespace
+
+///
+///
+auto screen::init() -> bool
+{
+  // Declare per-monitor DPI awareness for proper screen capture at native resolution.
+  // This is also declared in the app manifest. The call here is a no-op if already set.
+  SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+  // Bring the capture backend up here, so which one the process ended up with is known at startup
+  // and not only once the first capture is asked for.
+  LOG_INFO("screen capture backend: {}", capture_backend() != nullptr ? "graphics capture" : "gdi");
+  return true;
+}
+
+///
+///
+auto screen::metrics() -> screen_rect_type
+{
+  SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+  const auto x = GetSystemMetrics(SM_XVIRTUALSCREEN);
+  const auto y = GetSystemMetrics(SM_YVIRTUALSCREEN);
+  const auto width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+  const auto height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+  return {
+    math::coordinates{x, y},
+    static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height)
+  };
+}
+
+///
+///
+auto screen::cursor_position() -> std::optional<screen_coordinates_type>
+{
+  POINT point{.x = 0, .y = 0};
+  SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+  if(!static_cast<bool>(GetCursorPos(&point)))
+  {
+    return std::nullopt;
+  }
+  return screen_coordinates_type{point.x, point.y};
+}
+
+///
+///
+auto screen::window_at(const screen_coordinates_type coordinates) -> std::optional<screen_rect_type>
+{
+  SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+  HWND hwnd = WindowFromPoint(POINT{.x = coordinates.x(), .y = coordinates.y()});
+  if(hwnd != nullptr)
+  {
+    RECT rect;
+    if(static_cast<bool>(GetWindowRect(hwnd, &rect)))
+    {
+      return screen_rect_type(
+        math::coordinates{numeric_cast<std::int32_t>(rect.left), numeric_cast<std::int32_t>(rect.bottom)},
+        math::coordinates{numeric_cast<std::int32_t>(rect.right), numeric_cast<std::int32_t>(rect.top)}
+      );
+    }
+  }
+  return std::nullopt;
+}
+
+///
+///
+auto screen::monitor_at(const screen_coordinates_type coordinates) -> std::optional<monitor_type>
+{
+  SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+  HMONITOR monitor = MonitorFromPoint(POINT{.x = coordinates.x(), .y = coordinates.y()}, MONITOR_DEFAULTTONULL);
+  if(monitor == nullptr)
+  {
+    return std::nullopt;
+  }
+  // The ansi variant is used since monitor device names are ascii only.
+  MONITORINFOEXA info;
+  info.cbSize = sizeof(info);
+  if(!static_cast<bool>(GetMonitorInfoA(monitor, &info)))
+  {
+    return std::nullopt;
+  }
+  decltype(auto) rect = info.rcMonitor;
+  return monitor_type{
+    .rect = screen_rect_type(
+      math::coordinates{numeric_cast<std::int32_t>(rect.left), numeric_cast<std::int32_t>(rect.top)},
+      math::coordinates{numeric_cast<std::int32_t>(rect.right), numeric_cast<std::int32_t>(rect.bottom)}
+    ),
+    .device_name = std::string{static_cast<const char*>(info.szDevice)}
+  };
+}
+
+///
+///
+auto screen::capture(const screen_rect_type rect, pixel_plane_type& pix) -> bool
+{
+  // The backend turns a region down that it cannot serve, a region spanning two monitors for
+  // instance, so gdi stays the answer for everything the newer API leaves out.
+  const util::non_owning_ptr<screen_capture> backend = capture_backend();
+  if(backend != nullptr && backend->capture(rect, pix))
+  {
+    return true;
+  }
+  return capture_gdi(rect, pix);
 }
 
 } // namespace bibstd::system

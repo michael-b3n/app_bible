@@ -42,6 +42,7 @@ Checks: >
   -readability-function-cognitive-complexity,
   -readability-identifier-length,
   -readability-magic-numbers,
+  -readability-qualified-auto,
   -readability-redundant-access-specifiers,
   -readability-redundant-typename,
   -readability-uppercase-literal-suffix
@@ -53,6 +54,8 @@ Checks: >
 #   - `bugprone-std-namespace-modification`: std::formatter specializations are intended.
 #   - `cppcoreguidelines-use-enum-class`: enums the QML layer reads are unscoped, QML exposes
 #     them by the name of the type alone.
+#   - `readability-qualified-auto`: `auto*` spells out a raw pointer. An iterator stays `auto`,
+#     even where a library happens to implement it as a pointer.
 #
 
 #
@@ -106,10 +109,6 @@ CheckOptions:
   readability-identifier-naming.ClassIgnoredRegexp: 'Document|TessBaseAPI'
   readability-identifier-naming.MacroDefinitionIgnoredRegexp: 'numeric_cast|_WIN32_WINNT'
 
-  #
-  # The sources consistently use east const free `const auto` locals and `auto` returns.
-  #
-  readability-qualified-auto.AddConstToQualified: "false"
   readability-braces-around-statements.ShortStatementLines: "1"
 
   #

@@ -120,7 +120,7 @@ scripture_usx::scripture_usx(info_type info_data, book_name_map_type book_name_d
                    {
                      auto view = verse_data_ | std::views::keys;
                      const auto v = versification_type{info_data_.name, view | std::ranges::to<std::vector>()};
-                     const auto* const it = std::ranges::find(versifications_default, v);
+                     const auto it = std::ranges::find(versifications_default, v);
                      return it != std::ranges::cend(versifications_default) ? *it : v;
                    }()}
 {
