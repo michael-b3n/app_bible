@@ -23,7 +23,7 @@ TriangleShape::~TriangleShape() noexcept = default;
 ///
 void TriangleShape::paint(bibstd::util::non_owning_ptr<QPainter> painter)
 {
-  if(!painter || width() <= 0 || height() <= 0)
+  if((painter == nullptr) || width() <= 0 || height() <= 0)
   {
     return;
   }

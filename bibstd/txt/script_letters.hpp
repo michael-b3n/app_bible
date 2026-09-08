@@ -25,7 +25,7 @@ struct script_letters final
   /// Visit letters variant based on language.
   /// \return Result of the function call
   ///
-  static constexpr auto visit(const util::language language, const auto& function) -> auto;
+  static constexpr auto visit(util::language language, const auto& function) -> auto;
 };
 
 ///

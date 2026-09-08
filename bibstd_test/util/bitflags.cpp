@@ -192,7 +192,7 @@ TEST_CASE("bitflags all/any/none", "[util]")
   static_assert(flags{}.none());
   static_assert(!flags{flag_a}.none());
   static_assert(!flags{flag_a, flag_b}.none());
-  static_assert(flags{}.any() == false);
+  static_assert(!flags{}.any());
   static_assert(flags{flag_a}.any());
   static_assert(flags{flag_a, flag_b}.any());
   static_assert(flags{flag_a, flag_b, flag_c, flag_d, flag_e}.all());

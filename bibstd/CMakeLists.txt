@@ -78,8 +78,15 @@ target_link_libraries(${PROJECT_NAME}
 IF(WIN32)
   target_link_libraries(${PROJECT_NAME} PRIVATE mswsock)
 
-  # Windows OCR support via C++/WinRT
-  target_link_libraries(${PROJECT_NAME} PRIVATE runtimeobject)
+  # Windows OCR and the Windows.Graphics.Capture screen capture, both built on C++/WinRT
+  target_link_libraries(${PROJECT_NAME} PRIVATE runtimeobject ole32 oleaut32 d3d11 dxgi)
+
+  # The C++/WinRT headers hand objects across the ABI by reading them through void**.
+  # GCC is allowed to reorder around that from -O2 on and does, leading to crashes.
+  # Every source built on those headers carries winrt in its name and is compiled without
+  # the strict aliasing assumption.
+  file(GLOB BIBSTD_WINRT_SRC_FILES "${CMAKE_CURRENT_LIST_DIR}/*/windows/*winrt*.cpp")
+  set_source_files_properties(${BIBSTD_WINRT_SRC_FILES} PROPERTIES COMPILE_OPTIONS "-fno-strict-aliasing")
 ENDIF()
 
 #

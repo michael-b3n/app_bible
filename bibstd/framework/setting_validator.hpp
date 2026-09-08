@@ -82,7 +82,7 @@ protected: // Functions
   auto notify_changed() -> void;
 
 protected: // Variables
-  mutable std::mutex mtx_{};
+  mutable std::mutex mtx_;
 };
 
 } // namespace detail
@@ -465,7 +465,8 @@ auto setting_validator_range<T>::contains(const plain_underlying_type& value) co
 ///
 template<underlying_setting_type T>
 setting_validator_range<T>::setting_validator_range(
-  [[maybe_unused]] plain_underlying_type, [[maybe_unused]] plain_underlying_type
+  [[maybe_unused]] plain_underlying_type /*min*/, [[maybe_unused]] plain_underlying_type
+  /*max*/
 )
   requires(!detail::setting_validator_range_type<plain_underlying_type>)
   : range_{0, 0}
@@ -496,7 +497,7 @@ auto setting_validator_range<T>::validate(const plain_underlying_type& value) co
 ///
 ///
 template<underlying_setting_type T>
-auto setting_validator_range<T>::contains([[maybe_unused]] const T&) const -> bool
+auto setting_validator_range<T>::contains([[maybe_unused]] const T& /*value*/) const -> bool
   requires(!detail::setting_validator_range_type<T>)
 {
   LOG_WARN("unsupported range validator contains check: type=\"{}\"", typeid(T).name());
@@ -506,7 +507,7 @@ auto setting_validator_range<T>::contains([[maybe_unused]] const T&) const -> bo
 ///
 ///
 template<underlying_setting_type T>
-auto setting_validator_range<T>::contains([[maybe_unused]] const plain_underlying_type&) const -> bool
+auto setting_validator_range<T>::contains([[maybe_unused]] const plain_underlying_type& /*value*/) const -> bool
   requires(!is_plain_type && !detail::setting_validator_range_type<T>)
 {
   LOG_WARN("unsupported range validator contains check: type=\"{}\"", typeid(plain_underlying_type).name());

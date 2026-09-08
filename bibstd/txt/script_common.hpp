@@ -51,7 +51,6 @@ public: // Constants
     std::string_view("\x0B"),         // line tabulation
     std::string_view("\x0C"),         // form feed
     std::string_view("\x0D"),         // carriage return
-    std::string_view("\x20"),         // space
     std::string_view("\xC2\x85"),     // next line
     std::string_view("\xC2\xA0"),     // no-break space
     std::string_view("\xE1\x9A\x80"), // ogham space mark
@@ -229,7 +228,8 @@ constexpr auto script_common::for_each_char(const L& letters, const std::string_
 {
   auto counter = std::size_t{0};
   std::ranges::for_each(
-    util::ranges::index_view(string_view) | std::views::take_while([&](const auto i) { return counter < string_view.size(); }),
+    util::ranges::index_view(string_view) |
+      std::views::take_while([&]([[maybe_unused]] const auto /*i*/) { return counter < string_view.size(); }),
     [&]([[maybe_unused]] const auto)
     {
       const auto data = char_info(letters, string_view, counter);
@@ -256,7 +256,8 @@ constexpr auto script_common::for_each_char_while(const L& letters, const std::s
 {
   auto counter = std::size_t{0};
   std::ranges::for_each(
-    util::ranges::index_view(string_view) | std::views::take_while([&](const auto i) { return counter < string_view.size(); }),
+    util::ranges::index_view(string_view) |
+      std::views::take_while([&]([[maybe_unused]] const auto /*i*/) { return counter < string_view.size(); }),
     [&]([[maybe_unused]] const auto)
     {
       const auto data = char_info(letters, string_view, counter);
@@ -299,8 +300,9 @@ script_common::is_equal_impl(const std::string_view string_view, const std::size
 constexpr auto script_common::is_digit_impl(const std::string_view string_view, const std::size_t index)
   -> std::optional<std::string_view>
 {
-  return std::isdigit(static_cast<unsigned char>(string_view.at(index))) ? std::make_optional(string_view.substr(index, 1))
-                                                                         : std::nullopt;
+  return (std::isdigit(static_cast<unsigned char>(string_view.at(index))) != 0)
+           ? std::make_optional(string_view.substr(index, 1))
+           : std::nullopt;
 }
 
 } // namespace bibstd::txt

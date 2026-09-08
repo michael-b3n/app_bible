@@ -28,13 +28,13 @@ bibstd::util::non_owning_ptr<Translations> Translations::instance()
 ///
 Translations* Translations::create([[maybe_unused]] QQmlEngine* qmlEngine, QJSEngine* jsEngine)
 {
-  if(!instance_)
+  if(instance_ == nullptr)
   {
     LOG_ERROR("translations do not exist: pretty names are displayed as identifiers");
     return nullptr;
   }
   // The instance is owned by the application, the QML engine must not delete it.
-  if(jsEngine)
+  if(jsEngine != nullptr)
   {
     QJSEngine::setObjectOwnership(instance_, QJSEngine::CppOwnership);
   }
@@ -48,7 +48,7 @@ Translations::Translations(pretty_names names, const bibstd::util::non_owning_pt
   , names_{std::move(names)}
   , language_{names_.languages().empty() ? QString{} : QString::fromStdString(names_.languages().front())}
 {
-  if(instance_)
+  if(instance_ != nullptr)
   {
     LOG_ERROR("translations already exist: qml will operate on the first instance");
     return;

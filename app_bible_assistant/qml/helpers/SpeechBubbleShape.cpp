@@ -40,7 +40,7 @@ SpeechBubbleShape::~SpeechBubbleShape() noexcept = default;
 ///
 void SpeechBubbleShape::paint(bibstd::util::non_owning_ptr<QPainter> painter)
 {
-  if(!painter || path_.isEmpty())
+  if((painter == nullptr) || path_.isEmpty())
   {
     return;
   }
@@ -74,8 +74,8 @@ void SpeechBubbleShape::updatePolish()
   const auto margin = strokeWidth_ + padding_;
   const auto newX = bounds.left() - margin;
   const auto newY = bounds.top() - margin;
-  const auto newW = bounds.width() + 2 * margin;
-  const auto newH = bounds.height() + 2 * margin;
+  const auto newW = bounds.width() + (2 * margin);
+  const auto newH = bounds.height() + (2 * margin);
 
   setX(newX);
   setY(newY);
@@ -119,10 +119,10 @@ void SpeechBubbleShape::rebuildPath()
   const auto tailY = static_cast<double>(tailPositionY_);
 
   // Tail projection points on the bubble edge
-  const auto tailProjLeftX = std::max(lineLeftX, std::min(tailX - tailWidth / 2.0, lineRightX - tailWidth));
-  const auto tailProjRightX = std::min(lineRightX, std::max(tailX + tailWidth / 2.0, lineLeftX + tailWidth));
-  const auto tailProjTopY = std::max(lineTopY, std::min(tailY - tailWidth / 2.0, lineBottomY - tailWidth));
-  const auto tailProjBottomY = std::min(lineBottomY, std::max(tailY + tailWidth / 2.0, lineTopY + tailWidth));
+  const auto tailProjLeftX = std::max(lineLeftX, std::min(tailX - (tailWidth / 2.0), lineRightX - tailWidth));
+  const auto tailProjRightX = std::min(lineRightX, std::max(tailX + (tailWidth / 2.0), lineLeftX + tailWidth));
+  const auto tailProjTopY = std::max(lineTopY, std::min(tailY - (tailWidth / 2.0), lineBottomY - tailWidth));
+  const auto tailProjBottomY = std::min(lineBottomY, std::max(tailY + (tailWidth / 2.0), lineTopY + tailWidth));
 
   // Build the path
   path_ = QPainterPath{};
@@ -138,7 +138,7 @@ void SpeechBubbleShape::rebuildPath()
   path_.lineTo(bubbleX + bw - r, bubbleY);
 
   // Top-right corner
-  path_.arcTo(bubbleX + bw - 2 * r, bubbleY, 2 * r, 2 * r, 90, -90);
+  path_.arcTo(bubbleX + bw - (2 * r), bubbleY, 2 * r, 2 * r, 90, -90);
 
   // Right side with optional tail
   path_.lineTo(bubbleX + bw, tailProjTopY);
@@ -150,7 +150,7 @@ void SpeechBubbleShape::rebuildPath()
   path_.lineTo(bubbleX + bw, bubbleY + bh - r);
 
   // Bottom-right corner
-  path_.arcTo(bubbleX + bw - 2 * r, bubbleY + bh - 2 * r, 2 * r, 2 * r, 0, -90);
+  path_.arcTo(bubbleX + bw - (2 * r), bubbleY + bh - (2 * r), 2 * r, 2 * r, 0, -90);
 
   // Bottom side with optional tail
   path_.lineTo(tailProjRightX, bubbleY + bh);
@@ -162,7 +162,7 @@ void SpeechBubbleShape::rebuildPath()
   path_.lineTo(bubbleX + r, bubbleY + bh);
 
   // Bottom-left corner
-  path_.arcTo(bubbleX, bubbleY + bh - 2 * r, 2 * r, 2 * r, -90, -90);
+  path_.arcTo(bubbleX, bubbleY + bh - (2 * r), 2 * r, 2 * r, -90, -90);
 
   // Left side with optional tail
   path_.lineTo(bubbleX, tailProjBottomY);

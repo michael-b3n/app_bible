@@ -75,6 +75,6 @@ struct std::formatter<bibstd::util::uid<T>> : std::formatter<std::uint64_t>
 {
   auto format(const bibstd::util::uid<T> id, std::format_context& ctx) const
   {
-    return formatter<std::uint64_t>::format(std::format("{}", id.value_), ctx);
+    return formatter<std::uint64_t>::format(id.value_, ctx);
   }
 };

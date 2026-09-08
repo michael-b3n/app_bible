@@ -37,13 +37,13 @@ Placement::~Placement() noexcept = default;
 ///
 QRectF Placement::screenGeometryAt(const QPointF& position) const
 {
-  const auto screen = QGuiApplication::screenAt(position.toPoint());
-  const auto fallback = QGuiApplication::primaryScreen();
-  if(screen)
+  const auto* const screen = QGuiApplication::screenAt(position.toPoint());
+  const auto* const fallback = QGuiApplication::primaryScreen();
+  if(screen != nullptr)
   {
     return screen->geometry();
   }
-  return fallback ? QRectF{fallback->geometry()} : QRectF{};
+  return (fallback != nullptr) ? QRectF{fallback->geometry()} : QRectF{};
 }
 
 ///
@@ -76,7 +76,7 @@ QRectF Placement::insideScreen(const QRectF& target, const QRectF& screen) const
 ///
 QRectF Placement::centeredSquare(const QPointF& center, const qreal size, const QRectF& screen) const
 {
-  return insideScreen(QRectF{center.x() - size / 2.0, center.y() - size / 2.0, size, size}, screen);
+  return insideScreen(QRectF{center.x() - (size / 2.0), center.y() - (size / 2.0), size, size}, screen);
 }
 
 ///

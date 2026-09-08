@@ -29,7 +29,7 @@ auto workflow_settings::split_path(const std::string_view path) -> std::vector<s
 ///
 auto workflow_settings::type_erased_settings() const -> std::vector<setting_data>
 {
-  const auto lock = std::lock_guard(mtx_);
+  const auto lock = std::scoped_lock{mtx_};
   auto retval = std::vector<setting_data>(settings_.size());
   const auto to_setting_data = [](const auto& data)
   {
@@ -50,7 +50,7 @@ auto workflow_settings::type_erased_settings() const -> std::vector<setting_data
 auto workflow_settings::type_erased_setting(const std::string& path) const
   -> std::optional<setting_type_erased_non_owning_ptr_variant_type>
 {
-  const auto lock = std::lock_guard(mtx_);
+  const auto lock = std::scoped_lock{mtx_};
   const auto it = std::ranges::find_if(settings_, [&path](const auto& data) { return data.path == path; });
   if(it != std::ranges::cend(settings_))
   {

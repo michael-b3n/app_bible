@@ -138,16 +138,16 @@ struct verse_parse_state final
 
   struct segment final
   {
-    paragraph_id_type paragraph_id{};
+    paragraph_id_type paragraph_id;
     std::string_view paragraph_attribute_value{scripture::html_custom_attr_value_p_undefined};
-    std::string content{""};
+    std::string content;
   };
 
-  std::vector<segment> segments{};
-  std::vector<std::string> current_xrefs{};
-  std::optional<std::uint32_t> chapter{};
-  std::optional<std::uint32_t> verse{};
-  std::optional<paragraph_id_type> current_paragraph_id{};
+  std::vector<segment> segments;
+  std::vector<std::string> current_xrefs;
+  std::optional<std::uint32_t> chapter;
+  std::optional<std::uint32_t> verse;
+  std::optional<paragraph_id_type> current_paragraph_id;
 };
 
 ///
@@ -174,7 +174,10 @@ auto flush_verse(const book_id id, verse_parse_state& state, scripture_usx::pass
     html.append("</p>");
   }
   const auto ref = scripture::reference_type::create_unguarded(id, *state.chapter, *state.verse);
-  passage_map.emplace(ref, scripture::passage_html_type{ref, std::move(html), std::move(state.current_xrefs)});
+  passage_map.emplace(
+    ref,
+    scripture::passage_html_type{.ref = ref, .content = std::move(html), .cross_references = std::move(state.current_xrefs)}
+  );
   state.current_xrefs.clear();
   state.segments.clear();
 }
@@ -219,7 +222,9 @@ auto append_content(verse_parse_state& state, const std::string& text) -> void
     const auto paragraph_value =
       state.current_paragraph_id ? scripture::html_custom_attr_value_p_begin : scripture::html_custom_attr_value_p_undefined;
     state.segments.push_back(
-      {state.current_paragraph_id.value_or(verse_parse_state::paragraph_id_type{}), paragraph_value, text}
+      {.paragraph_id = state.current_paragraph_id.value_or(verse_parse_state::paragraph_id_type{}),
+       .paragraph_attribute_value = paragraph_value,
+       .content = text}
     );
   };
 

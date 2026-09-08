@@ -18,7 +18,7 @@ SettingsSortModel::SettingsSortModel(const bibstd::util::non_owning_ptr<QObject>
 {
   setDynamicSortFilter(true);
   sort(0);
-  if(const auto translations = Translations::instance())
+  if(const auto* const translations = Translations::instance())
   {
     // The order follows the pretty names, so a language change reorders the settings.
     connect(translations, &Translations::languageChanged, this, [this]() { invalidate(); });
@@ -71,7 +71,7 @@ bool SettingsSortModel::lessThan(const QModelIndex& lhs, const QModelIndex& rhs)
 QStringList SettingsSortModel::sourceCategories(const QModelIndex& sourceIndex) const
 {
   const auto* const source = sourceModel();
-  if(!source || !sourceIndex.isValid())
+  if((source == nullptr) || !sourceIndex.isValid())
   {
     return {};
   }
@@ -83,8 +83,8 @@ QStringList SettingsSortModel::sourceCategories(const QModelIndex& sourceIndex) 
 QString SettingsSortModel::categoryName(const QStringList& categories)
 {
   const auto category = categories.value(category_index);
-  const auto translations = Translations::instance();
-  return translations ? translations->name(category) : category;
+  const auto* const translations = Translations::instance();
+  return (translations != nullptr) ? translations->name(category) : category;
 }
 
 ///
@@ -92,8 +92,8 @@ QString SettingsSortModel::categoryName(const QStringList& categories)
 QString SettingsSortModel::settingName(const QStringList& categories)
 {
   const auto belowCategory = categories.mid(category_index + 1);
-  const auto translations = Translations::instance();
-  return translations ? translations->names(belowCategory) : belowCategory.join(Translations::nameSeparator);
+  const auto* const translations = Translations::instance();
+  return (translations != nullptr) ? translations->names(belowCategory) : belowCategory.join(Translations::nameSeparator);
 }
 
 } // namespace aba::qml

@@ -14,7 +14,7 @@ class workflow_template_settings final : public framework::settings_base
 {
 public: // Structors
   workflow_template_settings(std::shared_ptr<workflow_settings> workflow_settings);
-  ~workflow_template_settings() noexcept = default;
+  ~workflow_template_settings() noexcept override = default;
 
 public: // Variables
   // const setting_type<bool> plain_bool;
@@ -49,7 +49,7 @@ public: // Typedefs
 
 public: // Structors
   workflow_template(std::shared_ptr<workflow_settings> workflow_settings);
-  ~workflow_template() noexcept;
+  ~workflow_template() noexcept override;
 
 public: // Modifiers
   ///

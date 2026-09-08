@@ -78,7 +78,7 @@ auto throw_type_mismatch_error(const auto setting, const auto& value) -> bool
   using s_type = typename std::remove_pointer_t<std::remove_const_t<decltype(setting)>>::value_type;
   using v_type = std::remove_cvref_t<decltype(value)>;
   throw bibstd::util::exception{
-    std::format("type mismatch: setting_type=\"{}\", value_type=\"{}\"", typeid(s_type).name(), typeid(v_type).name())
+    std::format(R"(type mismatch: setting_type="{}", value_type="{}")", typeid(s_type).name(), typeid(v_type).name())
   };
   return false;
 }
@@ -88,7 +88,7 @@ auto throw_type_mismatch_error(const auto setting, const auto& value) -> bool
 ///
 auto toVariant(const bool& value) -> QVariant
 {
-  return QVariant(value);
+  return {value};
 }
 
 ///
@@ -106,7 +106,7 @@ auto toVariant(const T value) -> QVariant
 ///
 auto toVariant(const double& value) -> QVariant
 {
-  return QVariant(value);
+  return {value};
 }
 
 ///

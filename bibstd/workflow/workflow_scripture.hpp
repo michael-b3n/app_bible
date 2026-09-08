@@ -28,7 +28,7 @@ class workflow_scripture_settings final : public framework::settings_base
 {
 public: // Structors
   workflow_scripture_settings(std::shared_ptr<workflow_settings> workflow_settings);
-  ~workflow_scripture_settings() noexcept = default;
+  ~workflow_scripture_settings() noexcept override = default;
 
 public: // Variables
   const setting_type<std::optional<std::string>> scripture_name;
@@ -123,7 +123,7 @@ public: // Typedefs
 
 public: // Structors
   workflow_scripture(std::shared_ptr<workflow_settings> workflow_settings);
-  ~workflow_scripture() noexcept;
+  ~workflow_scripture() noexcept override;
 
 public: // Accessors
   ///

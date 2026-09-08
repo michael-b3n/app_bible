@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <format>
 #include <memory>
 #include <string>
 #include <vector>
@@ -37,7 +38,7 @@ auto load_shipped_scriptures() -> std::vector<shipped_scripture>
     {
       continue;
     }
-    INFO("bundle: " << file.path().filename().string());
+    INFO(std::format("bundle: {}", file.path().filename().string()));
     const auto reader = io::zip_file_reader{file.path()};
     REQUIRE(reader.is_open());
     auto loaded = scripture_usx::create(reader);
@@ -65,11 +66,11 @@ TEST_CASE("scripture_usx provides names for every book of every shipped scriptur
 {
   for(const auto& [bundle, loaded] : load_shipped_scriptures())
   {
-    INFO("bundle: " << bundle);
+    INFO(std::format("bundle: {}", bundle));
     static constexpr auto books = util::enum_values<book_id>();
     for(const auto book : books)
     {
-      INFO("book: " << util::enum_name(book));
+      INFO(std::format("book: {}", util::enum_name(book)));
       const auto names = loaded->book_information(book);
       REQUIRE(names.has_value());
       // every form is filled from the book's header paragraphs, falling back to the closest alternative
@@ -86,7 +87,7 @@ TEST_CASE("scripture_usx book names are unique within a scripture", "[bible]")
   // between documents.
   for(const auto& [bundle, loaded] : load_shipped_scriptures())
   {
-    INFO("bundle: " << bundle);
+    INFO(std::format("bundle: {}", bundle));
     static constexpr auto books = util::enum_values<book_id>();
     auto short_names = std::vector<std::string>{};
     for(const auto book : books)
@@ -106,7 +107,7 @@ TEST_CASE("scripture_usx book names are read from the book documents", "[bible]"
 
   SECTION("german scripture")
   {
-    const auto loaded = find_bundle(scriptures, "text-542b32484b6e38c2-246437.zip");
+    const auto* const loaded = find_bundle(scriptures, "text-542b32484b6e38c2-246437.zip");
     REQUIRE(loaded != nullptr);
 
     const auto genesis = loaded->book_information(book_id::genesis);
@@ -122,7 +123,7 @@ TEST_CASE("scripture_usx book names are read from the book documents", "[bible]"
 
   SECTION("english scripture")
   {
-    const auto loaded = find_bundle(scriptures, "text-de4e12af7f28f599-245514.zip");
+    const auto* const loaded = find_bundle(scriptures, "text-de4e12af7f28f599-245514.zip");
     REQUIRE(loaded != nullptr);
 
     const auto genesis = loaded->book_information(book_id::genesis);
@@ -135,7 +136,7 @@ TEST_CASE("scripture_usx book names are read from the book documents", "[bible]"
   SECTION("scripture without running header paragraphs")
   {
     // This bundle ships no "h" paragraph at all, the table of contents entries have to carry the names.
-    const auto loaded = find_bundle(scriptures, "text-f492a38d0e52db0f-258505.zip");
+    const auto* const loaded = find_bundle(scriptures, "text-f492a38d0e52db0f-258505.zip");
     REQUIRE(loaded != nullptr);
 
     const auto song = loaded->book_information(book_id::song_of_solomon);
@@ -149,7 +150,7 @@ TEST_CASE("scripture_usx book names are not the raw identifier", "[bible]")
 {
   for(const auto& [bundle, loaded] : load_shipped_scriptures())
   {
-    INFO("bundle: " << bundle);
+    INFO(std::format("bundle: {}", bundle));
     const auto names = loaded->book_information(book_id::revelation);
     REQUIRE(names.has_value());
     CHECK(names->short_name != util::enum_name(book_id::revelation));
@@ -163,11 +164,11 @@ TEST_CASE("scripture_usx book names carry no scripture text", "[bible]")
   static constexpr auto max_name_length = 100u;
   for(const auto& [bundle, loaded] : load_shipped_scriptures())
   {
-    INFO("bundle: " << bundle);
+    INFO(std::format("bundle: {}", bundle));
     static constexpr auto books = util::enum_values<book_id>();
     for(const auto book : books)
     {
-      INFO("book: " << util::enum_name(book));
+      INFO(std::format("book: {}", util::enum_name(book)));
       const auto names = loaded->book_information(book);
       REQUIRE(names.has_value());
       CHECK(names->long_name.size() < max_name_length);
@@ -182,7 +183,7 @@ TEST_CASE("scripture_usx reads its information from the bundle root metadata", "
   // against the archive root is what makes the local name and the copyright statement available here.
   for(const auto& [bundle, loaded] : load_shipped_scriptures())
   {
-    INFO("bundle: " << bundle);
+    INFO(std::format("bundle: {}", bundle));
     const auto info = loaded->information();
     CHECK(info.name != scripture_usx::unknown_name);
     CHECK(info.abbreviation != scripture_usx::unknown_abbreviation);

@@ -28,8 +28,8 @@ namespace aba
 class pretty_names final
 {
   // Variables
-  std::vector<std::string> languages_{};
-  std::unordered_map<std::string, std::vector<std::string>> entries_{};
+  std::vector<std::string> languages_;
+  std::unordered_map<std::string, std::vector<std::string>> entries_;
 
 public: // Structors
   pretty_names() = default;

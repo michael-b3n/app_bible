@@ -55,7 +55,7 @@ public: // Accessors
   [[nodiscard]] auto process_id() const -> id_type { return process_id_; }
 
 private: // Variables
-  id_type process_id_{};
+  id_type process_id_;
 };
 
 ///
@@ -93,7 +93,7 @@ public: // Accessors
   [[nodiscard]] auto operator->() const -> util::non_owning_ptr<const ParamsType> { return &params_; }
 
 private: // Variables
-  id_type process_id_{};
+  id_type process_id_;
   ParamsType params_;
 };
 

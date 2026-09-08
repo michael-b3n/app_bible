@@ -1,6 +1,7 @@
 #include "bibqml/bridge/BridgeBibleRefOcr.hpp"
 
-#include <bibstd/framework/setting_validator.hpp>
+#include <bibstd/framework/setting.hpp>
+#include <bibstd/framework/thread_pool.hpp>
 #include <bibstd/math/rect.hpp>
 #include <bibstd/system/screen.hpp>
 #include <bibstd/util/enum.hpp>
@@ -8,6 +9,7 @@
 #include <bibstd/util/numeric_cast.hpp>
 #include <bibstd/util/timer.hpp>
 #include <bibstd/workflow/workflow_bible_ref_ocr.hpp>
+#include <bibstd/workflow/workflow_bible_ref_ocr_auto.hpp>
 #include <bibstd/workflow/workflow_hotkey.hpp>
 #include <bibstd/workflow/workflow_settings.hpp>
 
@@ -23,7 +25,7 @@
 
 namespace bibqml
 {
-namespace detail
+namespace
 {
 
 ///
@@ -158,7 +160,20 @@ toScreenRect(const bibstd::util::screen_rect_type& rect, const bibstd::util::scr
   return std::get<bibstd::util::non_owning_ptr<bibstd::framework::setting_type_erased<std::string>>>(setting);
 }
 
-} // namespace detail
+///
+/// Create the auto search setting, or access it if it exists already. The setting is declared by
+/// the frontend because it is the frontend that states the intent: the backend searches when it is
+/// told to and knows nothing about what the user asked for last time.
+/// \return non owning pointer to the auto search setting
+///
+[[nodiscard]] auto createAutoSearchSetting(bibstd::workflow::workflow_settings& workflowSettings)
+  -> bibstd::util::non_owning_ptr<bibstd::framework::setting_type_erased<bool>>
+{
+  const auto setting = workflowSettings.type_erased_setting(std::string{"ocr.auto_search"}, false);
+  return std::get<bibstd::util::non_owning_ptr<bibstd::framework::setting_type_erased<bool>>>(setting);
+}
+
+} // namespace
 
 // Constants
 constexpr auto ocrFindPath = "ocr";
@@ -167,24 +182,47 @@ constexpr auto ocrFindPath = "ocr";
 ///
 BridgeBibleRefOcr::BridgeBibleRefOcr(
   std::shared_ptr<bibstd::workflow::workflow_bible_ref_ocr> workflowBibleRefOcr,
+  std::shared_ptr<bibstd::workflow::workflow_bible_ref_ocr_auto> workflowBibleRefOcrAuto,
   const std::shared_ptr<bibstd::workflow::workflow_hotkey>& workflowHotkey,
   const std::shared_ptr<bibstd::workflow::workflow_settings>& workflowSettings,
   const bibstd::util::non_owning_ptr<QObject> parent
 )
   : QObject{parent}
   , workflowBibleRefOcr_{std::move(workflowBibleRefOcr)}
-  , findReferenceSig_{workflowHotkey->register_callback(ocrFindPath)}
-  , clickActionSetting_{detail::createClickActionSetting(*workflowSettings)}
+  , workflowBibleRefOcrAuto_{std::move(workflowBibleRefOcrAuto)}
+  , manualSearchSig_{workflowHotkey->register_callback(ocrFindPath)}
+  , clickActionSetting_{createClickActionSetting(*workflowSettings)}
+  , autoSearchSetting_{createAutoSearchSetting(*workflowSettings)}
+  , autoSearchExecutor_{bibstd::framework::thread_pool::strand_id()}
 {
-  executor_.connect(*findReferenceSig_, [this]() { findReference(); });
+  executor_.connect(*manualSearchSig_, [this]() { runManualSearch(); });
   workflowHotkey->assign_hotkey({
     {ocrFindPath, bibstd::system::hotkey_common::key_modifier::alt, bibstd::system::hotkey_common::key::vk_f}
   });
-}
 
-///
-///
-BridgeBibleRefOcr::~BridgeBibleRefOcr() noexcept = default;
+  workflowBibleRefOcrAuto_->connect_queued(
+    &bibstd::workflow::workflow_bible_ref_ocr_auto_sigs::detected,
+    [this](const auto& detected)
+    {
+      // The ranges are ordered canonically, the first one is the reference that was detected.
+      if(detected && !detected->reference_ranges.empty())
+      {
+        notifyAutoSearchDetection(detected->reference_ranges.front(), detected->reference_bounding_box);
+      }
+    },
+    executor_
+  );
+
+  autoSearchSetting_->signal_adapter.connect_queued(
+    &bibstd::framework::setting_signals::value_changed, [this]() { applyAutoSearch(); }, autoSearchExecutor_
+  );
+  // An unchanged setting emits nothing, so a search left on is started here. Starting is the one
+  // half that does not wait for a run, so it needs no thread of its own
+  if(autoSearchSetting_->value())
+  {
+    applyAutoSearch();
+  }
+}
 
 ///
 ///
@@ -203,63 +241,97 @@ BridgeBibleRefOcr::ClickAction BridgeBibleRefOcr::clickAction() const
 
 ///
 ///
-void BridgeBibleRefOcr::disconnect()
+void BridgeBibleRefOcr::setAutoSearch(const bool enabled)
 {
-  executor_.disconnect();
+  // The setting is what the search follows, writing it is what starts and stops it
+  autoSearchSetting_->value(enabled);
 }
 
 ///
 ///
-void BridgeBibleRefOcr::findReference()
+void BridgeBibleRefOcr::disconnect()
+{
+  executor_.disconnect();
+  autoSearchExecutor_.disconnect();
+}
+
+///
+///
+void BridgeBibleRefOcr::runManualSearch()
 {
   // Capture the screen directly on call of this function to ensure the cursor position is up-to-date.
   // This is usually called from the main thread and takes only a few milliseconds.
   // This also ensures that no displayed windows are blocking the screen capture.
   const auto cursorPosition = bibstd::system::screen::cursor_position();
-  const auto capture = detail::captureScreen(cursorPosition);
+  if(!cursorPosition)
+  {
+    LOG_WARN("identify cursor position failed: not found");
+    return;
+  }
+  const auto capture = captureScreen(*cursorPosition);
   if(!capture)
   {
-    LOG_WARN("capture screen failed: cursor_position={}", cursorPosition);
+    LOG_WARN("capture screen failed: cursor_position={}", *cursorPosition);
     return;
   }
 
   const auto processId = bibstd::framework::process_id_type{};
-  notifySearchStarted(processId);
+  notifyManualSearchStarted(processId);
 
   const auto result = workflowBibleRefOcr_->find({
-    {capture->image, capture->relativeCursorPosition}
+    {.image = capture->image, .position = capture->relativeCursorPosition}
   });
-  if(!result.has_value() || !result->passage.has_value() || result->reference_ranges.empty())
+  if(!result.has_value() || result->reference_ranges.empty())
   {
-    notifySearchFinished(processId, std::nullopt, std::nullopt);
+    notifyManualSearchFinished(processId, std::nullopt, std::nullopt);
     return;
   }
 
   auto boundingBox = std::optional<bibstd::util::screen_rect_type>{};
   if(result->reference_bounding_box)
   {
-    boundingBox = detail::toScreenRect(*result->reference_bounding_box, capture->origin);
+    boundingBox = toScreenRect(*result->reference_bounding_box, capture->origin);
   }
   // The ranges are ordered canonically, the first one is the reference the passage belongs to.
-  notifySearchFinished(processId, result->reference_ranges.front(), boundingBox);
+  notifyManualSearchFinished(processId, result->reference_ranges.front(), boundingBox);
 }
 
 ///
 ///
-void BridgeBibleRefOcr::notifySearchStarted(const bibstd::framework::process_id_type processId)
+void BridgeBibleRefOcr::applyAutoSearch()
+{
+  const auto enabled = autoSearchSetting_->value();
+  const auto result = enabled ? workflowBibleRefOcrAuto_->start({}) : workflowBibleRefOcrAuto_->stop({});
+  if(result)
+  {
+    notifyAutoSearchRunning(enabled);
+  }
+}
+
+///
+///
+void BridgeBibleRefOcr::setManualSearch(const std::optional<bibstd::framework::process_id_type> processId)
+{
+  manualSearchProcessId_ = processId;
+  const auto running = manualSearchProcessId_.has_value();
+  if(manualSearchRunning_ != running)
+  {
+    manualSearchRunning_ = running;
+    emit manualSearchRunningChanged(manualSearchRunning_);
+  }
+}
+
+///
+///
+void BridgeBibleRefOcr::notifyManualSearchStarted(const bibstd::framework::process_id_type processId)
 {
   QMetaObject::invokeMethod(
     this,
     [this, processId]()
     {
-      processId_ = processId;
+      setManualSearch(processId);
       cursorPosition_ = QCursor::pos();
       emit cursorPositionChanged(cursorPosition_);
-      if(!running_)
-      {
-        running_ = true;
-        emit runningChanged(running_);
-      }
     },
     Qt::QueuedConnection
   );
@@ -267,7 +339,7 @@ void BridgeBibleRefOcr::notifySearchStarted(const bibstd::framework::process_id_
 
 ///
 ///
-void BridgeBibleRefOcr::notifySearchFinished(
+void BridgeBibleRefOcr::notifyManualSearchFinished(
   const bibstd::framework::process_id_type processId,
   const std::optional<bibstd::bible::reference_range> referenceRange,
   const std::optional<bibstd::util::screen_rect_type> boundingBox
@@ -278,34 +350,79 @@ void BridgeBibleRefOcr::notifySearchFinished(
     [this, processId, referenceRange, boundingBox]()
     {
       // A newer search took over in the meantime, only its result is of interest.
-      if(processId_ != processId)
+      if(manualSearchProcessId_ != processId)
       {
         return;
       }
-      running_ = false;
-      emit runningChanged(running_);
+      setManualSearch(std::nullopt);
 
-      if(!referenceRange)
+      if(referenceRange)
       {
-        return;
+        emitReference(*referenceRange, boundingBox);
       }
-      decltype(auto) begin = referenceRange->begin();
-      decltype(auto) end = referenceRange->end();
-      const auto bookId = QString::fromStdString(std::string{bibstd::util::enum_name(begin.book())});
-      const auto mapping =
-        boundingBox ? detail::monitorMappingAt(boundingBox->origin()) : std::optional<detail::MonitorMapping>{};
-
-      emit referenceFound(bookId, numeric_cast<int>(begin.chapter().value), numeric_cast<int>(begin.verse().value));
-      emit referenceRangeFound(
-        bookId,
-        numeric_cast<int>(begin.chapter().value),
-        numeric_cast<int>(begin.verse().value),
-        numeric_cast<int>(end.chapter().value),
-        numeric_cast<int>(end.verse().value),
-        mapping ? mapping->map(*boundingBox) : QRect{}
-      );
     },
     Qt::QueuedConnection
+  );
+}
+
+///
+///
+void BridgeBibleRefOcr::notifyAutoSearchDetection(
+  const bibstd::bible::reference_range referenceRange, const std::optional<bibstd::util::screen_rect_type> boundingBox
+)
+{
+  QMetaObject::invokeMethod(
+    this,
+    [this, referenceRange, boundingBox]()
+    {
+      // A manual search that is still in flight is left behind by this detection, so it is no
+      // longer the current one and its result is dropped when it arrives
+      setManualSearch(std::nullopt);
+      cursorPosition_ = QCursor::pos();
+      emit cursorPositionChanged(cursorPosition_);
+      emitReference(referenceRange, boundingBox);
+    },
+    Qt::QueuedConnection
+  );
+}
+
+///
+///
+void BridgeBibleRefOcr::notifyAutoSearchRunning(const bool running)
+{
+  QMetaObject::invokeMethod(
+    this,
+    [this, running]()
+    {
+      if(autoSearchRunning_ != running)
+      {
+        autoSearchRunning_ = running;
+        emit autoSearchRunningChanged(autoSearchRunning_);
+      }
+    },
+    Qt::QueuedConnection
+  );
+}
+
+///
+///
+void BridgeBibleRefOcr::emitReference(
+  const bibstd::bible::reference_range& referenceRange, const std::optional<bibstd::util::screen_rect_type>& boundingBox
+)
+{
+  decltype(auto) begin = referenceRange.begin();
+  decltype(auto) end = referenceRange.end();
+  const auto bookId = QString::fromStdString(std::string{bibstd::util::enum_name(begin.book())});
+  const auto mapping = boundingBox ? monitorMappingAt(boundingBox->origin()) : std::optional<MonitorMapping>{};
+
+  emit referenceFound(bookId, numeric_cast<int>(begin.chapter().value), numeric_cast<int>(begin.verse().value));
+  emit referenceRangeFound(
+    bookId,
+    numeric_cast<int>(begin.chapter().value),
+    numeric_cast<int>(begin.verse().value),
+    numeric_cast<int>(end.chapter().value),
+    numeric_cast<int>(end.verse().value),
+    mapping ? mapping->map(*boundingBox) : QRect{}
   );
 }
 

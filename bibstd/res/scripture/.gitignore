@@ -1,0 +1,4 @@
+# The scripture archives stay local: they are the translations each developer holds a license for.
+# CMake globs this folder for *.zip and embeds whatever is in it, so an empty folder builds fine.
+*
+!.gitignore

@@ -31,6 +31,7 @@ class ScriptureListModel final : public QAbstractListModel
   QML_ELEMENT
 
   Q_PROPERTY(QString scriptureCopyright READ scriptureCopyright NOTIFY scriptureCopyrightChanged FINAL)
+  Q_PROPERTY(int referenceRow READ referenceRow NOTIFY referenceRowChanged FINAL)
 
   // Typedefs
   ///
@@ -50,6 +51,7 @@ class ScriptureListModel final : public QAbstractListModel
   // Variables
   const std::shared_ptr<bibstd::workflow::workflow_scripture> workflowScripture_;
   std::deque<Entry> entries_;
+  int referenceRow_{0};
   bibstd::signal::synchronized_executor executor_;
 
 public: // Typedefs
@@ -72,7 +74,6 @@ public: // Structors
     std::shared_ptr<bibstd::workflow::workflow_scripture> workflowScripture,
     bibstd::util::non_owning_ptr<QObject> parent = nullptr
   );
-  ~ScriptureListModel() noexcept override;
 
 public: // Overrides
   int rowCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -81,6 +82,13 @@ public: // Overrides
 
 public: // Accessors
   ///
+  /// Row the reference of the last reset sits at. Verses loaded before it
+  /// push it down, so it is the row a view positions on to show the reference.
+  /// \return row of the reference, 0 while the model is empty
+  ///
+  int referenceRow() const;
+
+  ///
   /// Copyright statement of the scripture the verses are taken from.
   /// \return copyright statement, empty if the scripture does not provide one
   ///
@@ -88,8 +96,9 @@ public: // Accessors
 
 public: // Modifiers
   ///
-  /// Reset the model with a new starting reference.
-  /// Clears all existing entries and loads the initial verse.
+  /// Reset the model with a new reference. All existing entries are dropped and the reference is
+  /// loaded with context on both sides, \see referenceRow tells which row it ended up at.
+  /// \note refreshed is emitted once the reset is done.
   ///
   Q_INVOKABLE void resetWithReference(const QString& bookId, int chapter, int verse);
 
@@ -115,10 +124,12 @@ public: // Modifiers
   void disconnect();
 
 signals:
+  void referenceRowChanged();
   void scriptureCopyrightChanged();
   void refreshed();
 
 private: // Implementation
+  void referenceRow(int row);
   QString fetchPassage(const bibstd::bible::reference& ref) const;
   Entry makeEntry(const bibstd::bible::reference& ref) const;
   void addEntry(const bibstd::bible::reference& ref);

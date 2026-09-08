@@ -24,7 +24,7 @@ TEST_CASE("aggregate_utility", "[meta]")
 
   using test_aggregate_t = test_aggregate<int, double, test_aggregate<int, double, int>>;
   constexpr auto aggregate = test_aggregate_t{
-    1, 2.0, test_aggregate{3, 4.0, 5}
+    .t1 = 1, .t2 = 2.0, .t3 = test_aggregate{.t1 = 3, .t2 = 4.0, .t3 = 5}
   };
   constexpr auto tuple = to_tuple(aggregate);
   CHECK(std::get<0>(tuple) == 1);

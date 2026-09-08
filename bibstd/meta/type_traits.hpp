@@ -19,26 +19,27 @@ template<typename T>
 inline constexpr auto is_templated_v = is_templated<std::remove_cvref_t<T>>::value;
 
 ///
-/// Type trait that removes the optional wrapper from a type if it is an optional,
-/// otherwise returns the type itself.
+/// Type trait that removes the wrapper from a type if it is a wrapper such as std::optional
+/// or std::vector, otherwise returns the type unchanged. The wrapper detection decays the type,
+/// so const, volatile and reference indicators on the wrapper itself are ignored.
 ///
 template<typename T>
 struct remove_wrapper final : std::false_type
 {
 private:
-  template<typename T_>
+  template<typename Original_, typename Decayed_>
   struct remove_wrapper_helper final : std::false_type
   {
-    using type = T_;
+    using type = Original_;
   };
-  template<template<typename...> typename W_, typename T_>
-  struct remove_wrapper_helper<W_<T_>> final : std::true_type
+  template<typename Original_, template<typename...> typename W_, typename T_>
+  struct remove_wrapper_helper<Original_, W_<T_>> final : std::true_type
   {
     using type = T_;
   };
 
 public:
-  using type = typename remove_wrapper_helper<std::decay_t<T>>::type;
+  using type = typename remove_wrapper_helper<T, std::decay_t<T>>::type;
 };
 template<typename T>
 using remove_wrapper_t = typename remove_wrapper<T>::type;
@@ -59,19 +60,20 @@ inline constexpr bool are_same_v = are_same<T...>::value;
 
 ///
 /// Type trait to make an arithmetic value type unsigned, leaves floating point types untouched.
-/// Allows compilation with floating point types. Indicators like const, volatile and references are removed.
+/// Allows compilation with floating point types. Const and volatile indicators are preserved,
+/// references are not accepted because they are neither integral nor floating point.
 ///
 template<typename T>
 struct conditional_unsigned;
 template<std::integral T>
 struct conditional_unsigned<T> final
 {
-  using type = std::make_unsigned_t<std::remove_cvref_t<T>>;
+  using type = std::make_unsigned_t<T>;
 };
 template<std::floating_point T>
 struct conditional_unsigned<T> final
 {
-  using type = std::remove_cvref_t<T>;
+  using type = T;
 };
 template<typename T>
 using conditional_unsigned_t = typename conditional_unsigned<T>::type;

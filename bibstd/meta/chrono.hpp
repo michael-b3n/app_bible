@@ -16,6 +16,6 @@ template<typename T1, typename T2>
 struct is_duration<std::chrono::duration<T1, T2>> : std::true_type
 {};
 template<typename T>
-constexpr bool is_duration_v = is_duration<T>::value;
+constexpr bool is_duration_v = is_duration<std::remove_cvref_t<T>>::value;
 
 } // namespace bibstd::meta

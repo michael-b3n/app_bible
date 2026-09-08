@@ -48,7 +48,7 @@ public: // Static accessors
   /// The cursor is givin in the screen coordinate system, where the origin is on the top left corner.
   /// \return screen metrics
   ///
-  [[nodiscard]] static auto cursor_position() -> screen_coordinates_type;
+  [[nodiscard]] static auto cursor_position() -> std::optional<screen_coordinates_type>;
 
   ///
   /// Get the window size at a given position. If no window is found, std::nullopt is returned.
@@ -66,9 +66,8 @@ public: // Static accessors
   /// Capture screen in region defined by a rectangle. The rectangle shall be in the
   /// screen coordinate system, where the origin is on the top left corner.
   /// A rectangle of screen area that shall be captured and the pixels object to save the
-  /// captured pixels must be provided. The pixels are saved in the canonical coordinate
-  /// system where the origin is on the bottom left corner. The first line of pixels
-  /// (bottom left to right) are saved first within the pixels data.
+  /// captured pixels must be provided. The pixels are saved row by row, the topmost row of
+  /// the region first (which is the order e.g. tesseract reads them in).
   ///
   [[nodiscard]] static auto capture(screen_rect_type rect, pixel_plane_type& pix) -> bool;
 };

@@ -46,7 +46,7 @@ struct std::formatter<bibstd::util::exception> : std::formatter<std::string>
 {
   auto format(const bibstd::util::exception& ex, std::format_context& ctx) const
   {
-    decltype(auto) msg = ex.what();
+    const auto* msg = ex.what();
     decltype(auto) loc = ex.where();
     decltype(auto) stack = ex.stack();
     return formatter<std::string>::format(

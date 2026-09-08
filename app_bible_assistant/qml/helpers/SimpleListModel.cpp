@@ -80,7 +80,7 @@ bool SimpleListModel::setData(const QModelIndex& index, const QVariant& value, c
 
 ///
 ///
-Qt::ItemFlags SimpleListModel::flags(const QModelIndex& index) const
+Qt::ItemFlags SimpleListModel::flags([[maybe_unused]] const QModelIndex& /*index*/) const
 {
   return Qt::NoItemFlags;
 }

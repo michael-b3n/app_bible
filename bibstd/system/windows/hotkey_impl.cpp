@@ -143,16 +143,16 @@ auto message_handler(const MSG& msg, const std::map<int, std::function<void()>>&
 ///
 auto hotkey_impl::init() -> util::shared_scope_guard
 {
-  static std::mutex _mtx;
-  static util::shared_scope_guard::creator _guard_creator{};
-  static util::shared_scope_guard _thread_pool_guard;
-  static std::condition_variable _cv_init;
+  static std::mutex mtx;
+  static util::shared_scope_guard::creator guard_creator{};
+  static util::shared_scope_guard thread_pool_guard;
+  static std::condition_variable cv_init;
 
-  auto lock = std::unique_lock{_mtx};
-  auto guard = _guard_creator.create(
+  auto lock = std::unique_lock{mtx};
+  auto guard = guard_creator.create(
     []()
     {
-      const auto lock = std::scoped_lock{_mtx};
+      const auto lock = std::scoped_lock{mtx};
       listen_to_msg_ = false;
       std::promise<void> promise;
       auto future = promise.get_future();
@@ -166,17 +166,17 @@ auto hotkey_impl::init() -> util::shared_scope_guard
       PostThreadMessage(windows_thread_id_.load().value(), WM_QUIT, 0, 0);
       future.get();
       worker_.reset();
-      _thread_pool_guard.reset();
-      _cv_init.notify_all();
+      thread_pool_guard.reset();
+      cv_init.notify_all();
     }
   );
   if(guard.is_initial_instance())
   {
     if(worker_)
     {
-      _cv_init.wait(lock, []() { return !worker_; });
+      cv_init.wait(lock, []() { return !worker_; });
     }
-    _thread_pool_guard = framework::thread_pool::init();
+    thread_pool_guard = framework::thread_pool::init();
     worker_ = std::make_unique<framework::active_worker>();
     std::promise<void> promise;
     auto future = promise.get_future();

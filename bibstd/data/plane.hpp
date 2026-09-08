@@ -6,6 +6,7 @@
 #include "bibstd/util/ranges.hpp"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <ranges>
 #include <span>
@@ -79,10 +80,10 @@ constexpr plane_base<ContainerType>::plane_base(const size_type width, const siz
 /// The data ordering is canonical: first width (fast axis), then height (slow axis).
 ///
 template<typename T, std::uint32_t W, std::uint32_t H>
-class plane_const final : public detail::plane_base<std::array<T, W * H>>
+class plane_const final : public detail::plane_base<std::array<T, static_cast<std::size_t>(W) * static_cast<std::size_t>(H)>>
 {
   // Typedefs
-  using base_type = detail::plane_base<std::array<T, W * H>>;
+  using base_type = detail::plane_base<std::array<T, static_cast<std::size_t>(W) * static_cast<std::size_t>(H)>>;
 
 public: // Structors
   constexpr plane_const(base_type::data_type data);
@@ -200,8 +201,8 @@ constexpr auto plane_view<T>::data_view(const math::rect<I> area) const -> auto
   }();
 
   const auto to_coord = [origin, hr](const auto i)
-  { return typename area_type::coordinates_type(origin.x() + i % hr, origin.y() + i / hr); };
-  const auto from_coord = [w = base_type::width()](const auto& coord) { return coord.y() * w + coord.x(); };
+  { return typename area_type::coordinates_type(origin.x() + (i % hr), origin.y() + (i / hr)); };
+  const auto from_coord = [w = base_type::width()](const auto& coord) { return (coord.y() * w) + coord.x(); };
 
   return util::ranges::index_view_to(size) | std::views::transform([to_coord, from_coord, d = base_type::data_](const auto i)
                                                                    { return d.at(from_coord(to_coord(i))); });

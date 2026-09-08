@@ -14,7 +14,7 @@ auto environment_variable::set(const std::string& name, const std::string& value
   {
     return false;
   }
-  const bool result = SetEnvironmentVariableA(name.c_str(), value.empty() ? nullptr : value.c_str());
+  const bool result = SetEnvironmentVariableA(name.c_str(), value.empty() ? nullptr : value.c_str()) != 0;
   LOG_INFO("set environment variable {}: name=\"{}\", value=\"{}\"", result ? "succeeded" : "failed", name, value);
   return result;
 }

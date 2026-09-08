@@ -10,9 +10,9 @@ namespace bibstd::signal
 namespace detail
 {
 // clang-format off
-struct _any_return_type{};
-struct _any_argument_type{};
-using _any_signal_type = signal_type<_any_return_type(_any_argument_type)>;
+struct any_return_type{};
+struct any_argument_type{};
+using any_signal_type = signal_type<any_return_type(any_argument_type)>;
 // clang-format on
 } // namespace detail
 
@@ -22,9 +22,9 @@ using _any_signal_type = signal_type<_any_return_type(_any_argument_type)>;
 template<typename T>
 concept executor_kind = requires(
   T t,
-  detail::_any_signal_type& sig,
-  detail::_any_signal_type::slot_type slot,
-  detail::_any_signal_type::extended_slot_type ext_slot
+  detail::any_signal_type& sig,
+  detail::any_signal_type::slot_type slot,
+  detail::any_signal_type::extended_slot_type ext_slot
 ) {
   { t.connect(sig, std::move(slot)) } -> std::same_as<void>;
   { t.connect_extended(sig, std::move(ext_slot)) } -> std::same_as<void>;

@@ -4,6 +4,7 @@
 #include "bibstd/util/const_map.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
+#include "bibstd/util/numeric_cast.hpp"
 #include "bibstd/util/visit_helper.hpp"
 
 #include <boost/filesystem/path.hpp>
@@ -18,7 +19,7 @@
 
 namespace bibstd::txt
 {
-namespace detail
+namespace
 {
 
 ///
@@ -29,23 +30,21 @@ namespace detail
 auto forward_as_pix(auto& data, const std::uint32_t width, const std::uint32_t height) -> Pix
 {
   return Pix{
-    /*l_uint32          */ width,                                   // width in pixels
-    /*l_uint32          */ height,                                  // height in pixels
-    /*l_uint32          */ data::pixel::bits_per_pixel,             // depth in bits
-    /*l_uint32          */ 4u,                                      // number of samples per pixel
-    /*l_uint32          */ width,                                   // 32-bit words/line
-    /*l_uint32          */ 1u,                                      // reference count (1 if no clones)
-    /*l_int32           */ 0,                                       // image res (ppi) in x direction (use 0 if unknown)
-    /*l_int32           */ 0,                                       // image res (ppi) in y direction (use 0 if unknown)
-    /*l_int32           */ IFF_UNKNOWN,                             // input file format, IFF_*
-    /*l_int32           */ 0,                                       // special instructions for I/O, etc
-    /*char              */ nullptr,                                 // text string associated with pix
-    /*struct PixColormap*/ nullptr,                                 // colormap (may be null)
-    /*l_uint32          */ reinterpret_cast<l_uint32*>(data.data()) // the image data
+    /*l_uint32          */ .w = width,                                      // width in pixels
+    /*l_uint32          */ .h = height,                                     // height in pixels
+    /*l_uint32          */ .d = data::pixel::bits_per_pixel,                // depth in bits
+    /*l_uint32          */ .spp = 4u,                                       // number of samples per pixel
+    /*l_uint32          */ .wpl = width,                                    // 32-bit words/line
+    /*l_uint32          */ .refcount = 1u,                                  // reference count (1 if no clones)
+    /*l_int32           */ .xres = 0,                                       // image res (ppi) in x direction (use 0 if unknown)
+    /*l_int32           */ .yres = 0,                                       // image res (ppi) in y direction (use 0 if unknown)
+    /*l_int32           */ .informat = IFF_UNKNOWN,                         // input file format, IFF_*
+    /*l_int32           */ .special = 0,                                    // special instructions for I/O, etc
+    /*char              */ .text = nullptr,                                 // text string associated with pix
+    /*struct PixColormap*/ .colormap = nullptr,                             // colormap (may be null)
+    /*l_uint32          */ .data = reinterpret_cast<l_uint32*>(data.data()) // the image data
   };
 }
-
-} // namespace detail
 
 ///
 /// Get the tesseract page iterator level from the resolution tag.
@@ -87,6 +86,8 @@ auto get_bounding_box(const auto& ri, const auto level) -> std::optional<ocr_eng
     return std::nullopt;
   }
 }
+
+} // namespace
 
 ///
 ///
@@ -158,10 +159,30 @@ auto ocr_engine_tesseract::initialize(
 ) -> void
 {
   image_data_.clear();
+  auto width = image.width();
+  auto height = image.height();
+
   if(subarea)
   {
-    image_data_.resize(image.data_view_size(*subarea));
-    std::ranges::copy(image.data_view(*subarea), image_data_.begin());
+    using area_type = pixel_plane_view_type::area_type;
+    const auto image_area = area_type{
+      math::coordinates{0, 0},
+      image.width(), image.height()
+    };
+    const auto clipped = math::overlap(*subarea, image_area);
+    if(!clipped || math::empty(*clipped))
+    {
+      // The subarea lies outside the image, so there is nothing to recognize. Without an image
+      // recognize() and layout_analysis() report an empty result instead of tesseract working
+      // on a zero sized one.
+      LOG_WARN("tesseract subarea lies outside the image: subarea={}", *subarea);
+      tesseract_->Clear();
+      return;
+    }
+    width = numeric_cast<decltype(width)>(math::size(clipped->horizontal_range()));
+    height = numeric_cast<decltype(height)>(math::size(clipped->vertical_range()));
+    image_data_.resize(image.data_view_size(*clipped));
+    std::ranges::copy(image.data_view(*clipped), image_data_.begin());
   }
   else
   {
@@ -169,7 +190,7 @@ auto ocr_engine_tesseract::initialize(
     std::ranges::copy(image, image_data_.begin());
   }
   // copy needed since pix requires to be non const
-  auto pix = detail::forward_as_pix(image_data_, image.width(), image.height());
+  auto pix = forward_as_pix(image_data_, width, height);
   tesseract_->SetImage(&pix);
   tesseract_->SetPageSegMode(tesseract::PSM_AUTO_OSD);
 }
@@ -178,6 +199,10 @@ auto ocr_engine_tesseract::initialize(
 ///
 auto ocr_engine_tesseract::recognize() const -> recognition_data
 {
+  if(image_data_.empty())
+  {
+    return {};
+  }
   if(const auto retval = tesseract_->Recognize(nullptr); retval != 0)
   {
     throw util::exception{std::format("tesseract recognition failure: code={}", retval)};
@@ -196,7 +221,7 @@ auto ocr_engine_tesseract::recognize() const -> recognition_data
 
   const auto get_txt = [&ri](const auto level) -> std::optional<std::string>
   {
-    std::unique_ptr<char[]> txt(ri->GetUTF8Text(level));
+    const std::unique_ptr<char[]> txt(ri->GetUTF8Text(level));
     if(txt)
     {
       return std::string{txt.get()};
@@ -237,6 +262,10 @@ auto ocr_engine_tesseract::layout_analysis() const -> std::vector<line_layout>
 {
   static constexpr auto line_level = page_iterator_level(tag<line>{});
   auto result = std::vector<line_layout>{};
+  if(image_data_.empty())
+  {
+    return result;
+  }
   std::unique_ptr<tesseract::PageIterator> pi(tesseract_->AnalyseLayout(false));
   if(pi)
   {
@@ -245,7 +274,9 @@ auto ocr_engine_tesseract::layout_analysis() const -> std::vector<line_layout>
       if(auto line_bounding_box = get_bounding_box(pi, line_level))
       {
         auto paragraph_bounding_box = get_bounding_box(pi, page_iterator_level(tag<paragraph>{}));
-        result.emplace_back(line_layout{std::move(*line_bounding_box), std::move(paragraph_bounding_box)});
+        result.emplace_back(
+          line_layout{.line_bounding_box = *line_bounding_box, .paragraph_bounding_box = paragraph_bounding_box}
+        );
       }
     }
     while(pi->Next(line_level));

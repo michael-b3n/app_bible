@@ -31,9 +31,7 @@ public: // Structors
 
 public: // Operations
   ///
-  /// Fetch content from a webpage.
-  /// \param url The URL of the webpage to fetch
-  /// \return Expected string containing the webpage content, or an error code
+  /// \return Content of the webpage, or an error code
   ///
   auto fetch(std::string_view url) const -> std::expected<std::string, error_code>;
 };

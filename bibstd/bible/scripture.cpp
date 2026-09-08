@@ -6,9 +6,7 @@ namespace bibstd::bible
 
 ///
 ///
-scripture::scripture()
-{
-}
+scripture::scripture() = default;
 
 ///
 ///

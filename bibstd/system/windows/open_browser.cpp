@@ -12,28 +12,28 @@ namespace bibstd::system
 ///
 auto open_browser::open(const std::string& url) -> bool
 {
-  const int wchar_count = MultiByteToWideChar(CP_UTF8, 0, url.c_str(), -1, NULL, 0);
+  const int wchar_count = MultiByteToWideChar(CP_UTF8, 0, url.c_str(), -1, nullptr, 0);
   std::wstring url_wstr(wchar_count, L'\0');
 
   MultiByteToWideChar(CP_UTF8, 0, url.c_str(), -1, url_wstr.data(), wchar_count);
 
-  SHELLEXECUTEINFOW sh_exec_info = {sizeof(sh_exec_info)};
+  SHELLEXECUTEINFOW sh_exec_info = {.cbSize = sizeof(sh_exec_info)};
   sh_exec_info.cbSize = sizeof(SHELLEXECUTEINFO);
   sh_exec_info.fMask = SEE_MASK_NOCLOSEPROCESS;
-  sh_exec_info.hwnd = NULL;
+  sh_exec_info.hwnd = nullptr;
   sh_exec_info.lpVerb = L"open";
   sh_exec_info.lpFile = url_wstr.c_str();
   sh_exec_info.lpParameters = L"";
-  sh_exec_info.lpDirectory = NULL;
+  sh_exec_info.lpDirectory = nullptr;
   sh_exec_info.nShow = SW_SHOWDEFAULT;
-  sh_exec_info.hInstApp = NULL;
+  sh_exec_info.hInstApp = nullptr;
 
   /// \see https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shellexecuteexa
-  CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+  CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
   const auto success = ShellExecuteExW(&sh_exec_info);
   const auto wait_result = WaitForSingleObject(sh_exec_info.hProcess, 1000 /*ms*/);
   const auto no_timeout = wait_result != WAIT_TIMEOUT;
-  if(sh_exec_info.hProcess)
+  if(sh_exec_info.hProcess != nullptr)
   {
     if(!no_timeout)
     {
@@ -42,7 +42,7 @@ auto open_browser::open(const std::string& url) -> bool
     CloseHandle(sh_exec_info.hProcess);
   }
   CoUninitialize();
-  return success && no_timeout;
+  return (success != 0) && no_timeout;
 }
 
 } // namespace bibstd::system

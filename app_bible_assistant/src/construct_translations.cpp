@@ -23,7 +23,7 @@ translations_instance::translations_instance(pretty_names names, const language_
   : translations_{std::make_unique<qml::Translations>(std::move(names))}
   , language_setting_{language_setting}
 {
-  if(!language_setting_)
+  if(language_setting_ == nullptr)
   {
     // Without a language setting the translations stay in their default language.
     return;
@@ -61,7 +61,7 @@ auto construct_translations(backend_instance& backend) -> translations_instance
   try
   {
     auto names = pretty_names{pretty_names_view};
-    const auto language_setting = backend.workflow_settings->create_setting(
+    auto* const language_setting = backend.workflow_settings->create_setting(
       "ui.language",
       std::string{names.languages().front()},
       std::make_shared<bibstd::framework::setting_validator_list<std::string>>(names.languages())

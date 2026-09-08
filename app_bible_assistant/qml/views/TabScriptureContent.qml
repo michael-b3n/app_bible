@@ -122,21 +122,18 @@ Item
     cacheBuffer: listView.cachedPixels
 
     // Connections
+    // Everything that reaches the model is answered one event loop pass later: a view must not
+    // call back into the model that is still reporting the change which asked for it. Each of
+    // those functions tests its condition again, the pass may have made the work unnecessary.
     onContentYChanged: { listView.updateHeader() }
     onCountChanged: { listView.updateHeader() }
-    onAtYBeginningChanged: { listView.loadPrevious(listView.pageSize) }
-    onAtYEndChanged:
-    {
-      if(listView.atYEnd && listView.model && listView.model.rowCount() > 0)
-      {
-        listView.model.loadNext(listView.pageSize)
-      }
-    }
+    onAtYBeginningChanged: { Qt.callLater(listView.loadPrevious) }
+    onAtYEndChanged: { Qt.callLater(listView.loadNext) }
     Connections
     {
       target: root.listModelScripture
 
-      function onRefreshed() { Qt.callLater(function() { listView.loadPrevious(1) }) }
+      function onRefreshed() { Qt.callLater(listView.showReference) }
       function onDataChanged() { listView.updateHeader() }
     }
 
@@ -280,20 +277,47 @@ Item
     }
 
     ///
+    /// Takes the view to the reference the model was reset with.
+    ///
+    function showReference()
+    {
+      if(root.listModelScripture.rowCount() === 0)
+      {
+        return
+      }
+      // Lays out the rows of the reset now instead of at the next frame, a view whose delegates
+      // do not exist yet cannot be positioned
+      listView.forceLayout()
+      listView.positionViewAtIndex(root.listModelScripture.referenceRow, ListView.Beginning)
+    }
+
+    ///
     /// Loads verses before the first one and keeps the view on the verse it is on, prepending
     /// alone would push what the user reads out of sight.
     ///
-    function loadPrevious(count)
+    function loadPrevious()
     {
-      if(listView.atYBeginning && listView.model && listView.model.rowCount() > 0)
+      if(!listView.atYBeginning || root.listModelScripture.rowCount() === 0)
       {
-        const prevCount = listView.model.rowCount()
-        listView.model.loadPrevious(count)
-        const addedCount = listView.model.rowCount() - prevCount
-        if(addedCount > 0)
-        {
-          listView.positionViewAtIndex(addedCount, ListView.Beginning)
-        }
+        return
+      }
+      const rowsBefore = root.listModelScripture.rowCount()
+      root.listModelScripture.loadPrevious(listView.pageSize)
+      const addedCount = root.listModelScripture.rowCount() - rowsBefore
+      if(addedCount > 0)
+      {
+        listView.positionViewAtIndex(addedCount, ListView.Beginning)
+      }
+    }
+
+    ///
+    /// Loads verses after the last one.
+    ///
+    function loadNext()
+    {
+      if(listView.atYEnd && root.listModelScripture.rowCount() > 0)
+      {
+        root.listModelScripture.loadNext(listView.pageSize)
       }
     }
   }

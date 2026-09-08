@@ -29,13 +29,13 @@ bibstd::util::non_owning_ptr<BridgeSettings> BridgeSettings::instance()
 ///
 BridgeSettings* BridgeSettings::create([[maybe_unused]] QQmlEngine* qmlEngine, QJSEngine* jsEngine)
 {
-  if(!instance_)
+  if(instance_ == nullptr)
   {
     LOG_ERROR("settings registry does not exist: settings cannot be bound from qml");
     return nullptr;
   }
   // The instance is owned by the application, the QML engine must not delete it.
-  if(jsEngine)
+  if(jsEngine != nullptr)
   {
     QJSEngine::setObjectOwnership(instance_, QJSEngine::CppOwnership);
   }
@@ -50,7 +50,7 @@ BridgeSettings::BridgeSettings(
   : QObject{parent}
   , workflowSettings_{std::move(workflowSettings)}
 {
-  if(instance_)
+  if(instance_ != nullptr)
   {
     LOG_WARN("settings registry already exists: qml will operate on the first instance");
     return;

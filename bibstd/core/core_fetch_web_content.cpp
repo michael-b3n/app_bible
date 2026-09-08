@@ -35,19 +35,16 @@ auto core_fetch_web_content::fetch(std::string_view url) const -> std::expected<
     return std::unexpected(error_code::invalid_url);
   }
 
-  // Initialize CURL
   CURL* curl = curl_easy_init();
-  if(!curl)
+  if(curl == nullptr)
   {
     LOG_ERROR("failed to initialize curl");
     return std::unexpected(error_code::init_failed);
   }
 
-  // Prepare result string
   std::string result;
   result.reserve(4096); // Reserve some space to reduce allocations
 
-  // Set curl options
   const auto url_str = std::string(url);
   curl_easy_setopt(curl, CURLOPT_URL, url_str.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
@@ -56,19 +53,15 @@ auto core_fetch_web_content::fetch(std::string_view url) const -> std::expected<
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);       // 30 second timeout
   curl_easy_setopt(curl, CURLOPT_USERAGENT, "bibstd-core-fetch/1.0");
 
-  // Perform the request
   const CURLcode res = curl_easy_perform(curl);
 
-  // Check for errors
   if(res != CURLE_OK)
   {
-    const auto error_msg = curl_easy_strerror(res);
+    const auto* const error_msg = curl_easy_strerror(res);
     LOG_ERROR("fetch url content failed on curl perform: url=\"{}\", error=\"{}\"", url, error_msg);
 
-    // Cleanup before returning error
     curl_easy_cleanup(curl);
 
-    // Map curl error to our error code
     switch(res)
     {
     case CURLE_URL_MALFORMAT: return std::unexpected(error_code::invalid_url);
@@ -77,7 +70,6 @@ auto core_fetch_web_content::fetch(std::string_view url) const -> std::expected<
     }
   }
 
-  // Check HTTP response code
   long http_code = 0;
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
   if(http_code >= 400)
@@ -87,7 +79,6 @@ auto core_fetch_web_content::fetch(std::string_view url) const -> std::expected<
     return std::unexpected(error_code::request_failed);
   }
 
-  // Cleanup
   curl_easy_cleanup(curl);
 
   LOG_DEBUG("fetch url content succeeded: url=\"{}\", bytes_fetched={}", url, result.size());

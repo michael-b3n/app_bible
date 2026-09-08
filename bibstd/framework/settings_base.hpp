@@ -13,17 +13,13 @@ namespace bibstd::framework
 ///
 class settings_base
 {
-  // Structors
-  settings_base(const settings_base&) = delete;
-  settings_base(settings_base&&) = delete;
-
-  // Operators
-  auto operator==(const settings_base&) -> settings_base& = delete;
-  auto operator==(settings_base&&) -> settings_base& = delete;
-
 public: // Structors
   settings_base(std::shared_ptr<workflow::workflow_settings> workflow_settings);
   virtual ~settings_base() noexcept;
+  settings_base(const settings_base&) = delete;
+  settings_base(settings_base&&) = delete;
+  auto operator=(const settings_base&) -> settings_base& = delete;
+  auto operator=(settings_base&&) -> settings_base& = delete;
 
 protected: // Typedefs
   template<typename T>

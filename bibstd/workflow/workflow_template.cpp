@@ -33,7 +33,7 @@ workflow_template::~workflow_template() noexcept = default;
 
 ///
 ///
-auto workflow_template::start(const params& params) -> result
+auto workflow_template::start([[maybe_unused]] const params& /*params*/) -> result
 {
   // do something
   return return_failure;

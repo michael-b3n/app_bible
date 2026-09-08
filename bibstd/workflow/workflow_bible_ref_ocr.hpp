@@ -2,7 +2,6 @@
 
 #include "bibstd/bible/reference_ocr.hpp"
 #include "bibstd/bible/reference_range.hpp"
-#include "bibstd/bible/scripture.hpp"
 #include "bibstd/framework/process_params.hpp"
 #include "bibstd/framework/settings_base.hpp"
 #include "bibstd/util/language.hpp"
@@ -14,13 +13,6 @@
 #include <mutex>
 #include <optional>
 #include <vector>
-
-// Forward declarations
-namespace bibstd::core
-{
-class core_bible_ref_ocr;
-class core_bible_ref_finder;
-} // namespace bibstd::core
 
 namespace bibstd::workflow
 {
@@ -55,13 +47,11 @@ class workflow_bible_ref_ocr final : public workflow_base<workflow_bible_ref_ocr
 
   ///
   /// Result of bible reference OCR process. This contains the found reference ranges ordered
-  /// canonically, the passage content of the first reference of the first range and the
-  /// bounding box of the recognized reference text within the image.
+  /// canonically and the bounding box of the recognized reference text within the image.
   ///
   struct result_t final
   {
     std::vector<bible::reference_range> reference_ranges;
-    std::optional<bible::scripture::passage_html_type> passage;
     std::optional<util::screen_rect_type> reference_bounding_box;
   };
 
@@ -89,7 +79,6 @@ class workflow_bible_ref_ocr final : public workflow_base<workflow_bible_ref_ocr
 
   // Variables
   mutable std::mutex mtx_;
-  const std::unique_ptr<core::core_bible_ref_finder> core_bible_ref_finder_;
   const std::shared_ptr<workflow_scripture> workflow_scripture_;
   bible::reference_ocr::ocr_engine_list_type ocr_engines_;
 
@@ -106,7 +95,7 @@ public: // Structors
   workflow_bible_ref_ocr(
     std::shared_ptr<workflow_settings> workflow_settings, std::shared_ptr<workflow_scripture> workflow_scripture
   );
-  ~workflow_bible_ref_ocr() noexcept;
+  ~workflow_bible_ref_ocr() noexcept override;
 
 public: // Modifiers
   ///

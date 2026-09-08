@@ -17,7 +17,7 @@
 
 namespace bibstd::bible
 {
-namespace detail
+namespace
 {
 
 ///
@@ -79,7 +79,7 @@ auto load_content(const io::zip_file_reader& zip_reader) -> std::optional<script
   }
 }
 
-} // namespace detail
+} // namespace
 
 ///
 ///
@@ -92,7 +92,7 @@ auto scripture_usx::create(const io::zip_file_reader& zip_reader) -> std::unique
     LOG_ERROR("failed to load scripture information data");
     return nullptr;
   }
-  auto content = detail::load_content(zip_reader);
+  auto content = load_content(zip_reader);
   if(!content)
   {
     LOG_ERROR("failed to load scripture book data");

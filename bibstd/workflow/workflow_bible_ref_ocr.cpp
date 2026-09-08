@@ -1,6 +1,6 @@
 #include "bibstd/workflow/workflow_bible_ref_ocr.hpp"
 #include "bibstd/bible/reference_ocr.hpp"
-#include "bibstd/core/core_bible_ref_finder.hpp"
+#include "bibstd/bible/reference_parser.hpp"
 #include "bibstd/system/ocr.hpp"
 #include "bibstd/txt/ocr_engine.hpp"
 #include "bibstd/txt/ocr_engine_tesseract.hpp"
@@ -18,7 +18,7 @@
 
 namespace bibstd::workflow
 {
-namespace detail
+namespace
 {
 
 ///
@@ -28,7 +28,7 @@ namespace detail
 ///
 [[nodiscard]] auto reference_bounding_box(
   const bible::reference_ocr::reference_position_data& position_data,
-  const core::core_bible_ref_finder::index_range_type& index_range
+  const bible::reference_parser::index_range_type& index_range
 ) -> std::optional<util::screen_rect_type>
 {
   decltype(auto) boxes = position_data.character_bounding_boxes;
@@ -43,7 +43,7 @@ namespace detail
   return result;
 }
 
-} // namespace detail
+} // namespace
 
 ///
 ///
@@ -83,7 +83,6 @@ workflow_bible_ref_ocr::workflow_bible_ref_ocr(
   std::shared_ptr<workflow_settings> workflow_settings, std::shared_ptr<workflow_scripture> workflow_scripture
 )
   : workflow_base{std::move(workflow_settings)}
-  , core_bible_ref_finder_{std::make_unique<core::core_bible_ref_finder>()}
   , workflow_scripture_{std::move(workflow_scripture)}
 {
   init();
@@ -113,7 +112,7 @@ auto workflow_bible_ref_ocr::find(const params& params) -> result
       .language = settings().language->value(),
       .versification = versification()
     };
-    LOG_INFO(
+    LOG_DEBUG(
       "find references: image=[width={}, height={}], position=[{}]",
       params->image.width(),
       params->image.height(),
@@ -127,15 +126,7 @@ auto workflow_bible_ref_ocr::find(const params& params) -> result
       {
         auto ranges = found.ranges;
         std::ranges::sort(ranges, [](const auto& a, const auto& b) { return a.begin() < b.begin(); });
-        const auto passage_params = workflow_scripture::passage_params::value_type{ranges.front().begin(), std::nullopt};
-        if(const auto passage_result = workflow_scripture_->passage(passage_params))
-        {
-          retval = result::value_type{
-            .reference_ranges = std::move(ranges),
-            .passage = passage_result.value().passage,
-            .reference_bounding_box = found.bounding_box
-          };
-        }
+        retval = result::value_type{.reference_ranges = std::move(ranges), .reference_bounding_box = found.bounding_box};
       }
       return retval;
     };
@@ -146,12 +137,12 @@ auto workflow_bible_ref_ocr::find(const params& params) -> result
       references && !references->ranges.empty()
     )
     {
-      LOG_INFO("reference search finished: references=[{}]", util::format::join(references->ranges, ", "));
+      LOG_DEBUG("reference search finished: references=[{}]", util::format::join(references->ranges, ", "));
       return construct_result(*references);
     }
     else if(const auto references = find_references(params, local_settings, atype::recognize_just_with_line_recognition))
     {
-      LOG_INFO("reference search finished: references=[{}]", util::format::join(references->ranges, ", "));
+      LOG_DEBUG("reference search finished: references=[{}]", util::format::join(references->ranges, ", "));
       return construct_result(*references);
     }
     else
@@ -181,7 +172,7 @@ auto workflow_bible_ref_ocr::init() -> void
     if(const auto found_tessdata_folder = txt::ocr_engine_tesseract::tessdata_folder_finder())
     {
       LOG_WARN("tessdata path setting invalid: used_alternative_folder=\"{}\"", found_tessdata_folder->generic_string());
-      settings().tessdata_path->value(*found_tessdata_folder);
+      settings().tessdata_path->value(found_tessdata_folder);
     }
   }
   const auto path = settings().tessdata_path->value();
@@ -263,12 +254,12 @@ auto workflow_bible_ref_ocr::find_references(const auto& params, const settings_
   {
     decltype(auto) versification = settings.versification.get();
 
-    auto parse_result = core_bible_ref_finder_->parse(
+    auto parse_result = bible::reference_parser::parse(
       position_data->text, position_data->cursor_character_index, settings.language, versification
     );
     return find_references_result_t{
       .ranges = std::move(parse_result.ranges),
-      .bounding_box = detail::reference_bounding_box(*position_data, parse_result.index_range_origin)
+      .bounding_box = reference_bounding_box(*position_data, parse_result.index_range_origin)
     };
   }
   else

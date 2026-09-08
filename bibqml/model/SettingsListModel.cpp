@@ -19,6 +19,8 @@
 
 namespace bibqml
 {
+namespace
+{
 
 // Typedefs
 // clang-format off
@@ -124,6 +126,8 @@ auto getValidatorType(const auto& setting) -> SettingsListModel::ValidatorType
     []([[maybe_unused]] const validator_list_sptr<value_type>&) { return SettingsListModel::ValidatorType::ListValidatorType; }
   );
 }
+
+} // namespace
 
 ///
 ///
@@ -243,7 +247,7 @@ bool SettingsListModel::setData(const QModelIndex& index, const QVariant& value,
 
 ///
 ///
-Qt::ItemFlags SettingsListModel::flags(const QModelIndex& index) const
+Qt::ItemFlags SettingsListModel::flags([[maybe_unused]] const QModelIndex& /*index*/) const
 {
   return Qt::NoItemFlags;
 }

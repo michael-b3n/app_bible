@@ -63,14 +63,14 @@ template<signal_like T>
 struct signal_signature
 {
 private:
-  using __signature = detail::signal_signature_extractor<typename T::slot_type::signature_type>;
-  using __signature_extended = detail::signal_signature_extractor<typename T::extended_slot_type::signature_type>;
-  static_assert(std::is_same_v<typename __signature::return_type, typename __signature_extended::return_type>);
+  using signature = detail::signal_signature_extractor<typename T::slot_type::signature_type>;
+  using signature_extended = detail::signal_signature_extractor<typename T::extended_slot_type::signature_type>;
+  static_assert(std::is_same_v<typename signature::return_type, typename signature_extended::return_type>);
 
 public:
-  using return_type = typename __signature::return_type;
-  using args_tuple = typename __signature::args_tuple;
-  using extended_args_tuple = typename __signature_extended::args_tuple;
+  using return_type = typename signature::return_type;
+  using args_tuple = typename signature::args_tuple;
+  using extended_args_tuple = typename signature_extended::args_tuple;
 };
 
 ///
