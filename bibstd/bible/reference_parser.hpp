@@ -20,9 +20,9 @@ namespace bibstd::bible
 ///
 /// This class searches strings and identifies bible references.
 ///
-class reference_parser final
+struct reference_parser final
 {
-  // Typedefs
+private: // Typedefs
   ///
   /// Passage numbers and the transition chars separating them, in the order they were read.
   ///
@@ -61,7 +61,7 @@ class reference_parser final
     std::size_t index_numbers_end{0};
   };
 
-  // Constants
+private: // Constants
   ///
   /// List of all characters which can be used to separate passage numbers.
   ///

@@ -29,6 +29,6 @@ writes a `<name>.ocr` next to each of them:
 build/bibstd_test/bibstd_test.exe "[.capture]"
 ```
 
-The capture is hidden from ctest, because it needs the real tesseract engine and the tessdata
-folder. Both paths come from the `BIBSTD_TEST_OCR_DIR` and `BIBSTD_TEST_TESSDATA_DIR` defines
-in `bibstd_test/CMakeLists.txt`.
+The capture is hidden from ctest, because it needs the real tesseract engine. This folder comes
+from the `BIBSTD_TEST_OCR_DIR` define in `bibstd_test/CMakeLists.txt`, the tessdata folder is
+located at runtime by `ocr_engine_tesseract::tessdata_folder_finder`.

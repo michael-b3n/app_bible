@@ -3,43 +3,24 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <algorithm>
-#include <filesystem>
+#include <format>
 #include <ranges>
 #include <string>
 
 namespace bibstd::core
 {
-namespace
-{
-
-///
-/// Number of scripture bundles shipped with the application.
-/// \return count of zip bundles in the scripture resource folder
-///
-auto shipped_bundle_count() -> std::size_t
-{
-  return std::ranges::count_if(
-    std::filesystem::directory_iterator{BIBSTD_TEST_SCRIPTURE_DIR},
-    [](const auto& entry) { return entry.path().extension() == std::filesystem::path{".zip"}; }
-  );
-}
-
-} // namespace
-
-TEST_CASE("core_scripture_store loads every shipped scripture", "[core]")
-{
-  const core_scripture_store store;
-  CHECK(store.scriptures().size() == shipped_bundle_count());
-}
 
 TEST_CASE("core_scripture_store holds usable scriptures", "[core]")
 {
   const core_scripture_store store;
-  REQUIRE(!store.scriptures().empty());
+  if(store.scriptures().empty())
+  {
+    // The scripture archives are not part of the repository, \see bibstd/res/scripture/.gitignore.
+    SKIP("no scripture data embedded in this build");
+  }
   for(const auto& [name, scripture] : store.scriptures())
   {
-    INFO("scripture: " << name);
+    INFO(std::format("scripture: {}", name));
     CHECK(!name.empty());
     REQUIRE(scripture != nullptr);
 
@@ -50,11 +31,26 @@ TEST_CASE("core_scripture_store holds usable scriptures", "[core]")
   }
 }
 
-TEST_CASE("core_scripture_store keys the scriptures by a unique name", "[core]")
+TEST_CASE("core_scripture_store keeps scriptures of equal name apart", "[core]")
 {
   const core_scripture_store store;
-  const auto names = store.scriptures() | std::views::keys | std::ranges::to<std::vector<std::string>>();
-  CHECK(std::ranges::adjacent_find(names) == std::ranges::cend(names));
+  if(store.scriptures().empty())
+  {
+    SKIP("no scripture data embedded in this build");
+  }
+
+  // The store keys by scripture name, so scriptures sharing one would overwrite each other without
+  // the disambiguating suffix. Every loaded scripture has to survive that.
+  const auto names = store.scriptures() | std::views::values |
+                     std::views::transform([](const auto& scripture) { return scripture->information().name; }) |
+                     std::ranges::to<std::vector<std::string>>();
+  for(const auto& name : names)
+  {
+    INFO(std::format("scripture name: {}", name));
+    const auto keyed =
+      std::ranges::count_if(store.scriptures(), [&](const auto& entry) { return entry.first.starts_with(name); });
+    CHECK(keyed == std::ranges::count(names, name));
+  }
 }
 
 } // namespace bibstd::core

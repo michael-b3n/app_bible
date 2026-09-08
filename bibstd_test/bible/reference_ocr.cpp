@@ -1,4 +1,4 @@
-#include "ocr_capture_data.hpp"
+#include "test_utils/ocr_capture_data.hpp"
 
 #include <bibstd/bible/reference_ocr.hpp>
 #include <bibstd/data/pixel.hpp>
@@ -7,15 +7,17 @@
 #include <bibstd/math/rect.hpp>
 #include <bibstd/math/value_range.hpp>
 #include <bibstd/txt/ocr_engine.hpp>
+#include <bibstd/util/scope_guard.hpp>
 #include <bibstd/util/screen_types.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
-#include <cstddef>
 #include <filesystem>
+#include <format>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <vector>
 
@@ -29,7 +31,7 @@ using area_type = util::pixel_plane_view_type::area_type;
 ///
 /// \return Capture box as screen rect
 ///
-auto to_rect(const test::capture_box& box) -> util::screen_rect_type
+auto to_rect(const test_utils::capture_box& box) -> util::screen_rect_type
 {
   return util::screen_rect_type{
     math::coordinates(box.x, box.y), static_cast<std::uint32_t>(box.width), static_cast<std::uint32_t>(box.height)
@@ -45,6 +47,14 @@ auto shifted(const util::screen_rect_type& box, const util::screen_coordinates_t
 }
 
 ///
+/// \return Centre of a capture box, the position a user would point at to hit the word
+///
+auto centre(const test_utils::capture_box& box) -> reference_ocr::position_type
+{
+  return {box.x + (box.width / 2), box.y + (box.height / 2)};
+}
+
+///
 /// OCR engine that replays captured data instead of looking at the image. Recognition honours the
 /// subarea the same way a real engine does: only overlapping words are reported and their boxes are
 /// relative to the subarea, so that reference_ocr has to shift them back itself.
@@ -52,17 +62,15 @@ auto shifted(const util::screen_rect_type& box, const util::screen_coordinates_t
 class capture_engine final : public txt::ocr_engine<txt::ocr_engine_tag_layout_analysis>
 {
   // Variables
-  test::capture_data data_;
-  name_type name_;
+  test_utils::capture_data data_;
   std::optional<area_type> subarea_;
 
 public: // Constants
   static constexpr auto default_name = "capture";
 
 public: // Structors
-  explicit capture_engine(test::capture_data data, name_type name = default_name)
+  explicit capture_engine(test_utils::capture_data data)
     : data_{std::move(data)}
-    , name_{std::move(name)}
   {
   }
 
@@ -73,7 +81,7 @@ public: // Accessors
   auto last_subarea() const -> const std::optional<area_type>& { return subarea_; }
 
 public: // Overrides
-  auto name() const -> name_type override { return name_; }
+  auto name() const -> name_type override { return name_type{default_name}; }
 
   auto initialize([[maybe_unused]] pixel_plane_view_type image, std::optional<area_type> subarea) -> void override
   {
@@ -82,19 +90,16 @@ public: // Overrides
 
   auto recognize() const -> recognition_data override
   {
-    const auto offset = subarea_ ? util::screen_coordinates_type{
-                                     -static_cast<util::screen_rect_type::value_type>(subarea_->origin().x()),
-                                     -static_cast<util::screen_rect_type::value_type>(subarea_->origin().y())
-                                   }
-                                 : util::screen_coordinates_type{0, 0};
-    const auto to_word = [&](const test::capture_text& t) { return word{t.text, shifted(to_rect(t.box), offset)}; };
-    const auto to_line = [&](const test::capture_text& t) { return line{t.text, shifted(to_rect(t.box), offset)}; };
-    const auto to_paragraph = [&](const test::capture_text& t) { return paragraph{t.text, shifted(to_rect(t.box), offset)}; };
+    const auto offset = reported_offset();
+    const auto to_word = [&](const test_utils::capture_text& t) { return word{t.text, shifted(to_rect(t.box), offset)}; };
+    const auto to_line = [&](const test_utils::capture_text& t) { return line{t.text, shifted(to_rect(t.box), offset)}; };
+    const auto to_paragraph = [&](const test_utils::capture_text& t)
+    { return paragraph{t.text, shifted(to_rect(t.box), offset)}; };
 
     auto result = recognition_data{};
     for(const auto& element : data_.words)
     {
-      if(subarea_ && !math::overlap(*subarea_, area_type{to_rect(element.word.box)}))
+      if(!recognized(element.word.box))
       {
         continue;
       }
@@ -123,6 +128,82 @@ public: // Overrides
     }
     return result;
   }
+
+private: // Implementation
+  ///
+  /// A real engine recognizes the subarea clipped to the image, so a subarea reaching over an image
+  /// edge does not shift the result.
+  /// \return Subarea the engine works on, std::nullopt when the whole image is recognized
+  ///
+  auto clipped_subarea() const -> std::optional<area_type>
+  {
+    const auto image_box = test_utils::capture_box{
+      .width = static_cast<std::int32_t>(data_.width), .height = static_cast<std::int32_t>(data_.height)
+    };
+    return subarea_ ? math::overlap(*subarea_, area_type{to_rect(image_box)}) : std::nullopt;
+  }
+
+  ///
+  /// \return Offset turning image coordinates into the coordinates the engine reports its boxes in
+  ///
+  auto reported_offset() const -> util::screen_coordinates_type
+  {
+    const auto clipped = clipped_subarea();
+    return clipped ? util::screen_coordinates_type{
+                       -static_cast<util::screen_rect_type::value_type>(clipped->origin().x()),
+                       -static_cast<util::screen_rect_type::value_type>(clipped->origin().y())
+                     }
+                   : util::screen_coordinates_type{0, 0};
+  }
+
+  ///
+  /// \return true if the element is part of the recognized area
+  ///
+  auto recognized(const test_utils::capture_box& box) const -> bool
+  {
+    if(!subarea_)
+    {
+      return true;
+    }
+    const auto clipped = clipped_subarea();
+    return clipped && math::overlap(*clipped, area_type{to_rect(box)}).has_value();
+  }
+};
+
+///
+/// OCR engine replaying a capture without its paragraphs, the shape a system engine has.
+///
+class line_capture_engine final : public txt::ocr_engine<txt::ocr_engine_tag_plain>
+{
+  // Variables
+  capture_engine engine_;
+
+public: // Constants
+  static constexpr auto default_name = "lines";
+
+public: // Structors
+  explicit line_capture_engine(test_utils::capture_data data)
+    : engine_{std::move(data)}
+  {
+  }
+
+public: // Overrides
+  auto name() const -> name_type override { return name_type{default_name}; }
+
+  auto initialize(pixel_plane_view_type image, std::optional<area_type> subarea) -> void override
+  {
+    engine_.initialize(image, subarea);
+  }
+
+  auto recognize() const -> recognition_data override
+  {
+    auto result = recognition_data{};
+    for(const auto& element : engine_.recognize())
+    {
+      result.emplace_back(recognition_data_element{.word_data = element.word_data, .line_data = element.line_data});
+    }
+    return result;
+  }
 };
 
 ///
@@ -134,7 +215,7 @@ public: // Constants
   static constexpr auto default_name = "plain";
 
 public: // Overrides
-  auto name() const -> name_type override { return default_name; }
+  auto name() const -> name_type override { return name_type{default_name}; }
 
   auto initialize([[maybe_unused]] pixel_plane_view_type image, [[maybe_unused]] std::optional<area_type> subarea)
     -> void override
@@ -148,98 +229,194 @@ public: // Overrides
 /// A designed capture with two paragraphs: the first holds two lines, the second holds one. The
 /// numbers are round so that the areas the paragraph recognition derives can be written down by hand.
 ///
-auto designed_capture() -> test::capture_data
+///   y= 50  Der Vers Johannes 3,     |
+///   y= 80  16 ist bekannt.          | paragraph 1
+///   y=120  Ein anderer Absatz.        paragraph 2
+///
+struct designed_capture final
 {
-  const auto line1 = test::capture_text{
-    .text = "Der Vers Johannes 3,\n", .box = {.x = 50, .y = 50, .width = 200, .height = 20}
-  };
-  const auto line2 = test::capture_text{
-    .text = "16 ist bekannt.\n", .box = {.x = 50, .y = 80, .width = 200, .height = 20}
-  };
-  const auto line3 = test::capture_text{
-    .text = "Ein anderer Absatz.\n", .box = {.x = 50, .y = 120, .width = 200, .height = 20}
-  };
-  const auto paragraph1 = test::capture_text{
-    .text = line1.text + line2.text, .box = {.x = 50, .y = 50, .width = 200, .height = 50}
-  };
-  const auto paragraph2 = test::capture_text{.text = line3.text, .box = line3.box};
+  // Constants
+  static constexpr auto line_height = std::int32_t{20};
+  static constexpr auto paragraph_1_text = "Der Vers Johannes 3,\n16 ist bekannt.\n";
+  static constexpr auto paragraph_2_text = "Ein anderer Absatz.\n";
 
-  const auto word = [](const std::string& text, const std::int32_t x, const std::int32_t y, const std::int32_t width)
+  // Variables
+  test_utils::capture_data data;
+
+  ///
+  /// \see designed_capture
+  ///
+  designed_capture()
   {
-    return test::capture_text{
-      .text = text, .box = {.x = x, .y = y, .width = width, .height = 20}
+    const auto text_of = [](const std::string& text, const std::int32_t x, const std::int32_t y, const std::int32_t width)
+    {
+      return test_utils::capture_text{
+        .text = text, .box = {.x = x, .y = y, .width = width, .height = line_height}
+      };
     };
-  };
+    const auto line1 = text_of("Der Vers Johannes 3,\n", 50, 50, 200);
+    const auto line2 = text_of("16 ist bekannt.\n", 50, 80, 200);
+    const auto line3 = text_of("Ein anderer Absatz.\n", 50, 120, 200);
+    const auto paragraph1 = test_utils::capture_text{
+      .text = line1.text + line2.text, .box = {.x = 50, .y = 50, .width = 200, .height = 50}
+    };
+    const auto paragraph2 = test_utils::capture_text{.text = line3.text, .box = line3.box};
 
-  return test::capture_data{
-    .id = "designed",
-    .width = 300,
-    .height = 180,
-    .layouts =
-      {test::capture_layout{.line = line1.box, .paragraph = paragraph1.box},
-                test::capture_layout{.line = line2.box, .paragraph = paragraph1.box},
-                test::capture_layout{.line = line3.box, .paragraph = paragraph2.box}},
-    .words = {
-                test::capture_word{.word = word("Der", 50, 50, 30), .line = line1, .paragraph = paragraph1},
-                test::capture_word{.word = word("Vers", 90, 50, 40), .line = line1, .paragraph = paragraph1},
-                test::capture_word{.word = word("Johannes", 140, 50, 80), .line = line1, .paragraph = paragraph1},
-                test::capture_word{.word = word("3,", 230, 50, 20), .line = line1, .paragraph = paragraph1},
-                test::capture_word{.word = word("16", 50, 80, 20), .line = line2, .paragraph = paragraph1},
-                test::capture_word{.word = word("ist", 80, 80, 30), .line = line2, .paragraph = paragraph1},
-                test::capture_word{.word = word("bekannt.", 120, 80, 80), .line = line2, .paragraph = paragraph1},
-                test::capture_word{.word = word("Ein", 50, 120, 30), .line = line3, .paragraph = paragraph2},
-                test::capture_word{.word = word("anderer", 90, 120, 70), .line = line3, .paragraph = paragraph2},
-                test::capture_word{.word = word("Absatz.", 170, 120, 70), .line = line3, .paragraph = paragraph2}
+    data = test_utils::capture_data{
+      .id = "designed",
+      .width = 300,
+      .height = 180,
+      .layouts =
+        {test_utils::capture_layout{.line = line1.box, .paragraph = paragraph1.box},
+                  test_utils::capture_layout{.line = line2.box, .paragraph = paragraph1.box},
+                  test_utils::capture_layout{.line = line3.box, .paragraph = paragraph2.box}},
+      .words = {
+                  test_utils::capture_word{.word = text_of("Der", 50, 50, 30), .line = line1, .paragraph = paragraph1},
+                  test_utils::capture_word{.word = text_of("Vers", 90, 50, 40), .line = line1, .paragraph = paragraph1},
+                  test_utils::capture_word{.word = text_of("Johannes", 140, 50, 80), .line = line1, .paragraph = paragraph1},
+                  test_utils::capture_word{.word = text_of("3,", 230, 50, 20), .line = line1, .paragraph = paragraph1},
+                  test_utils::capture_word{.word = text_of("16", 50, 80, 20), .line = line2, .paragraph = paragraph1},
+                  test_utils::capture_word{.word = text_of("ist", 80, 80, 30), .line = line2, .paragraph = paragraph1},
+                  test_utils::capture_word{.word = text_of("bekannt.", 120, 80, 80), .line = line2, .paragraph = paragraph1},
+                  test_utils::capture_word{.word = text_of("Ein", 50, 120, 30), .line = line3, .paragraph = paragraph2},
+                  test_utils::capture_word{.word = text_of("anderer", 90, 120, 70), .line = line3, .paragraph = paragraph2},
+                  test_utils::capture_word{.word = text_of("Absatz.", 170, 120, 70), .line = line3, .paragraph = paragraph2}
+      }
+    };
+  }
+
+  ///
+  /// \return Box of the word with the given text
+  ///
+  auto word(const std::string_view text) const -> test_utils::capture_box
+  {
+    const auto it = std::ranges::find(data.words, text, [](const auto& w) { return std::string_view{w.word.text}; });
+    REQUIRE(it != std::ranges::cend(data.words));
+    return it->word.box;
+  }
+
+  ///
+  /// Move the whole capture, so that the area the paragraph recognition asks for reaches over the image edge.
+  ///
+  auto move_by(const std::int32_t offset) -> void
+  {
+    const auto move = [offset](test_utils::capture_box& box)
+    {
+      box.x -= offset;
+      box.y -= offset;
+    };
+    for(auto& layout : data.layouts)
+    {
+      move(layout.line);
+      if(layout.paragraph)
+      {
+        move(*layout.paragraph);
+      }
     }
-  };
-}
+    for(auto& element : data.words)
+    {
+      move(element.word.box);
+      if(element.line)
+      {
+        move(element.line->box);
+      }
+      if(element.paragraph)
+      {
+        move(element.paragraph->box);
+      }
+    }
+  }
+};
 
 ///
-/// \return Algorithm data driving both algorithms with the capture engine
+/// One capture, the blank image belonging to it and the engines replaying it. The pixels are never
+/// looked at, only the dimensions are, because the recognition clips its area to the image.
 ///
-auto algorithm_data(const reference_ocr::algorithm_type algorithm) -> reference_ocr::algorithm_data
+class ocr_driver final
 {
-  return reference_ocr::algorithm_data{
-    .algorithm = algorithm,
-    .engine_name_character_recognition = capture_engine::default_name,
-    .engine_name_layout_recognition = capture_engine::default_name
-  };
-}
+  // Variables
+  util::pixel_plane_type image_;
+  reference_ocr::ocr_engine_list_type engines_;
+  // Adding engines may move the list, the engines themselves stay put behind their unique_ptr.
+  const capture_engine* capture_engine_{nullptr};
 
-///
-/// \return Centre of a capture box, the position a user would point at to hit the word
-///
-auto centre(const test::capture_box& box) -> reference_ocr::position_type
-{
-  return math::coordinates(box.x + (box.width / 2), box.y + (box.height / 2));
-}
+public: // Structors
+  explicit ocr_driver(const test_utils::capture_data& capture)
+    : image_{capture.width, capture.height}
+  {
+    auto engine = std::make_unique<capture_engine>(capture);
+    capture_engine_ = engine.get();
+    engines_.emplace_back(std::move(engine));
+  }
 
-///
-/// The image is only passed through to the engines, so an empty one is enough for every test here.
-///
-const auto no_image = util::pixel_plane_type{};
+public: // Accessors
+  ///
+  /// \return Engine list, to add further engines or to hand it to reference_ocr directly
+  ///
+  auto engines() -> reference_ocr::ocr_engine_list_type& { return engines_; }
+
+  ///
+  /// \return Blank image with the dimensions of the capture
+  ///
+  auto image() const -> util::pixel_plane_view_type { return util::pixel_plane_view_type{image_}; }
+
+  ///
+  /// \return Subarea the replaying engine was initialized with last
+  ///
+  auto last_subarea() const -> const std::optional<area_type>& { return capture_engine_->last_subarea(); }
+
+public: // Operations
+  ///
+  /// \return Algorithm data driving both algorithms with the replaying engine
+  ///
+  static auto algorithm_data(const reference_ocr::algorithm_type algorithm) -> reference_ocr::algorithm_data
+  {
+    return reference_ocr::algorithm_data{
+      .algorithm = algorithm,
+      .engine_name_character_recognition = capture_engine::default_name,
+      .engine_name_layout_recognition = capture_engine::default_name
+    };
+  }
+
+  ///
+  /// Run the recognition at the given position.
+  /// \return Result of \see reference_ocr::run
+  ///
+  auto run(
+    const reference_ocr::position_type position,
+    const reference_ocr::algorithm_type algorithm = reference_ocr::algorithm_type::recognize_with_paragraph_recognition
+  )
+  {
+    return reference_ocr::run(engines_, image(), position, algorithm_data(algorithm));
+  }
+
+  ///
+  /// Run the recognition at the centre of the given box.
+  /// \return Result of \see reference_ocr::run
+  ///
+  auto run_at(
+    const test_utils::capture_box& box,
+    const reference_ocr::algorithm_type algorithm = reference_ocr::algorithm_type::recognize_with_paragraph_recognition
+  )
+  {
+    return run(centre(box), algorithm);
+  }
+};
 
 } // namespace
 
 TEST_CASE("reference_ocr resolves the position to a character of the paragraph", "[bible]")
 {
-  const auto capture = designed_capture();
-  auto engines = reference_ocr::ocr_engine_list_type{};
-  engines.emplace_back(std::make_unique<capture_engine>(capture));
+  const auto capture = designed_capture{};
+  auto driver = ocr_driver{capture.data};
 
-  GIVEN("a position on a word of the first paragraph")
+  SECTION("a position on a word of the first paragraph")
   {
-    const auto& johannes = capture.words.at(2);
-    const auto result = reference_ocr::run(
-      engines,
-      util::pixel_plane_view_type{no_image},
-      centre(johannes.word.box),
-      algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition)
-    );
+    const auto result = driver.run_at(capture.word("Johannes"));
     REQUIRE(result.has_value());
 
     // Both lines belong to one paragraph, so the whole paragraph is returned, line break included.
-    CHECK(result->text == "Der Vers Johannes 3,\n16 ist bekannt.\n");
+    CHECK(result->text == designed_capture::paragraph_1_text);
     CHECK(result->character_bounding_boxes.size() == result->text.size());
 
     // The cursor character has to land inside the word that was pointed at.
@@ -248,55 +425,69 @@ TEST_CASE("reference_ocr resolves the position to a character of the paragraph",
     CHECK(result->cursor_character_index >= word_begin);
     CHECK(result->cursor_character_index < word_begin + std::string_view{"Johannes"}.size());
   }
-  GIVEN("a position on a word of the second paragraph")
+  SECTION("a position on a word of the second paragraph")
   {
-    const auto& absatz = capture.words.at(9);
-    const auto result = reference_ocr::run(
-      engines,
-      util::pixel_plane_view_type{no_image},
-      centre(absatz.word.box),
-      algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition)
-    );
+    const auto result = driver.run_at(capture.word("Absatz."));
     REQUIRE(result.has_value());
-    CHECK(result->text == "Ein anderer Absatz.\n");
+    CHECK(result->text == designed_capture::paragraph_2_text);
   }
-  GIVEN("a position outside every line")
+  SECTION("a position outside every line")
   {
-    const auto result = reference_ocr::run(
-      engines,
-      util::pixel_plane_view_type{no_image},
-      math::coordinates(290, 175),
-      algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition)
-    );
+    const auto result = driver.run(math::coordinates(290, 175));
     REQUIRE(result.has_value());
     CHECK(result->text.empty());
     CHECK(result->character_bounding_boxes.empty());
+  }
+  SECTION("recognition without layout analysis")
+  {
+    const auto result =
+      driver.run_at(capture.word("Johannes"), reference_ocr::algorithm_type::recognize_just_with_line_recognition);
+    REQUIRE(result.has_value());
+
+    // Without a subarea the whole image is recognized, but the reported element is the same.
+    CHECK(result->text == designed_capture::paragraph_1_text);
+    CHECK(result->character_bounding_boxes.size() == result->text.size());
+  }
+}
+
+TEST_CASE("reference_ocr keeps the lines around the position when the engine reports no paragraph", "[bible]")
+{
+  // A reference may be broken over a line break, so a line only engine would cut it in half.
+  const auto capture = designed_capture{};
+  auto driver = ocr_driver{capture.data};
+  driver.engines().emplace_back(std::make_unique<line_capture_engine>(capture.data));
+
+  auto ad = ocr_driver::algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition);
+  ad.engine_name_character_recognition = line_capture_engine::default_name;
+
+  SECTION("both lines of the recognized paragraph")
+  {
+    const auto result = reference_ocr::run(driver.engines(), driver.image(), centre(capture.word("Johannes")), ad);
+    REQUIRE(result.has_value());
+    CHECK(result->text == designed_capture::paragraph_1_text);
+    CHECK(result->character_bounding_boxes.size() == result->text.size());
+  }
+  SECTION("without layout analysis only the line above and below")
+  {
+    ad.algorithm = reference_ocr::algorithm_type::recognize_just_with_line_recognition;
+    const auto result = reference_ocr::run(driver.engines(), driver.image(), centre(capture.word("anderer")), ad);
+    REQUIRE(result.has_value());
+
+    // The whole image is recognized here, so the first line stays out of the text.
+    CHECK(result->text == "16 ist bekannt.\nEin anderer Absatz.\n");
   }
 }
 
 TEST_CASE("reference_ocr widens the recognition area to the paragraph", "[bible]")
 {
-  const auto capture = designed_capture();
-  auto engine = std::make_unique<capture_engine>(capture);
-  const auto* const engine_ptr = engine.get();
-  auto engines = reference_ocr::ocr_engine_list_type{};
-  engines.emplace_back(std::move(engine));
+  const auto capture = designed_capture{};
+  auto driver = ocr_driver{capture.data};
 
-  const auto run_at = [&](const test::capture_box& box)
+  SECTION("a position on the first line of a two line paragraph")
   {
-    return reference_ocr::run(
-      engines,
-      util::pixel_plane_view_type{no_image},
-      centre(box),
-      algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition)
-    );
-  };
-
-  GIVEN("a position on the first line of a two line paragraph")
-  {
-    std::ignore = run_at(capture.words.at(0).word.box);
-    REQUIRE(engine_ptr->last_subarea().has_value());
-    const auto& area = *engine_ptr->last_subarea();
+    std::ignore = driver.run_at(capture.word("Der"));
+    REQUIRE(driver.last_subarea().has_value());
+    const auto& area = *driver.last_subarea();
 
     // The next line of the same paragraph is taken in, then half a line height is added as padding.
     CHECK(area.origin().x() == 40);
@@ -304,11 +495,11 @@ TEST_CASE("reference_ocr widens the recognition area to the paragraph", "[bible]
     CHECK(math::size(area.horizontal_range()) == 220);
     CHECK(math::size(area.vertical_range()) == 70);
   }
-  GIVEN("a position on a paragraph of a single line")
+  SECTION("a position on a paragraph of a single line")
   {
-    std::ignore = run_at(capture.words.at(7).word.box);
-    REQUIRE(engine_ptr->last_subarea().has_value());
-    const auto& area = *engine_ptr->last_subarea();
+    std::ignore = driver.run_at(capture.word("Ein"));
+    REQUIRE(driver.last_subarea().has_value());
+    const auto& area = *driver.last_subarea();
 
     // There is no neighbouring line of the same paragraph, so only the padding is added.
     CHECK(area.origin().x() == 40);
@@ -322,105 +513,133 @@ TEST_CASE("reference_ocr reports character boxes in image coordinates", "[bible]
 {
   // The character recognition runs on a subarea and reports boxes relative to it, so the result is
   // only usable after reference_ocr shifted them back into the coordinate system of the image.
-  const auto capture = designed_capture();
-  auto engines = reference_ocr::ocr_engine_list_type{};
-  engines.emplace_back(std::make_unique<capture_engine>(capture));
+  const auto capture = designed_capture{};
+  auto driver = ocr_driver{capture.data};
 
-  const auto& johannes = capture.words.at(2);
-  const auto result = reference_ocr::run(
-    engines,
-    util::pixel_plane_view_type{no_image},
-    centre(johannes.word.box),
-    algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition)
-  );
+  const auto johannes = capture.word("Johannes");
+  const auto result = driver.run_at(johannes);
   REQUIRE(result.has_value());
   REQUIRE(result->cursor_character_index < result->character_bounding_boxes.size());
 
   const auto& cursor_box = result->character_bounding_boxes.at(result->cursor_character_index);
   REQUIRE(cursor_box.has_value());
-  CHECK(math::overlap(*cursor_box, to_rect(johannes.word.box)).has_value());
+  CHECK(math::overlap(*cursor_box, to_rect(johannes)).has_value());
 }
 
-TEST_CASE("reference_ocr recognizes without layout analysis", "[bible]")
+TEST_CASE("reference_ocr reports character boxes of a paragraph at the image edge", "[bible]")
 {
-  const auto capture = designed_capture();
-  auto engines = reference_ocr::ocr_engine_list_type{};
-  engines.emplace_back(std::make_unique<capture_engine>(capture));
+  // The padding the paragraph recognition adds reaches over the image edge here, so the recognized
+  // area is clipped. The boxes are relative to the clipped area and must still come back in image
+  // coordinates.
+  auto capture = designed_capture{};
+  capture.move_by(46);
+  auto driver = ocr_driver{capture.data};
 
-  const auto result = reference_ocr::run(
-    engines,
-    util::pixel_plane_view_type{no_image},
-    centre(capture.words.at(2).word.box),
-    algorithm_data(reference_ocr::algorithm_type::recognize_just_with_line_recognition)
-  );
+  const auto johannes = capture.word("Johannes");
+  const auto result = driver.run_at(johannes);
   REQUIRE(result.has_value());
 
-  // Without a subarea the whole image is recognized, but the reported element is the same.
-  CHECK(result->text == "Der Vers Johannes 3,\n16 ist bekannt.\n");
-  CHECK(result->character_bounding_boxes.size() == result->text.size());
+  // The area asked for starts above the image, so the engine sees it clipped to the image edge.
+  REQUIRE(driver.last_subarea().has_value());
+  CHECK(driver.last_subarea()->origin().x() == 0);
+  CHECK(driver.last_subarea()->origin().y() == 0);
+
+  // The first character of the paragraph is the first character of its first word, so its box
+  // pins the coordinate system the boxes are reported in.
+  REQUIRE_FALSE(result->character_bounding_boxes.empty());
+  const auto& first_box = result->character_bounding_boxes.front();
+  REQUIRE(first_box.has_value());
+  CHECK(first_box->origin().x() == capture.data.words.front().word.box.x);
+  CHECK(first_box->origin().y() == capture.data.words.front().word.box.y);
+
+  REQUIRE(result->cursor_character_index < result->character_bounding_boxes.size());
+  const auto& cursor_box = result->character_bounding_boxes.at(result->cursor_character_index);
+  REQUIRE(cursor_box.has_value());
+  CHECK(math::overlap(*cursor_box, to_rect(johannes)).has_value());
 }
 
 TEST_CASE("reference_ocr rejects unusable engine setups", "[bible]")
 {
-  const auto capture = designed_capture();
-  const auto position = centre(capture.words.at(2).word.box);
-  const auto image = util::pixel_plane_view_type{no_image};
+  const auto capture = designed_capture{};
+  auto driver = ocr_driver{capture.data};
+  const auto position = centre(capture.word("Johannes"));
 
-  GIVEN("no engine with the requested character recognition name")
+  auto ad = ocr_driver::algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition);
+  auto expected_error = reference_ocr::unexpected_ocr_result::error;
+
+  SECTION("no engine with the requested character recognition name")
   {
-    auto engines = reference_ocr::ocr_engine_list_type{};
-    engines.emplace_back(std::make_unique<capture_engine>(capture));
-    auto ad = algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition);
     ad.engine_name_character_recognition = "not the name of any engine";
-
-    const auto result = reference_ocr::run(engines, image, position, ad);
-    REQUIRE_FALSE(result.has_value());
-    CHECK(result.error() == reference_ocr::unexpected_ocr_result::error);
   }
-  GIVEN("no engine for the layout recognition")
+  SECTION("no engine for the layout recognition")
   {
-    auto engines = reference_ocr::ocr_engine_list_type{};
-    engines.emplace_back(std::make_unique<capture_engine>(capture));
-    auto ad = algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition);
     ad.engine_name_layout_recognition = std::nullopt;
-
-    const auto result = reference_ocr::run(engines, image, position, ad);
-    REQUIRE_FALSE(result.has_value());
-    CHECK(result.error() == reference_ocr::unexpected_ocr_result::error);
   }
-  GIVEN("an engine without layout analysis support for the paragraph recognition")
+  SECTION("an engine without layout analysis support for the paragraph recognition")
   {
-    auto engines = reference_ocr::ocr_engine_list_type{};
-    engines.emplace_back(std::make_unique<capture_engine>(capture));
-    engines.emplace_back(std::make_unique<plain_engine>());
-    auto ad = algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition);
+    driver.engines().emplace_back(std::make_unique<plain_engine>());
     ad.engine_name_layout_recognition = plain_engine::default_name;
-
-    const auto result = reference_ocr::run(engines, image, position, ad);
-    REQUIRE_FALSE(result.has_value());
-    CHECK(result.error() == reference_ocr::unexpected_ocr_result::error);
   }
-  GIVEN("an undefined engine")
+  SECTION("an undefined engine")
   {
-    auto engines = reference_ocr::ocr_engine_list_type{};
-    engines.emplace_back(std::monostate{});
-    auto ad = algorithm_data(reference_ocr::algorithm_type::recognize_just_with_line_recognition);
+    driver.engines().emplace_back(std::monostate{});
+    ad.algorithm = reference_ocr::algorithm_type::recognize_just_with_line_recognition;
     ad.engine_name_character_recognition = "Undefined";
-
-    const auto result = reference_ocr::run(engines, image, position, ad);
-    REQUIRE_FALSE(result.has_value());
-    CHECK(result.error() == reference_ocr::unexpected_ocr_result::error);
   }
-  GIVEN("an unsupported algorithm")
+  SECTION("an unsupported algorithm")
   {
-    auto engines = reference_ocr::ocr_engine_list_type{};
-    engines.emplace_back(std::make_unique<capture_engine>(capture));
-    auto ad = algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition);
     ad.algorithm = static_cast<reference_ocr::algorithm_type>(-1);
+    expected_error = reference_ocr::unexpected_ocr_result::unsupported;
+  }
 
-    const auto result = reference_ocr::run(engines, image, position, ad);
-    REQUIRE_FALSE(result.has_value());
-    CHECK(result.error() == reference_ocr::unexpected_ocr_result::unsupported);
+  const auto result = reference_ocr::run(driver.engines(), driver.image(), position, ad);
+  REQUIRE_FALSE(result.has_value());
+  CHECK(result.error() == expected_error);
+}
+
+TEST_CASE("capture data survives a write and read cycle", "[bible]")
+{
+  const auto path = std::filesystem::temp_directory_path() / "bibstd_test_capture.ocr";
+  const auto guard = util::scope_guard{[&] { std::filesystem::remove(path); }};
+
+  const auto capture = designed_capture{};
+  REQUIRE(test_utils::write_capture(path, capture.data));
+
+  SECTION("everything the capture holds comes back")
+  {
+    const auto read = test_utils::read_capture(path);
+    REQUIRE(read.has_value());
+    CHECK(read->id == path.stem().string());
+    CHECK(read->width == capture.data.width);
+    CHECK(read->height == capture.data.height);
+
+    REQUIRE(read->layouts.size() == capture.data.layouts.size());
+    for(const auto& [expected, actual] : std::views::zip(capture.data.layouts, read->layouts))
+    {
+      CHECK(actual.line == expected.line);
+      CHECK(actual.paragraph == expected.paragraph);
+    }
+
+    REQUIRE(read->words.size() == capture.data.words.size());
+    for(const auto& [expected, actual] : std::views::zip(capture.data.words, read->words))
+    {
+      // The line breaks of the line and paragraph texts have to survive the escaping.
+      CHECK(actual.word == expected.word);
+      CHECK(actual.line == expected.line);
+      CHECK(actual.paragraph == expected.paragraph);
+    }
+  }
+  SECTION("a capture killed mid write is rejected")
+  {
+    // Cutting the file leaves a record without its numbers, which is what a killed capture leaves behind.
+    const auto size = std::filesystem::file_size(path);
+    REQUIRE(size > 20);
+    std::filesystem::resize_file(path, size - 20);
+    CHECK_FALSE(test_utils::read_capture(path).has_value());
+  }
+  SECTION("a missing file is no capture")
+  {
+    CHECK_FALSE(test_utils::read_capture(path.parent_path() / "no_such_capture.ocr").has_value());
   }
 }
 
@@ -428,29 +647,24 @@ TEST_CASE("reference_ocr handles captured screenshots", "[bible]")
 {
   // The captures are produced from local screenshots and are not part of the repository,
   // \see bibstd_test/res/ocr/README.md.
-  const auto captures = test::read_captures(std::filesystem::path{BIBSTD_TEST_OCR_DIR});
+  const auto captures = test_utils::read_captures(std::filesystem::path{BIBSTD_TEST_OCR_DIR});
   if(captures.empty())
   {
-    SKIP("no ocr captures in " << BIBSTD_TEST_OCR_DIR);
+    SKIP(std::format("no ocr captures in {}", BIBSTD_TEST_OCR_DIR));
   }
 
   for(const auto& capture : captures)
   {
-    INFO("capture: " << capture.id);
+    INFO(std::format("capture: {}", capture.id));
     const auto image_area = util::screen_rect_type{math::coordinates(0, 0), capture.width, capture.height};
+
+    // run() re-initializes the engine on every call, so one driver serves the whole capture.
+    auto driver = ocr_driver{capture};
 
     for(const auto& element : capture.words)
     {
-      INFO("word: \"" << element.word.text << "\"");
-      auto engines = reference_ocr::ocr_engine_list_type{};
-      engines.emplace_back(std::make_unique<capture_engine>(capture));
-
-      const auto result = reference_ocr::run(
-        engines,
-        util::pixel_plane_view_type{no_image},
-        centre(element.word.box),
-        algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition)
-      );
+      INFO(std::format("word: \"{}\"", element.word.text));
+      const auto result = driver.run_at(element.word.box);
       REQUIRE(result.has_value());
 
       // One box per character, so that the caller can address every character of the text.

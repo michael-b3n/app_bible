@@ -20,6 +20,13 @@ target_sources(bibstd_test
 )
 
 #
+# Make the test helpers includable by their path below the test root, e.g. "test_utils/ocr_capture_data.hpp".
+#
+target_include_directories(bibstd_test
+  PRIVATE ${CMAKE_CURRENT_LIST_DIR}
+)
+
+#
 # Provide the scripture resource folder. The embedded scripture data cannot be reused here, because including
 # `bibstd/res/scripture.hpp` emits the data itself and is therefore limited to a single translation unit.
 #
@@ -29,12 +36,11 @@ target_compile_definitions(bibstd_test
 )
 
 #
-# Provide the OCR image folder and the tessdata folder. Both are only needed by the one off capture
-# that turns a screenshot into the OCR test data, see bibstd_test/res/ocr/README.md.
+# Provide the OCR image folder. The tessdata folder the capture needs is located at runtime by
+# ocr_engine_tesseract::tessdata_folder_finder, see bibstd_test/res/ocr/README.md.
 #
 target_compile_definitions(bibstd_test
   PRIVATE BIBSTD_TEST_OCR_DIR="${CMAKE_CURRENT_LIST_DIR}/res/ocr"
-  PRIVATE BIBSTD_TEST_TESSDATA_DIR="${bibstd_test_PARENT_DIR}/app_bible_assistant/res/tessdata"
 )
 
 #

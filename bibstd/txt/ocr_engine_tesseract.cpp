@@ -4,6 +4,7 @@
 #include "bibstd/util/const_map.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
+#include "bibstd/util/numeric_cast.hpp"
 #include "bibstd/util/visit_helper.hpp"
 
 #include <boost/filesystem/path.hpp>
@@ -158,10 +159,30 @@ auto ocr_engine_tesseract::initialize(
 ) -> void
 {
   image_data_.clear();
+  auto width = image.width();
+  auto height = image.height();
+
   if(subarea)
   {
-    image_data_.resize(image.data_view_size(*subarea));
-    std::ranges::copy(image.data_view(*subarea), image_data_.begin());
+    using area_type = pixel_plane_view_type::area_type;
+    const auto image_area = area_type{
+      math::coordinates{0, 0},
+      image.width(), image.height()
+    };
+    const auto clipped = math::overlap(*subarea, image_area);
+    if(!clipped || math::empty(*clipped))
+    {
+      // The subarea lies outside the image, so there is nothing to recognize. Without an image
+      // recognize() and layout_analysis() report an empty result instead of tesseract working
+      // on a zero sized one.
+      LOG_WARN("tesseract subarea lies outside the image: subarea={}", *subarea);
+      tesseract_->Clear();
+      return;
+    }
+    width = numeric_cast<decltype(width)>(math::size(clipped->horizontal_range()));
+    height = numeric_cast<decltype(height)>(math::size(clipped->vertical_range()));
+    image_data_.resize(image.data_view_size(*clipped));
+    std::ranges::copy(image.data_view(*clipped), image_data_.begin());
   }
   else
   {
@@ -169,7 +190,7 @@ auto ocr_engine_tesseract::initialize(
     std::ranges::copy(image, image_data_.begin());
   }
   // copy needed since pix requires to be non const
-  auto pix = forward_as_pix(image_data_, image.width(), image.height());
+  auto pix = forward_as_pix(image_data_, width, height);
   tesseract_->SetImage(&pix);
   tesseract_->SetPageSegMode(tesseract::PSM_AUTO_OSD);
 }
@@ -178,6 +199,10 @@ auto ocr_engine_tesseract::initialize(
 ///
 auto ocr_engine_tesseract::recognize() const -> recognition_data
 {
+  if(image_data_.empty())
+  {
+    return {};
+  }
   if(const auto retval = tesseract_->Recognize(nullptr); retval != 0)
   {
     throw util::exception{std::format("tesseract recognition failure: code={}", retval)};
@@ -237,6 +262,10 @@ auto ocr_engine_tesseract::layout_analysis() const -> std::vector<line_layout>
 {
   static constexpr auto line_level = page_iterator_level(tag<line>{});
   auto result = std::vector<line_layout>{};
+  if(image_data_.empty())
+  {
+    return result;
+  }
   std::unique_ptr<tesseract::PageIterator> pi(tesseract_->AnalyseLayout(false));
   if(pi)
   {

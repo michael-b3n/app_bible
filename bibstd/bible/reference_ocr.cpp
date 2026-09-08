@@ -17,6 +17,7 @@
 #include <limits>
 #include <optional>
 #include <ranges>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <variant>
@@ -107,6 +108,92 @@ auto generate_character_positions(const auto& recognition_data, std::string_view
 }
 
 ///
+/// Text a reference is searched in, together with the area it covers.
+///
+struct position_text final
+{
+  std::string text;
+  typename txt::ocr_engine<>::bounding_box_type bounding_box;
+};
+
+///
+/// Collect the text belonging to the recognized element the position falls into. An engine with layout
+/// analysis groups the lines into paragraphs itself, an engine without reports lines only. There the line
+/// above and below are taken as well, otherwise a reference broken over a line break is cut in half.
+/// \return text around the position and its bounding box
+///
+auto text_around(const auto& recognition_data, const auto& cursor_element) -> position_text
+{
+  if constexpr(has_paragraph_data<decltype(cursor_element)>)
+  {
+    if(cursor_element.paragraph_data)
+    {
+      return {cursor_element.paragraph_data->text, cursor_element.paragraph_data->bounding_box};
+    }
+  }
+  if(!cursor_element.line_data)
+  {
+    return {cursor_element.word_data.text, cursor_element.word_data.bounding_box};
+  }
+
+  // Every recognized word carries the line it sits on and the words are reported in reading order,
+  // so taking the line of each word lists every line once and in reading order.
+  static constexpr auto collect_lines = [](const auto& recognition_data)
+  {
+    using line_type = std::remove_cvref_t<decltype(*recognition_data.front().line_data)>;
+    auto lines = std::vector<std::reference_wrapper<const line_type>>{};
+    std::ranges::for_each(
+      recognition_data | std::views::filter([](const auto& e) { return e.line_data.has_value(); }),
+      [&](const auto& element)
+      {
+        const auto is_new_line = lines.empty() || lines.back().get().bounding_box != element.line_data->bounding_box;
+        if(is_new_line)
+        {
+          lines.emplace_back(*element.line_data);
+        }
+      }
+    );
+    return lines;
+  };
+
+  auto result = position_text{.text = cursor_element.line_data->text, .bounding_box = cursor_element.line_data->bounding_box};
+  const auto lines = collect_lines(recognition_data);
+  // The cursor element is one of the elements just visited, so its line is part of the list.
+  const auto cursor_line =
+    std::ranges::find(lines, cursor_element.line_data->bounding_box, [](const auto& l) { return l.get().bounding_box; });
+  if(cursor_line != std::ranges::cend(lines))
+  {
+    // clang-format off
+    const auto first = cursor_line == std::ranges::cbegin(lines) ? cursor_line : std::ranges::prev(cursor_line);
+    const auto end = std::ranges::next(cursor_line) == std::ranges::cend(lines) ? std::ranges::cend(lines) : std::ranges::next(cursor_line, 2);
+    // clang-format on
+    result = position_text{.text = {}, .bounding_box = first->get().bounding_box};
+    std::ranges::for_each(
+      std::ranges::subrange{first, end},
+      [&](const auto& l)
+      {
+        // Terminate every line with exactly one '\n'. The engines differ in whether they terminate their
+        // line text at all and in the break characters they use, and without a break the last word of a
+        // line and the first word of the next one would be read as a single word.
+        auto line_text = std::string_view{l.get().text};
+        while(line_text.ends_with('\n') || line_text.ends_with('\r'))
+        {
+          line_text.remove_suffix(1);
+        }
+        result.text.append(line_text);
+        result.text.push_back('\n');
+        result.bounding_box = math::surrounding_rect(result.bounding_box, l.get().bounding_box);
+      }
+    );
+  }
+  else
+  {
+    LOG_WARN("cursor line not found in lines: cursor line bounding box: {}", cursor_element.line_data->bounding_box);
+  }
+  return result;
+}
+
+///
 /// Find index corresponding to char within recognized in text using position and bounding box data.
 /// \return text and index as expected result and an error code as and unexpected result.
 ///
@@ -141,27 +228,7 @@ auto find_index(const auto& recognition_data, const reference_ocr::position_type
   if(data_ref)
   {
     const auto& data = data_ref->get();
-    const auto element = [&]()
-    {
-      if constexpr(has_paragraph_data<decltype(data)>)
-      {
-        if(data.paragraph_data)
-        {
-          return std::pair{std::ref(data.paragraph_data->text), std::ref(data.paragraph_data->bounding_box)};
-        }
-      }
-      if(data.line_data)
-      {
-        return std::pair{std::ref(data.line_data->text), std::ref(data.line_data->bounding_box)};
-      }
-      else
-      {
-        return std::pair{std::ref(data.word_data.text), std::ref(data.word_data.bounding_box)};
-      }
-    }();
-    decltype(auto) text = element.first.get();
-    static_assert(std::is_same_v<decltype(text), const std::string&>);
-    decltype(auto) bounding_box = element.second.get();
+    const auto [text, bounding_box] = text_around(recognition_data, data);
     const auto character_bounding_boxes = generate_character_positions(recognition_data, text, bounding_box);
     assert(character_bounding_boxes.size() == text.size());
     const auto to_distance = [&](const auto& p)
@@ -185,7 +252,7 @@ auto find_index(const auto& recognition_data, const reference_ocr::position_type
         "returns reference position data: text=\"{}[{}]{}\"",
         text.subview(0, distance),
         text.at(distance),
-        text.subview(std::min(static_cast<std::size_t>(distance + 1), text.size() - 1), distance)
+        text.subview(std::min(static_cast<std::size_t>(distance) + 1, text.size()))
       );
     }
     auto boxes = character_bounding_boxes |
@@ -364,9 +431,14 @@ auto recognize_with_paragraph_recognition(
     const auto& engine = engine_ref->get();
     if(const auto area = run_paragraph_recognition(engines, image, position, ad))
     {
-      if(!math::empty(*area))
+      // The padding added around the lines can reach outside the image. An engine recognizes the
+      // area clipped to the image, so the character boxes it reports are relative to the clipped
+      // area and it is that origin the boxes have to be shifted back by.
+      const auto clipped = math::overlap(*area, util::screen_rect_type{math::coordinates(0, 0), image.width(), image.height()});
+      if(clipped && !math::empty(*clipped))
       {
-        const auto relative_position = position - area->origin();
+        const auto origin = clipped->origin();
+        const auto relative_position = position - origin;
         return util::visit_lambdas(
           engine,
           []([[maybe_unused]] const std::monostate&) -> return_type
@@ -374,14 +446,14 @@ auto recognize_with_paragraph_recognition(
           [&](const txt::ocr_engine<txt::ocr_engine_tag_plain>::uptr_type& e) -> return_type
           {
             SCOPED_TIMER_LOG();
-            e->initialize(image, *area);
-            return shift_character_bounding_boxes(find_index(e->recognize(), relative_position), area->origin());
+            e->initialize(image, *clipped);
+            return shift_character_bounding_boxes(find_index(e->recognize(), relative_position), origin);
           },
           [&](const txt::ocr_engine<txt::ocr_engine_tag_layout_analysis>::uptr_type& e) -> return_type
           {
             SCOPED_TIMER_LOG();
-            e->initialize(image, *area);
-            return shift_character_bounding_boxes(find_index(e->recognize(), relative_position), area->origin());
+            e->initialize(image, *clipped);
+            return shift_character_bounding_boxes(find_index(e->recognize(), relative_position), origin);
           }
         );
       }
