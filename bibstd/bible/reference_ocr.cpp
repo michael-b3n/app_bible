@@ -48,59 +48,153 @@ concept has_paragraph_data = requires(T t) { t.paragraph_data; };
 }
 
 ///
-/// Generate character positions by matching the word bounding boxes to the text bounding box.
-/// \return list of bounding boxes for each char
+/// Consecutive words of the recognition data, given as the index range [begin, end) into it. The
+/// engines report their words in reading order, so the words of one line or paragraph are consecutive.
 ///
-auto generate_character_positions(const auto& recognition_data, std::string_view text, const auto& bounding_box)
-  -> std::vector<std::optional<std::pair<std::size_t, typename txt::ocr_engine<>::bounding_box_type>>>
+struct word_range final
 {
-  auto result = std::vector<std::optional<std::pair<std::size_t, typename txt::ocr_engine<>::bounding_box_type>>>(text.size());
-  auto current_text = text;
-  auto current_text_offset = std::size_t{0};
+  // Variables
+  std::size_t begin{0};
+  std::size_t end{0};
 
-  const auto overlapping_word_data = [&](const auto& p)
+  ///
+  /// \return true if the word belongs to the range
+  ///
+  [[nodiscard]] auto contains(const std::size_t word_index) const -> bool { return word_index >= begin && word_index < end; }
+
+  ///
+  /// \return indices of the words in reading order
+  ///
+  [[nodiscard]] auto indices() const -> auto { return util::ranges::index_view_between(begin, end); }
+};
+
+///
+/// This struct holds the text a reference is searched in, together
+/// with the words it was built from.
+///
+struct position_text final
+{
+  ///
+  /// Text one recognized line or paragraph supplied, together with the words written in it.
+  ///
+  struct text_run final
   {
-    const auto [data_index, data] = p;
-    return math::overlap(bounding_box, data.word_data.bounding_box).has_value() && !data.word_data.text.empty();
+    // Position of the run within the text.
+    std::size_t begin;
+    std::size_t size;
+    // Words the run was written from.
+    word_range words;
   };
 
+  // Variables
+  std::string text;
+  std::vector<text_run> runs;
+  // Words of the line that was pointed at.
+  word_range focus_line_words;
+};
+
+///
+/// Widen the range around the given word as long as the predicate accepts the neighbour. A word the
+/// predicate rejects ends the range, so words it accepts elsewhere in the data stay out of it.
+/// \return consecutive accepted words around the given one
+///
+auto words_around(const auto& recognition_data, const std::size_t word_index, const auto& predicate) -> word_range
+{
+  auto result = word_range{.begin = word_index, .end = word_index + 1};
+  while(result.begin > 0 && predicate(recognition_data.at(result.begin - 1)))
+  {
+    --result.begin;
+  }
+  while(result.end < recognition_data.size() && predicate(recognition_data.at(result.end)))
+  {
+    ++result.end;
+  }
+  return result;
+}
+
+///
+/// Check whether the recognized element sits on the line with the given bounding box. Every word of
+/// a line carries the bounding box of its own line, so equality identifies the line.
+/// \return true if the element sits on that line
+///
+auto on_line(const auto& element, const auto& line_bounding_box) -> bool
+{
+  return element.line_data && element.line_data->bounding_box == line_bounding_box;
+}
+
+///
+/// Take the text of one recognized element as a whole, written by the given words.
+/// \return text with a single run over all of it
+///
+auto whole_of(const auto& element_text, const word_range words) -> position_text
+{
+  return position_text{
+    .text = element_text,
+    .runs = {position_text::text_run{.begin = 0, .size = element_text.size(), .words = words}},
+    .focus_line_words = {}
+  };
+}
+
+///
+/// Take the text of the paragraph the cursor word sits in. Only an engine with layout analysis
+/// reports paragraphs at all.
+/// \return text of the paragraph and the words written in it, nothing without a paragraph
+///
+auto paragraph_text(const auto& recognition_data, const std::size_t cursor_word_index) -> std::optional<position_text>
+{
+  const auto& cursor_element = recognition_data.at(cursor_word_index);
+  if constexpr(has_paragraph_data<decltype(cursor_element)>)
+  {
+    if(cursor_element.paragraph_data)
+    {
+      const auto& paragraph_bounding_box = cursor_element.paragraph_data->bounding_box;
+      const auto in_paragraph = [&](const auto& e)
+      { return e.paragraph_data && e.paragraph_data->bounding_box == paragraph_bounding_box; };
+      return whole_of(cursor_element.paragraph_data->text, words_around(recognition_data, cursor_word_index, in_paragraph));
+    }
+  }
+  return std::nullopt;
+}
+
+///
+/// One recognized line together with the words written on it.
+///
+template<typename LineType>
+struct line_words final
+{
+  std::reference_wrapper<const LineType> line;
+  word_range words;
+};
+
+///
+/// Group the recognized words into the lines they sit on. Every word carries the line it sits on and
+/// the words are reported in reading order, so a change of the line ends the current group.
+/// \return lines in reading order, each with the words written on it
+///
+auto collect_lines(const auto& recognition_data) -> auto
+{
+  using element_type = std::ranges::range_value_t<std::remove_cvref_t<decltype(recognition_data)>>;
+  using line_type = typename decltype(element_type::line_data)::value_type;
+
+  auto result = std::vector<line_words<line_type>>{};
   std::ranges::for_each(
-    recognition_data | std::views::enumerate | std::views::filter(overlapping_word_data),
+    recognition_data | std::views::enumerate,
     [&](const auto& p)
     {
-      const auto [data_index, data] = p;
-      const auto pos = current_text.find(std::string_view{data.word_data.text});
-      if(pos != std::string_view::npos)
+      const auto& [index, element] = p;
+      if(!element.line_data)
       {
-        current_text = current_text.substr(pos);
-        current_text_offset += pos;
-
-        const auto word_size = data.word_data.text.size();
-        assert(!data.word_data.text.empty());
-        const auto word_h_range = math::size(data.word_data.bounding_box.horizontal_range());
-
-        // Approximate the char width for each word as if they were all equal.
-        const auto char_width_approx = word_h_range / numeric_cast<decltype(word_h_range)>(word_size);
-        const auto char_width_approx_signed = numeric_cast<std::make_signed_t<decltype(char_width_approx)>>(char_width_approx);
-
-        const auto word_origin = data.word_data.bounding_box.origin();
-        std::ranges::for_each(
-          util::ranges::index_view_between(current_text_offset, std::min(current_text_offset + word_size, result.size())),
-          [&](const auto i)
-          {
-            const auto shifted_x = word_origin.x() + ((i - current_text_offset) * char_width_approx_signed);
-            auto box = decltype(data.word_data.bounding_box){
-              decltype(word_origin){shifted_x, word_origin.y()},
-              char_width_approx,
-              math::size(data.word_data.bounding_box.vertical_range())
-            };
-            result.at(i) = {data_index, std::move(box)};
-          }
-        );
+        return;
+      }
+      const auto word_index = static_cast<std::size_t>(index);
+      const auto words = word_range{.begin = word_index, .end = word_index + 1};
+      if(result.empty() || result.back().line.get().bounding_box != element.line_data->bounding_box)
+      {
+        result.emplace_back(*element.line_data, words);
       }
       else
       {
-        LOG_WARN("expected word not found: \"{}\"", data.word_data.text);
+        result.back().words.end = words.end;
       }
     }
   );
@@ -108,89 +202,211 @@ auto generate_character_positions(const auto& recognition_data, std::string_view
 }
 
 ///
-/// Text a reference is searched in, together with the area it covers.
+/// Join the text of the given lines, each of them terminated by exactly one '\n'.
+/// \return text of the lines with one run per line
 ///
-struct position_text final
+auto text_of_lines(const auto& lines) -> position_text
 {
-  std::string text;
-  typename txt::ocr_engine<>::bounding_box_type bounding_box;
-};
+  auto result = position_text{};
+  std::ranges::for_each(
+    lines,
+    [&](const auto& l)
+    {
+      // Terminate every line with exactly one '\n'. The engines differ in whether they terminate their
+      // line text at all and in the break characters they use, and without a break the last word of a
+      // line and the first word of the next one would be read as a single word.
+      auto line_text = std::string_view{l.line.get().text};
+      while(line_text.ends_with('\n') || line_text.ends_with('\r'))
+      {
+        line_text.remove_suffix(1);
+      }
+      const auto begin = result.text.size();
+      result.text.append(line_text);
+      result.text.push_back('\n');
+      result.runs.emplace_back(position_text::text_run{.begin = begin, .size = result.text.size() - begin, .words = l.words});
+    }
+  );
+  return result;
+}
 
 ///
 /// Collect the text belonging to the recognized element the position falls into. An engine with layout
 /// analysis groups the lines into paragraphs itself, an engine without reports lines only. There the line
 /// above and below are taken as well, otherwise a reference broken over a line break is cut in half.
-/// \return text around the position and its bounding box
+/// \return text around the position, the words it was taken from and the words of the pointed at line
 ///
-auto text_around(const auto& recognition_data, const auto& cursor_element) -> position_text
+auto text_around(const auto& recognition_data, const std::size_t cursor_word_index) -> position_text
 {
-  if constexpr(has_paragraph_data<decltype(cursor_element)>)
+  const auto& cursor_element = recognition_data.at(cursor_word_index);
+
+  // Words of the line the cursor sits on. Without line data only the word pointed at is left.
+  const auto focus_line_words =
+    cursor_element.line_data
+      ? words_around(
+          recognition_data, cursor_word_index, [&](const auto& e) { return on_line(e, cursor_element.line_data->bounding_box); }
+        )
+      : word_range{.begin = cursor_word_index, .end = cursor_word_index + 1};
+  const auto with_focus_line = [&](position_text text)
   {
-    if(cursor_element.paragraph_data)
-    {
-      return {cursor_element.paragraph_data->text, cursor_element.paragraph_data->bounding_box};
-    }
+    text.focus_line_words = focus_line_words;
+    return text;
+  };
+
+  if(auto paragraph = paragraph_text(recognition_data, cursor_word_index))
+  {
+    return with_focus_line(std::move(*paragraph));
   }
   if(!cursor_element.line_data)
   {
-    return {cursor_element.word_data.text, cursor_element.word_data.bounding_box};
+    return with_focus_line(whole_of(cursor_element.word_data.text, focus_line_words));
   }
 
-  // Every recognized word carries the line it sits on and the words are reported in reading order,
-  // so taking the line of each word lists every line once and in reading order.
-  static constexpr auto collect_lines = [](const auto& recognition_data)
-  {
-    using line_type = std::remove_cvref_t<decltype(*recognition_data.front().line_data)>;
-    auto lines = std::vector<std::reference_wrapper<const line_type>>{};
-    std::ranges::for_each(
-      recognition_data | std::views::filter([](const auto& e) { return e.line_data.has_value(); }),
-      [&](const auto& element)
-      {
-        const auto is_new_line = lines.empty() || lines.back().get().bounding_box != element.line_data->bounding_box;
-        if(is_new_line)
-        {
-          lines.emplace_back(*element.line_data);
-        }
-      }
-    );
-    return lines;
-  };
-
-  auto result = position_text{.text = cursor_element.line_data->text, .bounding_box = cursor_element.line_data->bounding_box};
   const auto lines = collect_lines(recognition_data);
-  // The cursor element is one of the elements just visited, so its line is part of the list.
-  const auto cursor_line =
-    std::ranges::find(lines, cursor_element.line_data->bounding_box, [](const auto& l) { return l.get().bounding_box; });
-  if(cursor_line != std::ranges::cend(lines))
-  {
-    // clang-format off
-    const auto first = cursor_line == std::ranges::cbegin(lines) ? cursor_line : std::ranges::prev(cursor_line);
-    const auto end = std::ranges::next(cursor_line) == std::ranges::cend(lines) ? std::ranges::cend(lines) : std::ranges::next(cursor_line, 2);
-    // clang-format on
-    result = position_text{.text = {}, .bounding_box = first->get().bounding_box};
-    std::ranges::for_each(
-      std::ranges::subrange{first, end},
-      [&](const auto& l)
-      {
-        // Terminate every line with exactly one '\n'. The engines differ in whether they terminate their
-        // line text at all and in the break characters they use, and without a break the last word of a
-        // line and the first word of the next one would be read as a single word.
-        auto line_text = std::string_view{l.get().text};
-        while(line_text.ends_with('\n') || line_text.ends_with('\r'))
-        {
-          line_text.remove_suffix(1);
-        }
-        result.text.append(line_text);
-        result.text.push_back('\n');
-        result.bounding_box = math::surrounding_rect(result.bounding_box, l.get().bounding_box);
-      }
-    );
-  }
-  else
+  const auto cursor_line = std::ranges::find_if(lines, [&](const auto& l) { return l.words.contains(cursor_word_index); });
+  if(cursor_line == std::ranges::cend(lines))
   {
     LOG_WARN("cursor line not found in lines: cursor line bounding box: {}", cursor_element.line_data->bounding_box);
+    return with_focus_line(whole_of(cursor_element.line_data->text, focus_line_words));
   }
+
+  // clang-format off
+  const auto first = cursor_line == std::ranges::cbegin(lines) ? cursor_line : std::ranges::prev(cursor_line);
+  const auto end = std::ranges::next(cursor_line) == std::ranges::cend(lines) ? std::ranges::cend(lines) : std::ranges::next(cursor_line, 2);
+  // clang-format on
+  return with_focus_line(text_of_lines(std::ranges::subrange{first, end}));
+}
+
+///
+/// Position of one character: the word that supplied it and its bounding box.
+///
+using character_position_type = std::optional<std::pair<std::size_t, typename txt::ocr_engine<>::bounding_box_type>>;
+
+///
+/// Approximate the bounding box of every character of the word by dividing the bounding box of the
+/// word into equally wide parts.
+/// \return one bounding box per character of the word in reading order
+///
+auto character_boxes_of(const auto& word) -> std::vector<std::remove_cvref_t<decltype(word.bounding_box)>>
+{
+  const auto word_h_range = math::size(word.bounding_box.horizontal_range());
+  const auto char_width_approx = word_h_range / numeric_cast<decltype(word_h_range)>(word.text.size());
+  const auto char_width_approx_signed = numeric_cast<std::make_signed_t<decltype(char_width_approx)>>(char_width_approx);
+  const auto word_origin = word.bounding_box.origin();
+
+  return util::ranges::index_view_to(word.text.size()) |
+         std::views::transform(
+           [&](const auto i)
+           {
+             const auto shifted_x = word_origin.x() + (i * char_width_approx_signed);
+             return std::remove_cvref_t<decltype(word.bounding_box)>{
+               decltype(word_origin){shifted_x, word_origin.y()},
+               char_width_approx,
+               math::size(word.bounding_box.vertical_range())
+             };
+           }
+         ) |
+         std::ranges::to<std::vector>();
+}
+
+///
+/// Generate character positions by matching every word of a text run to the text the run holds. A word
+/// is only looked for in the run it supplied its text to. A word of a neighboring line would otherwise
+/// match a word of the same spelling anywhere in the text and drag the search past everything that
+/// follows it.
+/// \return list of character positions, one for each char of the text
+///
+auto generate_character_positions(const auto& recognition_data, const position_text& position)
+  -> std::vector<character_position_type>
+{
+  auto result = std::vector<character_position_type>(position.text.size());
+
+  std::ranges::for_each(
+    position.runs,
+    [&](const auto& run)
+    {
+      const auto run_text = std::string_view{position.text}.substr(run.begin, run.size);
+
+      // The words are searched in reading order and each one continues behind its predecessor, so a
+      // word repeated within the run takes the occurrence belonging to it.
+      auto search_begin = std::size_t{0};
+      std::ranges::for_each(
+        run.words.indices(),
+        [&](const auto word_index)
+        {
+          const auto& word = recognition_data.at(word_index).word_data;
+          // A word without text supplies no character and cannot be located.
+          if(word.text.empty())
+          {
+            return;
+          }
+          const auto pos = run_text.find(std::string_view{word.text}, search_begin);
+          if(pos == std::string_view::npos)
+          {
+            LOG_WARN("expected word not found: \"{}\"", word.text);
+            return;
+          }
+          search_begin = pos + word.text.size();
+
+          const auto boxes = character_boxes_of(word);
+          const auto word_begin = run.begin + pos;
+          std::ranges::for_each(
+            util::ranges::index_view(boxes), [&](const auto i) { result.at(word_begin + i) = {word_index, boxes.at(i)}; }
+          );
+        }
+      );
+    }
+  );
   return result;
+}
+
+///
+/// Find the word the position points at. A position between two words falls into no word, there the
+/// line it points at is taken.
+/// \return word pointed at as index into the recognition data, nothing if the position points nowhere
+///
+auto find_cursor_word(const auto& recognition_data, const reference_ocr::position_type position) -> std::optional<std::size_t>
+{
+  const auto index_of = [&](const auto& it)
+  { return static_cast<std::size_t>(std::ranges::distance(std::ranges::cbegin(recognition_data), it)); };
+  const auto in_word = [&](const auto& d) { return math::contains(d.word_data.bounding_box, position); };
+  const auto in_line = [&](const auto& d) { return d.line_data && math::contains(d.line_data->bounding_box, position); };
+
+  if(const auto it = std::ranges::find_if(recognition_data, in_word); it != std::ranges::cend(recognition_data))
+  {
+    return index_of(it);
+  }
+  if(const auto it = std::ranges::find_if(recognition_data, in_line); it != std::ranges::cend(recognition_data))
+  {
+    return index_of(it);
+  }
+  return std::nullopt;
+}
+
+///
+/// Search the character closest to the position among those the words of the focus line supplied.
+/// Only a character of the line that was pointed at can be the one under the cursor.
+/// \return index of the character within the text, nothing if no such character was located
+///
+auto find_closest_character(
+  const std::vector<character_position_type>& character_positions,
+  const word_range focus_line_words,
+  const reference_ocr::position_type position
+) -> std::optional<std::size_t>
+{
+  const auto to_distance = [&](const auto& p)
+  {
+    return p && focus_line_words.contains(p->first) ? reference_ocr::position_type::distance(p->second.center(), position)
+                                                    : std::numeric_limits<double>::max();
+  };
+  const auto distance_view = character_positions | std::views::transform(to_distance);
+  const auto it = std::ranges::min_element(distance_view, std::less{});
+  // Without a single located character on that line there is no cursor index. Taking the closest
+  // one anyway lands on the first character of the text, a reference that is never pointed at.
+  if(it == std::ranges::cend(distance_view) || *it == std::numeric_limits<double>::max())
+  {
+    return std::nullopt;
+  }
+  return static_cast<std::size_t>(std::ranges::distance(std::ranges::cbegin(distance_view), it));
 }
 
 ///
@@ -200,71 +416,36 @@ auto text_around(const auto& recognition_data, const auto& cursor_element) -> po
 auto find_index(const auto& recognition_data, const reference_ocr::position_type position)
   -> std::expected<reference_ocr::reference_position_data, reference_ocr::unexpected_ocr_result>
 {
-  using recognition_data_value_type = typename std::remove_cvref_t<decltype(recognition_data)>::value_type;
   if(recognition_data.empty())
   {
     LOG_DEBUG("returns empty: recognition_data is empty");
     return reference_ocr::reference_position_data{};
   }
-
-  const auto data_ref = [&]() -> std::optional<std::reference_wrapper<const recognition_data_value_type>>
-  {
-    const auto find_word = [&](const auto& d) { return math::contains(d.word_data.bounding_box, position); };
-    const auto find_line = [&](const auto& d) { return d.line_data && math::contains(d.line_data->bounding_box, position); };
-    if(const auto it_w = std::ranges::find_if(recognition_data, find_word); it_w != std::ranges::cend(recognition_data))
-    {
-      return std::ref(*it_w);
-    }
-    else if(const auto it_l = std::ranges::find_if(recognition_data, find_line); it_l != std::ranges::cend(recognition_data))
-    {
-      return std::ref(*it_l);
-    }
-    else
-    {
-      return std::nullopt;
-    }
-  }();
-
-  if(data_ref)
-  {
-    const auto& data = data_ref->get();
-    const auto [text, bounding_box] = text_around(recognition_data, data);
-    const auto character_bounding_boxes = generate_character_positions(recognition_data, text, bounding_box);
-    assert(character_bounding_boxes.size() == text.size());
-    const auto to_distance = [&](const auto& p)
-    {
-      if(p)
-      {
-        const auto& [i, bounding_box] = *p;
-        if(recognition_data.at(i).line_data && math::contains(recognition_data.at(i).line_data->bounding_box, position))
-        {
-          return decltype(position)::distance(bounding_box.center(), position);
-        }
-      }
-      return std::numeric_limits<double>::max();
-    };
-    const auto recognition_data_view = character_bounding_boxes | std::views::transform(to_distance);
-    const auto it = std::ranges::min_element(recognition_data_view, std::less{});
-    const auto distance = std::ranges::distance(std::ranges::cbegin(recognition_data_view), it);
-    if(!text.empty())
-    {
-      LOG_DEBUG(
-        "returns reference position data: text=\"{}[{}]{}\"",
-        text.subview(0, distance),
-        text.at(distance),
-        text.subview(std::min(static_cast<std::size_t>(distance) + 1, text.size()))
-      );
-    }
-    auto boxes = character_bounding_boxes |
-                 std::views::transform([](const auto& p) { return p ? std::make_optional(p->second) : std::nullopt; }) |
-                 std::ranges::to<std::vector>();
-    return reference_ocr::reference_position_data{text, static_cast<std::size_t>(distance), std::move(boxes)};
-  }
-  else
+  const auto cursor_word_index = find_cursor_word(recognition_data, position);
+  if(!cursor_word_index)
   {
     LOG_DEBUG("returns empty: position is not contained in any word bounding box");
     return reference_ocr::reference_position_data{};
   }
+
+  const auto position_data = text_around(recognition_data, *cursor_word_index);
+  const auto& text = position_data.text;
+  const auto character_positions = generate_character_positions(recognition_data, position_data);
+  assert(character_positions.size() == text.size());
+
+  const auto index = find_closest_character(character_positions, position_data.focus_line_words, position);
+  if(!index)
+  {
+    LOG_DEBUG("returns empty: no character of the pointed at line was located in the recognized text");
+    return reference_ocr::reference_position_data{};
+  }
+  LOG_DEBUG(
+    "returns reference position data: text=\"{}[{}]{}\"", text.subview(0, *index), text.at(*index), text.subview(*index + 1)
+  );
+  auto boxes = character_positions |
+               std::views::transform([](const auto& p) { return p ? std::make_optional(p->second) : std::nullopt; }) |
+               std::ranges::to<std::vector>();
+  return reference_ocr::reference_position_data{text, *index, std::move(boxes)};
 }
 
 ///
@@ -308,6 +489,40 @@ auto get_character_recognition_engine(
     return std::unexpected{reference_ocr::unexpected_ocr_result::error};
   }
   return std::ref(*character_recognition_engine_it);
+}
+
+///
+/// Take the area of the given line together with the line above and below it, as far as they belong
+/// to the same paragraph. A reference broken over a line break is only found completely if the line
+/// it continues on is recognized as well.
+/// \return area of the relevant lines with a bit of padding around them
+///
+auto relevant_lines_area(const auto& layouts, const auto& relevant_line_it) -> util::screen_rect_type
+{
+  const auto& relevant_line = *relevant_line_it;
+  const auto same_paragraph_line = [&](const auto& it)
+  {
+    return it->paragraph_bounding_box == relevant_line.paragraph_bounding_box ? it->line_bounding_box
+                                                                              : relevant_line.line_bounding_box;
+  };
+  const auto prev = relevant_line_it == std::ranges::cbegin(layouts) ? relevant_line.line_bounding_box
+                                                                     : same_paragraph_line(std::ranges::prev(relevant_line_it));
+  const auto next = std::ranges::next(relevant_line_it) == std::ranges::cend(layouts)
+                      ? relevant_line.line_bounding_box
+                      : same_paragraph_line(std::ranges::next(relevant_line_it));
+  const auto surrounding_rect = math::surrounding_rect(prev, relevant_line.line_bounding_box, next);
+
+  // Add padding to make the recognition area a bit larger. This
+  // helps OCR engines to recognize character positions better.
+  const auto padding_size = math::size(relevant_line.line_bounding_box.vertical_range()) / 2;
+  return util::screen_rect_type{
+    math::coordinates(
+      surrounding_rect.origin().x() - numeric_cast<util::screen_rect_type::value_type>(padding_size),
+      surrounding_rect.origin().y() - numeric_cast<util::screen_rect_type::value_type>(padding_size)
+    ),
+    math::size(surrounding_rect.horizontal_range()) + (2 * padding_size),
+    math::size(surrounding_rect.vertical_range()) + (2 * padding_size)
+  };
 }
 
 ///
@@ -358,57 +573,16 @@ auto run_paragraph_recognition(
       const auto layouts = engine.layout_analysis();
       const auto relevant_line_it =
         std::ranges::find_if(layouts, [&](const auto& line) { return math::contains(line.line_bounding_box, position); });
-      if(relevant_line_it != std::ranges::cend(layouts))
-      {
-        const auto& relevant_line = *relevant_line_it;
-
-        auto prev = relevant_line.line_bounding_box;
-        auto main = relevant_line.line_bounding_box;
-        auto next = relevant_line.line_bounding_box;
-
-        if(relevant_line.paragraph_bounding_box)
-        {
-          if(relevant_line_it != std::ranges::cbegin(layouts))
-          {
-            const auto& prev_line = *std::ranges::prev(relevant_line_it);
-            if(prev_line.paragraph_bounding_box == relevant_line.paragraph_bounding_box)
-            {
-              prev = prev_line.line_bounding_box;
-            }
-          }
-          if(std::ranges::next(relevant_line_it) != std::ranges::cend(layouts))
-          {
-            const auto& next_line = *std::ranges::next(relevant_line_it);
-            if(next_line.paragraph_bounding_box == relevant_line.paragraph_bounding_box)
-            {
-              next = next_line.line_bounding_box;
-            }
-          }
-
-          const auto surrounding_rect = math::surrounding_rect(prev, main, next);
-
-          // Add padding to make the recognition area a bit larger. This
-          // helps OCR engines to recognize character positions better.
-          const auto padding_size = math::size(relevant_line.line_bounding_box.vertical_range()) / 2;
-          return decltype(surrounding_rect){
-            math::coordinates(
-              surrounding_rect.origin().x() - numeric_cast<decltype(surrounding_rect)::value_type>(padding_size),
-              surrounding_rect.origin().y() - numeric_cast<decltype(surrounding_rect)::value_type>(padding_size)
-            ),
-            math::size(surrounding_rect.horizontal_range()) + (2 * padding_size),
-            math::size(surrounding_rect.vertical_range()) + (2 * padding_size)
-          };
-        }
-        else
-        {
-          return relevant_line.line_bounding_box;
-        }
-      }
-      else
+      if(relevant_line_it == std::ranges::cend(layouts))
       {
         LOG_DEBUG("paragraph recognition returns with empty rect");
         return util::screen_rect_type{math::coordinates(0, 0), 0u, 0u};
       }
+      if(!relevant_line_it->paragraph_bounding_box)
+      {
+        return relevant_line_it->line_bounding_box;
+      }
+      return relevant_lines_area(layouts, relevant_line_it);
     }
   );
 }
@@ -426,52 +600,46 @@ auto recognize_with_paragraph_recognition(
 ) -> std::expected<reference_ocr::reference_position_data, reference_ocr::unexpected_ocr_result>
 {
   using return_type = std::expected<reference_ocr::reference_position_data, reference_ocr::unexpected_ocr_result>;
-  if(const auto& engine_ref = get_character_recognition_engine(engines, ad))
-  {
-    const auto& engine = engine_ref->get();
-    if(const auto area = run_paragraph_recognition(engines, image, position, ad))
-    {
-      // The padding added around the lines can reach outside the image. An engine recognizes the
-      // area clipped to the image, so the character boxes it reports are relative to the clipped
-      // area and it is that origin the boxes have to be shifted back by.
-      const auto clipped = math::overlap(*area, util::screen_rect_type{math::coordinates(0, 0), image.width(), image.height()});
-      if(clipped && !math::empty(*clipped))
-      {
-        const auto origin = clipped->origin();
-        const auto relative_position = position - origin;
-        return util::visit_lambdas(
-          engine,
-          []([[maybe_unused]] const std::monostate&) -> return_type
-          { return std::unexpected{reference_ocr::unexpected_ocr_result::error}; },
-          [&](const txt::ocr_engine<txt::ocr_engine_tag_plain>::uptr_type& e) -> return_type
-          {
-            SCOPED_TIMER_LOG();
-            e->initialize(image, *clipped);
-            return shift_character_bounding_boxes(find_index(e->recognize(), relative_position), origin);
-          },
-          [&](const txt::ocr_engine<txt::ocr_engine_tag_layout_analysis>::uptr_type& e) -> return_type
-          {
-            SCOPED_TIMER_LOG();
-            e->initialize(image, *clipped);
-            return shift_character_bounding_boxes(find_index(e->recognize(), relative_position), origin);
-          }
-        );
-      }
-      else
-      {
-        // empty position data
-        return reference_ocr::reference_position_data{};
-      }
-    }
-    else
-    {
-      return std::unexpected{area.error()};
-    }
-  }
-  else
+  const auto engine_ref = get_character_recognition_engine(engines, ad);
+  if(!engine_ref)
   {
     return std::unexpected{engine_ref.error()};
   }
+  const auto area = run_paragraph_recognition(engines, image, position, ad);
+  if(!area)
+  {
+    return std::unexpected{area.error()};
+  }
+
+  // The padding added around the lines can reach outside the image. An engine recognizes the
+  // area clipped to the image, so the character boxes it reports are relative to the clipped
+  // area and it is that origin the boxes have to be shifted back by.
+  const auto clipped = math::overlap(*area, util::screen_rect_type{math::coordinates(0, 0), image.width(), image.height()});
+  if(!clipped || math::empty(*clipped))
+  {
+    // empty position data
+    return reference_ocr::reference_position_data{};
+  }
+
+  const auto origin = clipped->origin();
+  const auto relative_position = position - origin;
+  return util::visit_lambdas(
+    engine_ref->get(),
+    []([[maybe_unused]] const std::monostate&) -> return_type
+    { return std::unexpected{reference_ocr::unexpected_ocr_result::error}; },
+    [&](const txt::ocr_engine<txt::ocr_engine_tag_plain>::uptr_type& e) -> return_type
+    {
+      SCOPED_TIMER_LOG();
+      e->initialize(image, *clipped);
+      return shift_character_bounding_boxes(find_index(e->recognize(), relative_position), origin);
+    },
+    [&](const txt::ocr_engine<txt::ocr_engine_tag_layout_analysis>::uptr_type& e) -> return_type
+    {
+      SCOPED_TIMER_LOG();
+      e->initialize(image, *clipped);
+      return shift_character_bounding_boxes(find_index(e->recognize(), relative_position), origin);
+    }
+  );
 }
 
 ///
@@ -488,29 +656,26 @@ auto recognize_just_with_line_recognition(
 ) -> std::expected<reference_ocr::reference_position_data, reference_ocr::unexpected_ocr_result>
 {
   using return_type = std::expected<reference_ocr::reference_position_data, reference_ocr::unexpected_ocr_result>;
-  if(const auto& engine_ref = get_character_recognition_engine(engines, ad))
-  {
-    const auto& engine = engine_ref->get();
-    return util::visit_lambdas(
-      engine,
-      []([[maybe_unused]] const std::monostate&) -> return_type
-      { return std::unexpected{reference_ocr::unexpected_ocr_result::error}; },
-      [&](const txt::ocr_engine<txt::ocr_engine_tag_plain>::uptr_type& e) -> return_type
-      {
-        e->initialize(image, std::nullopt);
-        return find_index(e->recognize(), position);
-      },
-      [&](const txt::ocr_engine<txt::ocr_engine_tag_layout_analysis>::uptr_type& e) -> return_type
-      {
-        e->initialize(image, std::nullopt);
-        return find_index(e->recognize(), position);
-      }
-    );
-  }
-  else
+  const auto engine_ref = get_character_recognition_engine(engines, ad);
+  if(!engine_ref)
   {
     return std::unexpected{engine_ref.error()};
   }
+  return util::visit_lambdas(
+    engine_ref->get(),
+    []([[maybe_unused]] const std::monostate&) -> return_type
+    { return std::unexpected{reference_ocr::unexpected_ocr_result::error}; },
+    [&](const txt::ocr_engine<txt::ocr_engine_tag_plain>::uptr_type& e) -> return_type
+    {
+      e->initialize(image, std::nullopt);
+      return find_index(e->recognize(), position);
+    },
+    [&](const txt::ocr_engine<txt::ocr_engine_tag_layout_analysis>::uptr_type& e) -> return_type
+    {
+      e->initialize(image, std::nullopt);
+      return find_index(e->recognize(), position);
+    }
+  );
 }
 
 } // namespace

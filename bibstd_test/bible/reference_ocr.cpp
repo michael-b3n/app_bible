@@ -329,6 +329,98 @@ struct designed_capture final
 };
 
 ///
+/// A designed capture whose paragraph repeats a word of the line above it and words of its own.
+/// The word above carries a descender reaching into the area the paragraph recognition asks for,
+/// so it is recognized together with the paragraph although it supplies none of its text.
+///
+///   y= 20  Was hier gilt.            paragraph 1, "gilt." reaching down to y=55
+///   y= 50  Der Vers Johannes 3,    |
+///   y= 80  16 ist bekannt.         | paragraph 2
+///   y=110  Der Vers gilt.          |
+///
+struct repeated_word_capture final
+{
+  // Constants
+  static constexpr auto line_height = std::int32_t{20};
+  static constexpr auto paragraph_2_text = "Der Vers Johannes 3,\n16 ist bekannt.\nDer Vers gilt.\n";
+
+  // Variables
+  test_utils::capture_data data;
+
+  ///
+  /// \see repeated_word_capture
+  ///
+  repeated_word_capture()
+  {
+    const auto text_of = [](
+                           const std::string& text,
+                           const std::int32_t x,
+                           const std::int32_t y,
+                           const std::int32_t width,
+                           const std::int32_t height = line_height
+                         )
+    {
+      return test_utils::capture_text{
+        .text = text, .box = {.x = x, .y = y, .width = width, .height = height}
+      };
+    };
+    const auto line1 = text_of("Was hier gilt.\n", 50, 20, 200);
+    const auto line2 = text_of("Der Vers Johannes 3,\n", 50, 50, 200);
+    const auto line3 = text_of("16 ist bekannt.\n", 50, 80, 200);
+    const auto line4 = text_of("Der Vers gilt.\n", 50, 110, 200);
+    const auto paragraph1 = test_utils::capture_text{.text = line1.text, .box = line1.box};
+    const auto paragraph2 = test_utils::capture_text{
+      .text = line2.text + line3.text + line4.text, .box = {.x = 50, .y = 50, .width = 200, .height = 80}
+    };
+
+    data = test_utils::capture_data{
+      .id = "repeated word",
+      .width = 300,
+      .height = 200,
+      .layouts =
+        {test_utils::capture_layout{.line = line1.box, .paragraph = paragraph1.box},
+                  test_utils::capture_layout{.line = line2.box, .paragraph = paragraph2.box},
+                  test_utils::capture_layout{.line = line3.box, .paragraph = paragraph2.box},
+                  test_utils::capture_layout{.line = line4.box, .paragraph = paragraph2.box}},
+      .words = {
+                  test_utils::capture_word{.word = text_of("Was", 50, 20, 30), .line = line1, .paragraph = paragraph1},
+                  test_utils::capture_word{.word = text_of("hier", 90, 20, 40), .line = line1, .paragraph = paragraph1},
+                  test_utils::capture_word{.word = text_of("gilt.", 140, 20, 50, 35), .line = line1, .paragraph = paragraph1},
+                  test_utils::capture_word{.word = text_of("Der", 50, 50, 30), .line = line2, .paragraph = paragraph2},
+                  test_utils::capture_word{.word = text_of("Vers", 90, 50, 40), .line = line2, .paragraph = paragraph2},
+                  test_utils::capture_word{.word = text_of("Johannes", 140, 50, 80), .line = line2, .paragraph = paragraph2},
+                  test_utils::capture_word{.word = text_of("3,", 230, 50, 20), .line = line2, .paragraph = paragraph2},
+                  test_utils::capture_word{.word = text_of("16", 50, 80, 20), .line = line3, .paragraph = paragraph2},
+                  test_utils::capture_word{.word = text_of("ist", 80, 80, 30), .line = line3, .paragraph = paragraph2},
+                  test_utils::capture_word{.word = text_of("bekannt.", 120, 80, 80), .line = line3, .paragraph = paragraph2},
+                  test_utils::capture_word{.word = text_of("Der", 50, 110, 30), .line = line4, .paragraph = paragraph2},
+                  test_utils::capture_word{.word = text_of("Vers", 90, 110, 50), .line = line4, .paragraph = paragraph2},
+                  test_utils::capture_word{.word = text_of("gilt.", 150, 110, 50), .line = line4, .paragraph = paragraph2}
+      }
+    };
+  }
+
+  ///
+  /// \return Boxes of all words with the given text, in reading order
+  ///
+  auto word_boxes(const std::string_view text) const -> std::vector<test_utils::capture_box>
+  {
+    return data.words | std::views::filter([&](const auto& w) { return w.word.text == text; }) |
+           std::views::transform([](const auto& w) { return w.word.box; }) | std::ranges::to<std::vector>();
+  }
+
+  ///
+  /// \return Box of the word with the given text, the first one if the text is repeated
+  ///
+  auto word(const std::string_view text) const -> test_utils::capture_box
+  {
+    const auto it = std::ranges::find(data.words, text, [](const auto& w) { return std::string_view{w.word.text}; });
+    REQUIRE(it != std::ranges::cend(data.words));
+    return it->word.box;
+  }
+};
+
+///
 /// One capture, the blank image belonging to it and the engines replaying it. The pixels are never
 /// looked at, only the dimensions are, because the recognition clips its area to the image.
 ///
@@ -558,6 +650,83 @@ TEST_CASE("reference_ocr reports character boxes of a paragraph at the image edg
   CHECK(math::overlap(*cursor_box, to_rect(johannes)).has_value());
 }
 
+TEST_CASE("reference_ocr keeps a word of a neighbouring line out of the text it did not supply", "[bible]")
+{
+  // The recognized area reaches a bit beyond the paragraph, so words of the lines around it are
+  // recognized too. Such a word must not claim the characters of a word of the same spelling
+  // inside the text: it would take the character positions of the words following it with it.
+  const auto capture = repeated_word_capture{};
+  auto driver = ocr_driver{capture.data};
+  driver.engines().emplace_back(std::make_unique<line_capture_engine>(capture.data));
+
+  auto ad = ocr_driver::algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition);
+  SECTION("an engine reporting paragraphs")
+  {
+    ad.engine_name_character_recognition = capture_engine::default_name;
+  }
+  SECTION("an engine reporting lines only")
+  {
+    ad.engine_name_character_recognition = line_capture_engine::default_name;
+  }
+
+  const auto bekannt = capture.word("bekannt.");
+  const auto result = reference_ocr::run(driver.engines(), driver.image(), centre(bekannt), ad);
+  REQUIRE(result.has_value());
+  CHECK(result->text == repeated_word_capture::paragraph_2_text);
+  REQUIRE(result->character_bounding_boxes.size() == result->text.size());
+
+  // The cursor character has to land inside the word that was pointed at, it sits on the line
+  // between the two lines the repeated word could have dragged the character positions across.
+  const auto word_begin = result->text.find("bekannt.");
+  REQUIRE(word_begin != std::string::npos);
+  CHECK(result->cursor_character_index >= word_begin);
+  CHECK(result->cursor_character_index < word_begin + std::string_view{"bekannt."}.size());
+
+  // The repeated word carries the box of the word inside the paragraph, not the one above it.
+  const auto repeated_begin = result->text.rfind("gilt.");
+  REQUIRE(repeated_begin != std::string::npos);
+  const auto& repeated_box = result->character_bounding_boxes.at(repeated_begin);
+  REQUIRE(repeated_box.has_value());
+  CHECK(math::overlap(*repeated_box, to_rect(capture.data.words.back().word.box)).has_value());
+
+  // A word repeated within the text takes the occurrence belonging to it, so the boxes of the two
+  // occurrences stay on the line each of them was recognized on.
+  const auto boxes_of = capture.word_boxes("Vers");
+  REQUIRE(boxes_of.size() == 2);
+  const auto first_begin = result->text.find("Vers");
+  const auto second_begin = result->text.rfind("Vers");
+  REQUIRE(first_begin != std::string::npos);
+  REQUIRE(first_begin != second_begin);
+  const auto& first_box = result->character_bounding_boxes.at(first_begin);
+  const auto& second_box = result->character_bounding_boxes.at(second_begin);
+  REQUIRE(first_box.has_value());
+  REQUIRE(second_box.has_value());
+  CHECK(math::overlap(*first_box, to_rect(boxes_of.front())).has_value());
+  CHECK(math::overlap(*second_box, to_rect(boxes_of.back())).has_value());
+}
+
+TEST_CASE("reference_ocr reports no position data when the pointed at line stays unlocated", "[bible]")
+{
+  // An engine may report a word that is not part of the text of its own line. Without a single
+  // located character of the line that was pointed at there is no cursor index, and the closest
+  // one is the first character of the text, a reference the user never pointed at.
+  auto capture = designed_capture{};
+  const auto absatz = capture.word("Absatz.");
+  for(auto& element : capture.data.words)
+  {
+    if(element.word.box.y == absatz.y)
+    {
+      element.word.text = "###";
+    }
+  }
+  auto driver = ocr_driver{capture.data};
+
+  const auto result = driver.run_at(absatz);
+  REQUIRE(result.has_value());
+  CHECK(result->text.empty());
+  CHECK(result->character_bounding_boxes.empty());
+}
+
 TEST_CASE("reference_ocr rejects unusable engine setups", "[bible]")
 {
   const auto capture = designed_capture{};
@@ -660,31 +829,39 @@ TEST_CASE("reference_ocr handles captured screenshots", "[bible]")
 
     // run() re-initializes the engine on every call, so one driver serves the whole capture.
     auto driver = ocr_driver{capture};
+    driver.engines().emplace_back(std::make_unique<line_capture_engine>(capture));
 
-    for(const auto& element : capture.words)
+    // The characters are recognized by the engine of the system, which reports no paragraphs. Only
+    // the layout analysis contributes them, so both shapes have to come back with the same quality.
+    for(const auto& character_recognition : {capture_engine::default_name, line_capture_engine::default_name})
     {
-      INFO(std::format("word: \"{}\"", element.word.text));
-      const auto result = driver.run_at(element.word.box);
-      REQUIRE(result.has_value());
+      INFO(std::format("character recognition: {}", character_recognition));
+      auto ad = ocr_driver::algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition);
+      ad.engine_name_character_recognition = character_recognition;
 
-      // One box per character, so that the caller can address every character of the text.
-      REQUIRE(result->character_bounding_boxes.size() == result->text.size());
-      if(result->text.empty())
+      for(const auto& element : capture.words)
       {
-        continue;
-      }
-      REQUIRE(result->cursor_character_index < result->text.size());
+        INFO(std::format("word: \"{}\"", element.word.text));
+        const auto result = reference_ocr::run(driver.engines(), driver.image(), centre(element.word.box), ad);
+        REQUIRE(result.has_value());
 
-      // Every reported box has been shifted back into the coordinate system of the image.
-      const auto boxes_within_image = std::ranges::all_of(
-        result->character_bounding_boxes, [&](const auto& box) { return !box || math::overlap(image_area, *box).has_value(); }
-      );
-      CHECK(boxes_within_image);
+        // One box per character, so that the caller can address every character of the text.
+        REQUIRE(result->character_bounding_boxes.size() == result->text.size());
+        if(result->text.empty())
+        {
+          continue;
+        }
+        REQUIRE(result->cursor_character_index < result->text.size());
 
-      // The character the cursor resolved to belongs to the word that was pointed at.
-      const auto& cursor_box = result->character_bounding_boxes.at(result->cursor_character_index);
-      if(cursor_box)
-      {
+        // Every reported box has been shifted back into the coordinate system of the image.
+        const auto boxes_within_image = std::ranges::all_of(
+          result->character_bounding_boxes, [&](const auto& box) { return !box || math::overlap(image_area, *box).has_value(); }
+        );
+        CHECK(boxes_within_image);
+
+        // The character the cursor resolved to belongs to the word that was pointed at.
+        const auto& cursor_box = result->character_bounding_boxes.at(result->cursor_character_index);
+        REQUIRE(cursor_box.has_value());
         CHECK(math::overlap(*cursor_box, to_rect(element.word.box)).has_value());
       }
     }
