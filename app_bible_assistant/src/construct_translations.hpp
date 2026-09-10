@@ -7,10 +7,26 @@
 #include <bibstd/signal/synchronized_executor.hpp>
 #include <bibstd/util/non_owning_ptr.hpp>
 
+#include <optional>
 #include <string>
+#include <string_view>
 
 namespace aba
 {
+
+///
+/// Read the pretty names compiled into the application.
+/// \throws util::exception if they cannot be parsed
+/// \return table of pretty names
+///
+[[nodiscard]] auto compiled_pretty_names() -> pretty_names;
+
+///
+/// Read the language the pretty names are displayed in from the settings file. The file is only
+/// read, which lets an instance owning no settings display the language of the one that does.
+/// \return language, std::nullopt if the file holds none
+///
+[[nodiscard]] auto read_language_setting() -> std::optional<std::string>;
 
 ///
 /// Instance holding the translations of the application.
@@ -20,13 +36,16 @@ namespace aba
 ///
 class translations_instance final
 {
-  // Typedefs
-  using language_setting_type = bibstd::util::non_owning_ptr<bibstd::framework::setting<std::string>>;
-
   // Variables
   const std::unique_ptr<qml::Translations> translations_;
-  const language_setting_type language_setting_;
+  const bibstd::util::non_owning_ptr<bibstd::framework::setting<std::string>> language_setting_;
   bibstd::signal::synchronized_executor executor_;
+
+public: // Typedefs
+  using language_setting_type = decltype(language_setting_);
+
+public: // Constants
+  static constexpr auto language_setting_path = std::string_view{"ui.language"};
 
 public: // Structors
   ///
@@ -34,6 +53,13 @@ public: // Structors
   /// If no setting is provided, the pretty names stay in their default language.
   ///
   translations_instance(pretty_names names, language_setting_type language_setting);
+
+  ///
+  /// Construct the translations instance without a setting to follow.
+  /// The pretty names are displayed in the given language and never change afterwards.
+  ///
+  translations_instance(pretty_names names, const std::optional<std::string>& language);
+
   ~translations_instance() noexcept;
 
 public: // Modifiers
@@ -51,5 +77,12 @@ public: // Modifiers
 /// \return translations instance, holding no pretty names if they could not be loaded
 ///
 auto construct_translations(backend_instance& backend) -> translations_instance;
+
+///
+/// Initialize the translations of an application that owns no settings.
+/// \param language Language the pretty names are displayed in, default language if std::nullopt
+/// \return translations instance, holding no pretty names if they could not be loaded
+///
+auto construct_translations(const std::optional<std::string>& language) -> translations_instance;
 
 } // namespace aba

@@ -5,6 +5,7 @@
 # the installed scriptures or OCR engines, are always displayed as provided by the backend.
 #
 key,german,english
+already_running,Die Anwendung läuft bereits.,The application is already running.
 auto_search,Automatische Suche,Automatic search
 character_recognition_ocr_engine,Zeichenerkennung,Character recognition
 click_action,Aktion bei Klick,Click action

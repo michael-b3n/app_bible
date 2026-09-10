@@ -5,9 +5,12 @@
 #include "src/construct_backend.hpp"
 #include "src/construct_bridge.hpp"
 #include "src/construct_translations.hpp"
+#include "src/qml_application.hpp"
+#include "src/show_already_running.hpp"
 
 #include <bibqml/bridge/BridgeApplication.hpp>
 
+#include <bibstd/framework/single_instance.hpp>
 #include <bibstd/system/filesystem.hpp>
 #include <bibstd/system/open_browser.hpp>
 #include <bibstd/system/screen.hpp>
@@ -18,8 +21,6 @@
 #include <QGuiApplication>
 #include <QMetaObject>
 #include <QQmlApplicationEngine>
-#include <QQuickStyle>
-#include <QQuickWindow>
 #include <QtQml/QQmlExtensionPlugin>
 
 Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
@@ -32,7 +33,18 @@ const auto icon_view = bibstd::util::incbin::to_span<std::byte>(res_icon_data, r
 ///
 int main(int argc, char** argv)
 {
+  // The instance check runs before the logger, a second instance would truncate the log of the running one.
+  const auto instance = bibstd::framework::single_instance::claim(std::string{aba::version::exe_name});
+  if(!instance.is_owner())
+  {
+    return aba::show_already_running(argc, argv);
+  }
+
   const auto logger = bibstd::util::logger();
+  if(const auto& single_instance_error = instance.error(); single_instance_error.has_value())
+  {
+    LOG_WARN("single instance guard inactive: {}", *single_instance_error);
+  }
   LOG_INFO("executable: {}", bibstd::system::filesystem::executable_location().string());
   LOG_INFO("version: {}", aba::version::version_string);
   LOG_INFO("commit_hash: {}", aba::version::commit_hash);
@@ -48,16 +60,8 @@ int main(int argc, char** argv)
   auto backend = aba::construct_backend();
 
   // Initialize Qt application.
-#ifdef _WIN32
-  QQuickWindow::setGraphicsApi(QSGRendererInterface::Direct3D11);
-#endif
-  QQuickWindow::setTextRenderType(QQuickWindow::CurveTextRendering);
+  aba::configure_qml_layer();
   QGuiApplication app(argc, argv);
-  // The controls of this application are fully styled by the qml layer. Without an explicit
-  // style, the platform style is used, which draws its own hover and scroll visuals on top of
-  // the custom ones. The basic style is the neutral style that leaves the controls untouched.
-  QQuickStyle::setStyle("Basic");
-  LOG_INFO("qml controls style: \"{}\"", QQuickStyle::name().toStdString());
 
   // Note bridge and translations must be declared before engine so they outlive QML objects
   auto bridge = aba::construct_bridge(app, backend);

@@ -16,6 +16,8 @@ struct version final
 {
   static constexpr unsigned int major_number = @APP_VERSION_MAJOR@;
   static constexpr unsigned int minor_number = @APP_VERSION_MINOR@;
+  static constexpr auto app_name = std::string_view("@APP_NAME@");
+  static constexpr auto exe_name = std::string_view("@APP_EXE_NAME@");
   static constexpr auto version_string = std::string_view("@APP_VERSION@");
   static constexpr auto commit_hash = std::string_view("@GIT_SHA1@");
   static constexpr auto commit_date = std::string_view("@GIT_DATE@");

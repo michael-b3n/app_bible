@@ -1,6 +1,6 @@
 #include "src/construct_bridge.hpp"
+#include "src/qml_application.hpp"
 
-#include <bibstd/util/log.hpp>
 #include <bibstd/workflow/workflow_bible_ref_lookup.hpp>
 #include <bibstd/workflow/workflow_bible_ref_ocr.hpp>
 #include <bibstd/workflow/workflow_bible_ref_ocr_auto.hpp>
@@ -100,18 +100,7 @@ auto connect_engine(QQmlApplicationEngine& engine, QGuiApplication& app, bridge_
     {   "bridgeApplication",      QVariant::fromValue(bridge.bridge_application.get())},
   });
 
-  QObject::connect(
-    &engine,
-    &QQmlApplicationEngine::objectCreationFailed,
-    &app,
-    [](const QUrl& url)
-    {
-      LOG_INFO("qml object creation failed: url: \"{}\"", url.toString().toStdString());
-      QCoreApplication::exit(EXIT_FAILURE);
-    },
-    Qt::QueuedConnection
-  );
-  engine.load(QUrl(QStringLiteral("qrc:/qt/qml/ui/qml/Main.qml")));
+  load_qml_document(engine, app, QStringLiteral("qrc:/qt/qml/ui/qml/Main.qml"));
 }
 
 } // namespace aba
