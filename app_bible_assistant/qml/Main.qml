@@ -11,16 +11,42 @@ QtObject
 
   // Typedefs
   ///
-  /// Phases the application goes through, they tell what is on the screen.
+  /// Phases the application goes through, they tell what is on the screen. Events move it from one
+  /// phase to the next, see handle() for which event leads where.
   ///
   enum Phase
   {
     // Nothing is on the screen
     Hidden,
-    // A search runs and reports itself by the overlay, the main window is hidden
+    // A search runs and reports itself by the overlay at the cursor
     Searching,
+    // A search found nothing, the overlay keeps reporting it for a moment
+    NotFound,
+    // A reference was found and only its overlay is on the screen
+    Found,
     // The main window is on the screen
     Shown
+  }
+
+  ///
+  /// Events the phases react to.
+  ///
+  enum Event
+  {
+    // A manual search started
+    SearchStarted,
+    // A manual search finished, a reference it found has been reported already
+    SearchFinished,
+    // A manual or automatic search found a reference
+    ReferenceFound,
+    // The search that found nothing was reported long enough
+    NotFoundElapsed,
+    // The overlay of the found reference timed out
+    OverlayTimedOut,
+    // The window was asked for from the tray
+    ShowRequested,
+    // The window was closed
+    CloseRequested
   }
 
   // Properties
@@ -42,9 +68,11 @@ QtObject
   // Gap between the tail tip and the reference overlay, so the tail does not cover it
   readonly property int referenceTailGap: Metrics.spacingSmall
 
+  // Settings
+  readonly property SettingBinding settingHideWindow: BridgeSettings.binding("ui.hide_window", false)
+
   // Phase the application is in
   property int phase: Main.Phase.Hidden
-  readonly property bool searching: root.phase === Main.Phase.Searching
   readonly property bool windowShown: root.phase === Main.Phase.Shown
 
   // Cursor position of the running or last search
@@ -79,10 +107,29 @@ QtObject
     }
   }
 
-  // Overlay button state: it reports the search until the reference is found, and sits at the
-  // cursor in its default size for as long as the area of that reference is unknown
-  readonly property bool overlayLoading: root.searching && !reference.areaKnown
-  readonly property bool overlayShown: root.searching || reference.areaKnown
+  // Overlay button state. It sits at the cursor in its default size for as long as the area of the
+  // reference is unknown.
+  readonly property bool overlayLoading:
+  {
+    switch(root.phase)
+    {
+      // A search that found nothing keeps reporting itself for a moment, see NotFound
+      case Main.Phase.Searching: // [[fallthrough]]
+      case Main.Phase.NotFound: return !reference.areaKnown
+      default: return false
+    }
+  }
+  readonly property bool overlayShown:
+  {
+    switch(root.phase)
+    {
+      case Main.Phase.Searching: // [[fallthrough]]
+      case Main.Phase.NotFound: return true
+      case Main.Phase.Found: // [[fallthrough]]
+      case Main.Phase.Shown: return reference.areaKnown
+      default: return false
+    }
+  }
   readonly property rect overlayRect: reference.areaKnown
     ? reference.overlayArea
     : Placement.centeredSquare(root.cursorPosition, root.overlayDefaultSize, root.cursorScreenGeometry)
@@ -125,19 +172,18 @@ QtObject
       reference.chapterEnd = chapterEnd
       reference.verseEnd = verseEnd
       reference.area = boundingBox
-      // Placed again even if it is on the screen already, it steps aside for this reference.
-      root.placeAndShowWindow()
+      root.handle(Main.Event.ReferenceFound)
     }
 
     function onManualSearchRunningChanged(manualSearchRunning)
     {
       if(manualSearchRunning)
       {
-        root.beginSearch()
+        root.handle(Main.Event.SearchStarted)
       }
       else
       {
-        // The result follows this notification, so the phase is only settled afterwards.
+        // The result follows this notification, so the search is only finished afterwards.
         Qt.callLater(root.finishSearch)
       }
     }
@@ -147,19 +193,18 @@ QtObject
   {
     target: root.bridgeApplication
 
-    function onShowWindowRequested() { root.showWindow() }
+    function onShowWindowRequested() { root.handle(Main.Event.ShowRequested) }
   }
 
   // Timer keeping the overlay of a search that found nothing on the screen for a moment
   property Timer searchWithoutResultTimer: Timer
   {
-    id: searchWithoutResultTimer
-
     // Properties
     interval: root.searchWithoutResultDuration
+    running: root.phase === Main.Phase.NotFound
 
     // Connections
-    onTriggered: { root.endSearchWithoutResult() }
+    onTriggered: { root.handle(Main.Event.NotFoundElapsed) }
   }
 
   // Windows
@@ -189,7 +234,7 @@ QtObject
 
     // Connections
     onClicked: { root.triggerReferenceClickAction() }
-    onTimedOut: { reference.forgetArea() }
+    onTimedOut: { root.handle(Main.Event.OverlayTimedOut) }
   }
 
   property Window main: MainWindow
@@ -220,43 +265,137 @@ QtObject
     {
       mainPlacement.resizeBy(deltaX, deltaY, deltaWidth, deltaHeight)
     }
-    onCloseClicked: { Qt.callLater(root.hideWindow) }
+    onCloseClicked: { Qt.callLater(root.closeWindow) }
     onPinClicked: { mainPlacement.setPinned(!mainPlacement.pinned) }
   }
 
   // Functions
   ///
+  /// Moves the application to the phase an event leads to. Every phase lists the events it reacts
+  /// to, an event a phase does not list leaves it as it is.
+  ///
+  function handle(event: int)
+  {
+    switch(root.phase)
+    {
+      case Main.Phase.Hidden:
+      {
+        switch(event)
+        {
+          case Main.Event.SearchStarted: root.enterSearching(); break
+          case Main.Event.ReferenceFound: root.enterReference(); break
+          case Main.Event.ShowRequested: root.enterShown(); break
+        }
+        break
+      }
+      case Main.Phase.Searching:
+      {
+        switch(event)
+        {
+          case Main.Event.SearchStarted: root.enterSearching(); break
+          case Main.Event.SearchFinished: root.enterNotFound(); break
+          case Main.Event.ReferenceFound: root.enterReference(); break
+          case Main.Event.ShowRequested: root.enterShown(); break
+        }
+        break
+      }
+      case Main.Phase.NotFound:
+      {
+        switch(event)
+        {
+          case Main.Event.SearchStarted: root.enterSearching(); break
+          case Main.Event.ReferenceFound: root.enterReference(); break
+          case Main.Event.NotFoundElapsed: root.enterHidden(); break
+          case Main.Event.ShowRequested: root.enterShown(); break
+        }
+        break
+      }
+      case Main.Phase.Found:
+      {
+        switch(event)
+        {
+          case Main.Event.SearchStarted: root.enterSearching(); break
+          case Main.Event.ReferenceFound: root.enterReference(); break
+          case Main.Event.OverlayTimedOut: root.enterHidden(); break
+          case Main.Event.ShowRequested: root.enterShown(); break
+        }
+        break
+      }
+      case Main.Phase.Shown:
+      {
+        switch(event)
+        {
+          case Main.Event.SearchStarted: root.enterSearching(); break
+          case Main.Event.ReferenceFound: root.enterShown(); break
+          case Main.Event.OverlayTimedOut: reference.forgetArea(); break
+          case Main.Event.CloseRequested: root.enterHidden(); break
+        }
+        break
+      }
+    }
+  }
+
+  ///
+  /// Finishes the manual search, called once its result has been reported.
+  /// \note Qt.callLater merges calls of the same function, so every deferred event has its own.
+  ///
+  function finishSearch()
+  {
+    root.handle(Main.Event.SearchFinished)
+  }
+
+  ///
+  /// Closes the main window.
+  ///
+  function closeWindow()
+  {
+    root.handle(Main.Event.CloseRequested)
+  }
+
+  ///
+  /// Takes everything off the screen.
+  ///
+  function enterHidden()
+  {
+    root.phase = Main.Phase.Hidden
+    reference.forgetArea()
+  }
+
+  ///
   /// Begins a search. The passage the main window shows belongs to the previous one, so the window
   /// disappears until this search has a result.
   ///
-  function beginSearch()
+  function enterSearching()
   {
-    searchWithoutResultTimer.stop()
     root.phase = Main.Phase.Searching
     reference.forgetArea()
   }
 
   ///
-  /// Ends the running search. One that found a reference asked for the window already, one
-  /// without a result is only reported for a moment, so that the user sees that it happened.
+  /// Keeps reporting a search that found nothing for a moment, so that the user sees it happened.
   ///
-  function finishSearch()
+  function enterNotFound()
   {
-    if(root.phase === Main.Phase.Searching)
-    {
-      searchWithoutResultTimer.restart()
-    }
+    root.phase = Main.Phase.NotFound
   }
 
   ///
-  /// Takes the overlay of a search that found nothing off the screen. A search or a window asked
-  /// for in the meantime keeps it.
+  /// Presents a found reference: by the main window, or by its overlay alone if the user hid the
+  /// window. A reference without a known area has no overlay, nothing is on the screen then.
   ///
-  function endSearchWithoutResult()
+  function enterReference()
   {
-    if(root.phase === Main.Phase.Searching)
+    if(!root.settingHideWindow.value)
     {
-      root.phase = Main.Phase.Hidden
+      root.enterShown()
+    }
+    else if(reference.areaKnown)
+    {
+      root.phase = Main.Phase.Found
+    }
+    else
+    {
+      root.enterHidden()
     }
   }
 
@@ -265,30 +404,10 @@ QtObject
   /// appears at the area of the previous search first. A window already on the screen only moves,
   /// taking it off for the placement would make it blink.
   ///
-  function placeAndShowWindow()
+  function enterShown()
   {
     mainPlacement.place()
     root.phase = Main.Phase.Shown
-  }
-
-  ///
-  /// Shows the main window. A window that is on the screen already stays where it is.
-  ///
-  function showWindow()
-  {
-    if(root.phase !== Main.Phase.Shown)
-    {
-      root.placeAndShowWindow()
-    }
-  }
-
-  ///
-  /// Hides the main window and the overlay of the found reference.
-  ///
-  function hideWindow()
-  {
-    root.phase = Main.Phase.Hidden
-    reference.forgetArea()
   }
 
   ///

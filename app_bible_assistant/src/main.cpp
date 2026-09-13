@@ -5,28 +5,20 @@
 #include "src/construct_backend.hpp"
 #include "src/construct_bridge.hpp"
 #include "src/construct_translations.hpp"
+#include "src/construct_tray.hpp"
 #include "src/qml_application.hpp"
 #include "src/show_already_running.hpp"
 
-#include <bibqml/bridge/BridgeApplication.hpp>
-
 #include <bibstd/framework/single_instance.hpp>
 #include <bibstd/system/filesystem.hpp>
-#include <bibstd/system/open_browser.hpp>
 #include <bibstd/system/screen.hpp>
-#include <bibstd/system/tray.hpp>
-#include <bibstd/util/incbin.hpp>
 #include <bibstd/util/log.hpp>
 
 #include <QGuiApplication>
-#include <QMetaObject>
 #include <QQmlApplicationEngine>
 #include <QtQml/QQmlExtensionPlugin>
 
 Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
-
-INC_RESOURCE(icon, "res/icon.ico");
-const auto icon_view = bibstd::util::incbin::to_span<std::byte>(res_icon_data, res_icon_size);
 
 ///
 /// Main function.
@@ -74,25 +66,8 @@ int main(int argc, char** argv)
 
   aba::connect_engine(engine, app, bridge);
 
-  // Connect tray signals
-  const auto do_on_exit = [&]()
-  {
-    aba::disconnect_bridge(bridge);
-    translations.disconnect();
-    QMetaObject::invokeMethod(&app, [] { QGuiApplication::quit(); }, Qt::QueuedConnection);
-  };
-  const auto open_github = []() { bibstd::system::open_browser::open("https://github.com/michael-b3n/app_bible"); };
-  const auto show_window = [&bridge]() { bridge.bridge_application->requestShowWindow(); };
   // Start system tray.
-  const auto tray_guard = bibstd::system::tray::init(
-    bibstd::system::tray::icon_buffer{icon_view},
-    {
-      bibstd::system::tray::entry_type{bibstd::system::tray::button{.text = "Show window", .callback = show_window}},
-      bibstd::system::tray::entry_type{bibstd::system::tray::button{.text = "Open GitHub", .callback = open_github}},
-      bibstd::system::tray::entry_type{bibstd::system::tray::button{.text = "Exit", .callback = do_on_exit}},
-      // ...
-    }
-  );
+  const auto tray_guard = aba::construct_tray(app, bridge, translations);
 
   const auto reval = QGuiApplication::exec();
   LOG_INFO("exit application: {}", reval);

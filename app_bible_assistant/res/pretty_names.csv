@@ -19,6 +19,7 @@ fallback_versification_name,Ersatz-Verszählung,Fallback versification
 german,Deutsch,German
 gnb,Gute Nachricht Bibel,Gute Nachricht Bibel
 hfa,Hoffnung für alle,Hoffnung für alle
+hide_window,Fenster ausgeblendet,Window hidden
 kjv,King James Version,King James Version
 language,Sprache,Language
 layout_recognition_ocr_engine,Layouterkennung,Layout recognition
@@ -41,6 +42,9 @@ scripture,Bibelausgabe,Scripture
 slt,Schlachter,Schlachter
 tessdata_path,Tesseract Datenverzeichnis,Tesseract data folder
 translations,Übersetzungen,Translations
-ui,Benutzeroberfläche,User interface
+tray_exit,Beenden,Exit
+tray_open_github,GitHub öffnen,Open GitHub
+tray_show_window,Fenster anzeigen,Show window
+ui,Ansicht,Display
 vxb,Volxbibel,Volxbibel
 zb,Zürcher Bibel,Zürcher Bibel
