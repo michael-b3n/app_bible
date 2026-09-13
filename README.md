@@ -36,3 +36,6 @@ tools/run_clang_tidy.ps1
 tools/run_clang_tidy.ps1 -Path bibstd/util
 clang-tidy -p build bibstd/util/scope_guard.cpp
 ```
+
+### License
+ABA is released under the [MIT License](LICENSE). The libraries in `libs_external` keep their own licenses. Qt is used under the LGPLv3 and linked dynamically. Tesseract and its `tessdata` are licensed under the Apache License 2.0.
