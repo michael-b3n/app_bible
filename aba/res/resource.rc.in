@@ -12,8 +12,8 @@ BEGIN
   BEGIN
     BLOCK "040904B0"  // Language (English - United States)
     BEGIN
-      VALUE "CompanyName", "RYC"
-      VALUE "FileDescription", "@APP_NAME@"
+      VALUE "CompanyName", "@APP_NAME@"
+      VALUE "FileDescription", "@APP_FILE_DESCRIPTION@"
       VALUE "FileVersion", "@APP_VERSION_MAJOR@.0.0.@APP_VERSION_MINOR@"
       VALUE "InternalName", "@APP_NAME@"
       VALUE "OriginalFilename", "@APP_EXE_NAME@.exe"

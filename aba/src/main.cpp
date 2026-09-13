@@ -18,6 +18,8 @@
 #include <QQmlApplicationEngine>
 #include <QtQml/QQmlExtensionPlugin>
 
+#include <format>
+
 Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
 
 ///
@@ -32,15 +34,20 @@ int main(int argc, char** argv)
     return aba::show_already_running(argc, argv);
   }
 
-  const auto logger = bibstd::util::logger(aba::version::data_folder_name);
+  const auto logger = bibstd::util::logger(
+    aba::version::data_folder_name,
+    std::format(
+      "executable: {}\nversion: {}\ncommit_hash: {}\ncommit_date: {}\n",
+      bibstd::system::filesystem::executable_location().string(),
+      aba::version::version_string,
+      aba::version::commit_hash,
+      aba::version::commit_date
+    )
+  );
   if(const auto& single_instance_error = instance.error(); single_instance_error.has_value())
   {
     LOG_WARN("single instance guard inactive: {}", *single_instance_error);
   }
-  LOG_INFO("executable: {}", bibstd::system::filesystem::executable_location().string());
-  LOG_INFO("version: {}", aba::version::version_string);
-  LOG_INFO("commit_hash: {}", aba::version::commit_hash);
-  LOG_INFO("commit_date: {}", aba::version::commit_date);
 
   if(!bibstd::system::screen::init())
   {

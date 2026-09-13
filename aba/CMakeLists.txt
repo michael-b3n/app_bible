@@ -16,7 +16,7 @@ set(APP_EXE_NAME "aba")
 set(APP_NAME "ABA")
 # Frozen to the exe name before the rename, installed versions keep their settings and logs there.
 set(APP_DATA_FOLDER_NAME "app_bible_assistant")
-set(APP_FILE_DESCRIPTION ${APP_NAME})
+set(APP_FILE_DESCRIPTION "${APP_NAME} - Bible Assistant")
 message(STATUS "project name: " ${APP_EXE_NAME})
 message(STATUS "project version: " ${APP_VERSION})
 

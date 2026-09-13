@@ -137,12 +137,19 @@ auto workflow_bible_ref_ocr::find(const params& params) -> result
       references && !references->ranges.empty()
     )
     {
-      LOG_DEBUG("reference search finished: references=[{}]", util::format::join(references->ranges, ", "));
+      LOG_INFO("reference search finished: references=[{}]", util::format::join(references->ranges, ", "));
       return construct_result(*references);
     }
     else if(const auto references = find_references(params, local_settings, atype::recognize_just_with_line_recognition))
     {
-      LOG_DEBUG("reference search finished: references=[{}]", util::format::join(references->ranges, ", "));
+      if(!references->ranges.empty())
+      {
+        LOG_INFO("reference search finished: references=[{}]", util::format::join(references->ranges, ", "));
+      }
+      else
+      {
+        LOG_DEBUG("reference search finished: no references found");
+      }
       return construct_result(*references);
     }
     else
