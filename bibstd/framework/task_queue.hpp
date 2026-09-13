@@ -49,10 +49,16 @@ public: // Accessor
 
 public: // Modifiers
   ///
-  /// Add task to queue.
+  /// Add task to queue. A task added after shutdown is dropped.
   /// \warning The task must not destroy `this` on execution.
   ///
   auto queue(task_type&& task) -> void;
+
+  ///
+  /// Drop all queued tasks and wake up every waiting thread. The queue stays usable,
+  /// so a running task may still queue into it.
+  ///
+  auto shutdown() -> void;
 
   ///
   /// Try to do one task in queue.

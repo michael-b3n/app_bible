@@ -12,6 +12,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <print>
 #include <ranges>
 #include <utility>
 #include <vector>
@@ -117,8 +118,7 @@ inline auto init_log(const std::optional<std::string_view> folder_name, std::str
   auto handlers = spdlog::file_event_handlers{};
   handlers.after_open = [header = std::move(header)](const spdlog::filename_t&, std::FILE* file)
   {
-    std::fputs(header.c_str(), file);
-    // Flushed so the rotating sink counts the header when measuring the opened file.
+    std::print(file, "{}", header);
     std::fflush(file);
   };
 
@@ -153,7 +153,7 @@ inline auto get_logger() -> std::shared_ptr<spdlog::logger>
 
 ///
 ///
-auto log_debug(std::string_view&& msg) -> void
+auto log_debug(std::string_view msg) -> void
 {
   const auto lock = lock_logger();
   if(const auto logger = get_logger())
@@ -164,7 +164,7 @@ auto log_debug(std::string_view&& msg) -> void
 
 ///
 ///
-auto log_info(std::string_view&& msg) -> void
+auto log_info(std::string_view msg) -> void
 {
   const auto lock = lock_logger();
   if(const auto logger = get_logger())
@@ -175,7 +175,7 @@ auto log_info(std::string_view&& msg) -> void
 
 ///
 ///
-auto log_warn(std::string_view&& msg) -> void
+auto log_warn(std::string_view msg) -> void
 {
   const auto lock = lock_logger();
   if(const auto logger = get_logger())
@@ -186,7 +186,7 @@ auto log_warn(std::string_view&& msg) -> void
 
 ///
 ///
-auto log_error(std::string_view&& msg) -> void
+auto log_error(std::string_view msg) -> void
 {
   const auto lock = lock_logger();
   if(const auto logger = get_logger())

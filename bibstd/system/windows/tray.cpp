@@ -51,7 +51,8 @@ auto tray::init(const icon_buffer icon, std::vector<entry_type>&& entries) -> ut
     {
       const auto lock = std::scoped_lock{mtx_};
       tray_->exit();
-      // The tray thread may still run a task using the tray, so it is joined first.
+      // The tray thread may still run a task using the tray, so it is joined first. reset() stores nullptr
+      // in worker_ before the destructor joins, so the tray thread must not reach the worker through worker_.
       worker_.reset();
       tray_.reset();
       thread_pool_guard.reset();
@@ -104,7 +105,7 @@ auto tray::init(const icon_buffer icon, std::vector<entry_type>&& entries) -> ut
           }
         );
         promise.set_value();
-        worker_->queue_task(get_message);
+        worker_->queue_task([&worker = *worker_] { get_message(worker); });
       }
     );
     future.get();
@@ -142,7 +143,7 @@ auto tray::set_text(const std::size_t index, std::string text) -> void
 
 ///
 ///
-auto tray::get_message() -> void
+auto tray::get_message(framework::active_worker& worker) -> void
 {
   static MSG msg;
   if(const auto ret = GetMessage(&msg, nullptr, 0, 0); ret != 0)
@@ -157,7 +158,9 @@ auto tray::get_message() -> void
       TranslateMessage(&msg);
       DispatchMessage(&msg);
     }
-    worker_->queue_task(get_message);
+    // On exit a message may still arrive while the worker joins this thread. worker_ is nullptr by then, but
+    // the worker itself lives until the join returns and its shut down queue drops the task.
+    worker.queue_task([&worker] { get_message(worker); });
   }
 }
 

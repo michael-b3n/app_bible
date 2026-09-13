@@ -58,7 +58,10 @@ public: // Static modifiers
   static auto set_text(std::size_t index, std::string text) -> void;
 
 private: // Static helpers
-  static auto get_message() -> void;
+  ///
+  /// Dispatch one message of the tray thread and queue the next call on \p worker.
+  ///
+  static auto get_message(framework::active_worker& worker) -> void;
 };
 
 } // namespace bibstd::system

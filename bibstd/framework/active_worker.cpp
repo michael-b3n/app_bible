@@ -53,8 +53,9 @@ auto active_worker::shutdown() -> void
 {
   LOG_INFO("worker stop thread: id={}", worker_.get_id());
   worker_.request_stop();
-  worker_queue_.reset();
+  worker_queue_->shutdown();
   worker_.join();
+  worker_queue_.reset();
 }
 
 } // namespace bibstd::framework

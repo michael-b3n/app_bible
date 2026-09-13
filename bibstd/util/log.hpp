@@ -39,22 +39,22 @@ constexpr auto global_log_level() -> logger_level
 ///
 /// Log message with debug level.
 ///
-auto log_debug(std::string_view&& msg) -> void;
+auto log_debug(std::string_view msg) -> void;
 
 ///
 /// Log message with info level.
 ///
-auto log_info(std::string_view&& msg) -> void;
+auto log_info(std::string_view msg) -> void;
 
 ///
 /// Log message with warning level.
 ///
-auto log_warn(std::string_view&& msg) -> void;
+auto log_warn(std::string_view msg) -> void;
 
 ///
 /// Log message with error level.
 ///
-auto log_error(std::string_view&& msg) -> void;
+auto log_error(std::string_view msg) -> void;
 
 ///
 /// Init logger and shutdown logger with RAII.
