@@ -272,7 +272,6 @@ public: // Modifiers
   /// match the machine. It first runs the guard, on pass it runs the exit hook of its source state,
   /// its action and the entry hook of its target state. Guard and action are handed the source and
   /// the target state.
-  /// \param event event to dispatch
   /// \return true, if a transition fired, false if the event was ignored
   /// The machine ignores an event if a transition is ongoing and `no_queue` is set, the event
   /// is not handled by the current state or, if `queue_one` is set, the event is not handled
@@ -424,7 +423,6 @@ sfsm(States, Rows...) -> sfsm<transitions<States, Rows...>>;
 ///
 /// Creates a state machine with a queue.
 /// \tparam QueuePolicy queue policy of the machine (either `no_queue` or `queue_one`)
-/// \param table transition table of the machine
 /// \return ready to use state machine, starting in the source state of the first transition
 /// \see sfsm
 ///
@@ -436,8 +434,6 @@ template<queue_policy_like QueuePolicy = no_queue, transitions_like Transitions>
 
 ///
 /// \see make_sfsm
-/// \param machine_states states of the machine
-/// \param ...rows transitions and hooks of the machine, at least one transition
 ///
 template<queue_policy_like QueuePolicy = no_queue, states_like States, row_like... Rows>
 [[nodiscard]] constexpr auto make_sfsm(States machine_states, Rows... rows) -> sfsm<transitions<States, Rows...>, QueuePolicy>

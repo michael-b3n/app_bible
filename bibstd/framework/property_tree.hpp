@@ -32,7 +32,6 @@ public: // Typedefs
 public: // Creator
   ///
   /// Property tree creator
-  /// \param tree_file_path Tree file path
   /// \return
   ///
   [[nodiscard]] static auto create(const std::filesystem::path& tree_file_path) -> property_tree::sptr_type;
@@ -47,8 +46,6 @@ public: // Modifiers
   /// Create a property in a property tree.
   /// If the property tree already has a value, the value of the created property will be the existing value.
   /// If a new value is created, the property and the tree value will be initialized with the `default_value`.
-  /// \param path Path of property in tree
-  /// \param default_value Default value of the property
   /// \return the newly created property
   ///
   template<typename T>

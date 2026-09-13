@@ -4,6 +4,7 @@
 
 #include <filesystem>
 #include <format>
+#include <optional>
 #include <source_location>
 #include <string_view>
 
@@ -29,25 +30,21 @@ auto global_log_level() -> logger_level;
 
 ///
 /// Log message with debug level.
-/// \param msg String view message
 ///
 auto log_debug(std::string_view&& msg) -> void;
 
 ///
 /// Log message with info level.
-/// \param msg String view message
 ///
 auto log_info(std::string_view&& msg) -> void;
 
 ///
 /// Log message with warning level.
-/// \param msg String view message
 ///
 auto log_warn(std::string_view&& msg) -> void;
 
 ///
 /// Log message with error level.
-/// \param msg String view message
 ///
 auto log_error(std::string_view&& msg) -> void;
 
@@ -57,7 +54,10 @@ auto log_error(std::string_view&& msg) -> void;
 ///
 struct logger final
 {
-  logger();
+  ///
+  /// Init the logger, writing to the local data folder \p folder_name, see system::filesystem::local_data_folder.
+  ///
+  explicit logger(std::optional<std::string_view> folder_name = std::nullopt);
   ~logger() noexcept;
 };
 

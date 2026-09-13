@@ -45,13 +45,11 @@ public: // Accessor
 public: // Modifiers
   ///
   /// Set property value. Updates property in tree if registered.
-  /// \param value Property value that shall be set
   ///
   auto value(const value_type& value) -> void;
 
   ///
   /// Exchange property value. Updates property in tree if registered.
-  /// \param new_value New property value that shall be set
   /// \return old property value
   ///
   auto exchange(const value_type& new_value) -> value_type;

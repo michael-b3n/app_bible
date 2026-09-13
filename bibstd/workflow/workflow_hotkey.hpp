@@ -62,14 +62,12 @@ public: // Accessors
 public: // Modifiers
   ///
   /// Assign a registered callback to a specific hotkey.
-  /// \param params Hotkey parameters containing the path, modifier, and key
   /// \return true if the hotkey was successfully assigned, false otherwise
   ///
   auto assign_hotkey(const assign_params& params) -> bool;
 
   ///
   /// Register a callback to a specific path.
-  /// \param path The path to register the callback
   /// \return The shared signal associated with the path
   ///
   [[nodiscard]] auto register_callback(const path_type& path) -> shared_sig_type;

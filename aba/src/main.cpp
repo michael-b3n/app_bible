@@ -26,13 +26,13 @@ Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
 int main(int argc, char** argv)
 {
   // The instance check runs before the logger, a second instance would truncate the log of the running one.
-  const auto instance = bibstd::framework::single_instance::claim(std::string{aba::version::exe_name});
+  const auto instance = bibstd::framework::single_instance::claim(std::string{aba::version::data_folder_name});
   if(!instance.is_owner())
   {
     return aba::show_already_running(argc, argv);
   }
 
-  const auto logger = bibstd::util::logger();
+  const auto logger = bibstd::util::logger(aba::version::data_folder_name);
   if(const auto& single_instance_error = instance.error(); single_instance_error.has_value())
   {
     LOG_WARN("single instance guard inactive: {}", *single_instance_error);

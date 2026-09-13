@@ -46,8 +46,6 @@ public: // Modifiers
   /// Connects a slot to a signal and stores the connection in the store.
   /// The slot will be automatically disconnected when the synchronized_executor is destroyed or disconnect is called.
   /// \see adapter::connect_queued and adapter::connect_queued_extended
-  /// \param sig Signal to connect to
-  /// \param slot Slot to connect
   ///
   template<signal_like T>
   auto connect(T& sig, typename T::slot_type slot) -> void;
@@ -56,8 +54,6 @@ public: // Modifiers
   /// Connects an extended slot to a signal and stores the connection in the store.
   /// The extended slot will be automatically disconnected when the synchronized_executor is destroyed or disconnect is called.
   /// \see adapter::connect_queued and adapter::connect_queued_extended
-  /// \param sig Signal to connect to
-  /// \param slot Extended slot to connect
   ///
   template<signal_like T>
   auto connect_extended(T& sig, typename T::extended_slot_type slot) -> void;
@@ -76,7 +72,6 @@ private: // Implementation
   ///
   /// Execute task in thread pool. If strand_id was specified in constructor,
   /// the task will be executed in the corresponding strand.
-  /// \param task Task to execute
   ///
   auto exec(framework::thread_pool::task_type&& task) const -> void;
 };

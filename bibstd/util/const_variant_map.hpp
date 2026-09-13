@@ -55,7 +55,6 @@ public: // Constructor
   ///
   /// Constructor of const multi type map.
   /// \tparam ...P pack of type key value pairs
-  /// \param ...p key value pairs
   ///
   constexpr const_variant_map(P&&... p);
 
@@ -63,7 +62,6 @@ public: // Accessors
   ///
   /// Checks if map contains key.
   /// \tparam T key type
-  /// \param key
   /// \return true if key was found, false otherwise
   ///
   template<typename T>
@@ -73,7 +71,6 @@ public: // Accessors
   ///
   /// Access value variant type.
   /// \tparam T key type
-  /// \param key
   /// \return copied value corresponding to key packed in a variant
   ///
   template<typename T>
@@ -85,8 +82,6 @@ public: // Operations
   /// Apply callable to value corresponding to key.
   /// \tparam T key type
   /// \tparam F callable type with void return type
-  /// \param key
-  /// \param f callable to be applied to value corresponding to key
   /// \return true if key was found, false otherwise
   ///
   template<typename T, typename F>
@@ -96,7 +91,6 @@ public: // Operations
   ///
   /// Apply callable to key-value pairs until callable returns false.
   /// \tparam F callable type with boolean return type
-  /// \param f callable to be applied to all key-value pairs until breakout
   ///
   template<typename F>
   constexpr auto visit_until(F&& f) const -> void

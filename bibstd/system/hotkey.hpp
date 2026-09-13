@@ -27,16 +27,11 @@ public: // Static modifiers
 
   ///
   /// Register global callback to specified key and key modifier.
-  /// \param key Key ID
-  /// \param mod Key modifier ID
-  /// \param callback Callback that shall be registered
   ///
   static auto register_callback(key key, key_modifier mod, std::function<void()>&& callback) -> void;
 
   ///
   /// Unregister global callback for specified key and key modifier.
-  /// \param key Key ID
-  /// \param mod Key modifier ID
   ///
   static auto unregister_callback(key key, key_modifier mod) -> void;
 };

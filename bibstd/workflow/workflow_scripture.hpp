@@ -129,7 +129,6 @@ public: // Accessors
   ///
   /// Get scripture. If no scripture name is provided in the params,
   /// the scripture defined in the settings will be used.
-  /// \param params Process parameters containing an optional scripture name
   /// \return scripture, or an unexpected result in case of failure
   ///
   [[nodiscard]] auto scripture(const scripture_params& params) -> scripture_result;
@@ -137,7 +136,6 @@ public: // Accessors
   ///
   /// Get passage from scripture. If no scripture name is provided in the params,
   /// the scripture defined in the settings will be used.
-  /// \param params Process parameters containing the reference and optional scripture name
   /// \return passage, or an unexpected result in case of failure
   ///
   [[nodiscard]] auto passage(const passage_params& params) -> passage_result;

@@ -35,9 +35,6 @@ public: // Typedefs
 public: // Static constructor
   ///
   /// Create bible reference.
-  /// \param book Book name
-  /// \param chapter Chapter number
-  /// \param verse_number Verse number
   /// \return bible reference or std::nullopt if not valid
   ///
   static auto create(book_id book, chapter_type chapter, verse_type verse, const versification& validator)
@@ -52,9 +49,6 @@ public: // Static constructor
   ///
   /// Create a bible reference without validating the chapter and verse numbers.
   /// This should only be used when the chapter and verse numbers are already known to be valid.
-  /// \param book Book name
-  /// \param chapter Chapter number
-  /// \param verse_number Verse number
   /// \return bible reference
   ///
   static constexpr auto create_unguarded(book_id book, chapter_type chapter, verse_type verse) -> reference;

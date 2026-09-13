@@ -24,8 +24,6 @@ overloaded(Ts...) -> overloaded<Ts...>;
 
 ///
 /// Overload function for `std::visit` handling multiple lambdas.
-/// \param var Variant that shall be visited
-/// \param ...lambdas Lambdas that shall be called on visitors elements.
 /// \return as `std::visit` would return
 ///
 constexpr auto visit_lambdas(auto&& var, auto&&... lambdas) -> decltype(auto)

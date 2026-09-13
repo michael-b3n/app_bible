@@ -74,7 +74,6 @@ public: // Constructor
   ///
   /// Constructor of const bimap.
   /// \tparam ...P pack of type pair
-  /// \param ...p pairs
   ///
   template<typename... P>
   constexpr const_map(P&&... p)
@@ -84,7 +83,6 @@ public: // Accessor
   ///
   /// Checks if first value is contained in const bimap.
   /// \tparam F type must be equality comparable with first_type or first_type if first and second types are similar.
-  /// \param first value
   /// \return true, if first value was found, false otherwise
   ///
   template<typename F>
@@ -94,7 +92,6 @@ public: // Accessor
   ///
   /// Checks if second value is contained in const bimap.
   /// \tparam F type must be equality comparable with second_type or second_type if first and second types are similar.
-  /// \param second value
   /// \return true, if second value was found, false otherwise
   ///
   template<typename S>
@@ -104,7 +101,6 @@ public: // Accessor
   ///
   /// Access second value corresponding to first value.
   /// \tparam F type must be equality comparable with first_type or first_type if first and second types are similar.
-  /// \param first value
   /// \return const reference to second element of pair corresponding to first
   ///
   template<typename F>
@@ -114,7 +110,6 @@ public: // Accessor
   ///
   /// Access first value corresponding to second value.
   /// \tparam F type must be equality comparable with second_type or second_type if first and second types are similar.
-  /// \param second value
   /// \return const reference to first element of pair corresponding to second
   ///
   template<typename S>
@@ -140,8 +135,6 @@ public: // Iterator Overloads
 private: // Implementation
   ///
   /// Checks if values are equal using `comparable_type` for comparison.
-  /// \param lhs Left side
-  /// \param rhs Right side
   /// \return true if equal, false otherwise
   ///
   constexpr auto is_equal(const auto& lhs, const auto& rhs) const -> bool;
@@ -281,7 +274,6 @@ namespace detail
 /// \tparam S Value type
 /// \tparam N Map size
 /// \tparam Is Index sequence
-/// \param p Initialization pack of key/value pairs
 /// \return const_map instance
 ///
 template<typename F, typename S, std::size_t N, bool BidirectionalFlag, std::size_t... Is>
@@ -298,7 +290,6 @@ consteval auto make_const_map_impl(std::pair<F, S> (&&p)[N], [[maybe_unused]] st
 /// \tparam F Key type
 /// \tparam S Value type
 /// \tparam N Map size
-/// \param p Initialization pack of key/value pairs
 /// \return const_map instance
 ///
 template<typename F, typename S, std::size_t N>
@@ -314,7 +305,6 @@ consteval auto make_const_map(std::pair<F, S> (&&p)[N]) -> auto
 /// \tparam F Key type
 /// \tparam S Value type
 /// \tparam N Map size
-/// \param p Initialization pack of key/value pairs
 /// \return const_map instance
 ///
 template<typename F, typename S, std::size_t N>

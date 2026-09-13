@@ -28,7 +28,6 @@ namespace bibstd::res::scripture
 
 ///
 /// Get the raw data of the zip file at given index.
-/// \param index Index of the zip file
 /// \return span of byte data of the zip file
 ///
 [[nodiscard]] inline auto file_name(const std::size_t index) -> std::filesystem::path
@@ -43,7 +42,6 @@ namespace bibstd::res::scripture
 
 ///
 /// Get the raw data of the zip file at given index.
-/// \param index Index of the zip file
 /// \return span of byte data of the zip file
 ///
 [[nodiscard]] inline auto file_raw(const std::size_t index) -> std::span<const std::byte>

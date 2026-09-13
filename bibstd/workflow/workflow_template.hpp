@@ -54,7 +54,6 @@ public: // Structors
 public: // Modifiers
   ///
   /// Start the workflow template.
-  /// \param params Process parameters for the workflow
   /// \return result, or an unexpected result in case of failure
   ///
   auto start(const params& params) -> result;

@@ -12,7 +12,6 @@ namespace detail
 ///
 /// Helper function to convert a hex color string to a QColor object.
 /// The input string should be in the format "#RRGGBBAA" or "#RRGGBB".
-/// \param color The hex color string to convert
 /// \return The corresponding QColor object
 ///
 auto toQColor(std::string color) -> QColor;

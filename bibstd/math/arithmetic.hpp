@@ -48,8 +48,6 @@ struct arithmetic final
   // Static functions
   ///
   /// Add two values of an integer type `T`.
-  /// \param first First value
-  /// \param second Second value
   /// \return result of `first + second`
   ///
   template<arithmetic_type T>
@@ -57,8 +55,6 @@ struct arithmetic final
 
   ///
   /// Add two values of type `expected_type<T>`.
-  /// \param first First value
-  /// \param second Second value
   /// \return result of `first + second`
   ///
   template<arithmetic_type T>
@@ -66,8 +62,6 @@ struct arithmetic final
 
   ///
   /// Subtract two values of an integer type `T`.
-  /// \param first First value
-  /// \param second Second value
   /// \return result of `first - second`
   ///
   template<arithmetic_type T>
@@ -75,8 +69,6 @@ struct arithmetic final
 
   ///
   /// Subtract two values of type `expected_type<T>`.
-  /// \param first First value
-  /// \param second Second value
   /// \return result of `first - second`
   ///
   template<arithmetic_type T>
@@ -84,8 +76,6 @@ struct arithmetic final
 
   ///
   /// Multiply two values of an integer type `T`.
-  /// \param first First value
-  /// \param second Second value
   /// \return result of `first * second`
   ///
   template<arithmetic_type T>
@@ -93,8 +83,6 @@ struct arithmetic final
 
   ///
   /// Multiply two values of type `expected_type<T>`.
-  /// \param first First value
-  /// \param second Second value
   /// \return result of `first * second`
   ///
   template<arithmetic_type T>
@@ -102,8 +90,6 @@ struct arithmetic final
 
   ///
   /// Divide two values of an integer type `T`.
-  /// \param first First value
-  /// \param second Second value
   /// \return result of `first / second`
   ///
   template<arithmetic_type T>
@@ -111,8 +97,6 @@ struct arithmetic final
 
   ///
   /// Divide two values of type `expected_type<T>`.
-  /// \param first First value
-  /// \param second Second value
   /// \return result of `first / second`
   ///
   template<arithmetic_type T>
@@ -121,7 +105,6 @@ struct arithmetic final
   ///
   /// Clamp to lowest or max value depending on under- or overflow.
   /// Return std::nullopt if `value` parameter is undefined.
-  /// \param value Expected value that shall be clamped
   /// \return clamped value
   ///
   template<arithmetic_type T>
@@ -276,7 +259,6 @@ namespace detail
 
 ///
 /// Classify floating point value and return corresponding expected type.
-/// \param value Floating point type value
 /// \return expected type dependent on `value` classification
 ///
 template<std::floating_point T>

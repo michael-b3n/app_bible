@@ -72,7 +72,6 @@ public: // Typedefs
   public: // Operations
     ///
     /// Create a bound scope exit action instance.
-    /// \param on_destruction The callable to be executed on destruction
     /// \return A scope_guard instance bound to the same underlying
     /// instance as other guards created by this function
     ///

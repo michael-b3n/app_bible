@@ -9,7 +9,6 @@ namespace bibstd::util::ranges
 
 ///
 /// Return an iota view over the whole range of the given range object.
-/// \param range Sized range
 /// \return iota view from 0 to size of range
 ///
 template<std::ranges::sized_range R>
@@ -21,8 +20,6 @@ constexpr auto index_view(const R& range) -> auto
 ///
 /// Return an iota view from a start index to the end of the given range object.
 /// If the begin index is larger then the range size, the view is empty.
-/// \param range Sized range
-/// \param begin Start index
 /// \return iota view from given start index to size of range
 ///
 template<std::ranges::sized_range R>
@@ -35,8 +32,6 @@ constexpr auto index_view_from(const R& range, const std::ranges::range_size_t<R
 ///
 /// Return an iota view from zero to the specified end index. Performs a max size check with the given range.
 /// If the end index is larger then the range size, the view will go over the full range.
-/// \param range Sized range
-/// \param end End index
 /// \return iota view from zero to the given end index or size of range if end is larger
 ///
 template<std::ranges::sized_range R>
@@ -48,7 +43,6 @@ constexpr auto index_view_to(const R& range, const std::ranges::range_size_t<R> 
 
 ///
 /// Return an iota view from zero to the specified end index.
-/// \param end End index
 /// \return iota view from zero to the given end index
 ///
 constexpr auto index_view_to(const std::integral auto end) -> auto
@@ -58,8 +52,6 @@ constexpr auto index_view_to(const std::integral auto end) -> auto
 
 ///
 /// Return an iota view from first to the specified end index.
-/// \param first Start index
-/// \param second End index
 /// \return iota view from first to the given end index
 ///
 constexpr auto index_view_between(const std::integral auto first, const std::integral auto second) -> auto

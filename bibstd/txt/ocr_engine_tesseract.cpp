@@ -25,7 +25,6 @@ namespace
 ///
 /// Forward the pixels struct as a leptonica PIX struct.
 /// The pixels object is not copied and must live longer than the PIX object.
-/// \param pix Pixels, that shall be referenced to a leptonica PIX struct
 ///
 auto forward_as_pix(auto& data, const std::uint32_t width, const std::uint32_t height) -> Pix
 {
@@ -48,7 +47,6 @@ auto forward_as_pix(auto& data, const std::uint32_t width, const std::uint32_t h
 
 ///
 /// Get the tesseract page iterator level from the resolution tag.
-/// \param resolution_tag Tag specifying the OCR resolution
 /// \return tesseract page iterator level ID
 ///
 constexpr auto page_iterator_level(ocr_engine_tesseract::resolution_tags resolution_tag) -> tesseract::PageIteratorLevel
@@ -66,8 +64,6 @@ constexpr auto page_iterator_level(ocr_engine_tesseract::resolution_tags resolut
 
 ///
 /// Get the bounding box of the current iterator page object corresponding to the level (word, line, paragraph).
-/// \param ri Tesseract page iterator
-/// \param level Text resolution level
 /// \return bounding box of text object if available, std::nullopt otherwise
 ///
 auto get_bounding_box(const auto& ri, const auto level) -> std::optional<ocr_engine_tesseract::bounding_box_type>

@@ -22,7 +22,6 @@ const auto logger_name = std::string{"main"};
 ///
 /// Convert u8 string view to normal string.
 /// \warning Normal strings are encoded in utf-8.
-/// \param u8string that shall be converted
 /// \return string with content of string
 ///
 inline auto to_string(const std::u8string& u8string) -> std::string
@@ -42,12 +41,12 @@ inline auto lock_logger() -> std::scoped_lock<std::mutex>
 ///
 /// Setup logger.
 ///
-inline auto init_log() -> void
+inline auto init_log(const std::optional<std::string_view> folder_name) -> void
 {
   static constexpr auto log_dir = std::string_view("logs");
   static constexpr auto log_pattern = std::string_view("[%Y-%m-%d %H:%M:%S] [%L] [%t] %v");
 
-  const auto local_data_path = system::filesystem::local_data_folder();
+  const auto local_data_path = system::filesystem::local_data_folder(folder_name);
   std::filesystem::create_directories(local_data_path / log_dir);
   const auto log_directory_name = local_data_path / log_dir;
   const auto log_filename = format_current_time_cet() + std::string{".log"};
@@ -136,9 +135,9 @@ auto log_error(std::string_view&& msg) -> void
 
 ///
 ///
-logger::logger()
+logger::logger(const std::optional<std::string_view> folder_name)
 {
-  init_log();
+  init_log(folder_name);
 }
 
 ///

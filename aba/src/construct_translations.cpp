@@ -1,4 +1,5 @@
 #include "src/construct_translations.hpp"
+#include "res/version.hpp"
 
 #include <bibstd/framework/setting_validator.hpp>
 #include <bibstd/util/exception.hpp>
@@ -84,7 +85,7 @@ auto read_language_setting() -> std::optional<std::string>
   try
   {
     auto tree = boost::property_tree::ptree{};
-    boost::property_tree::read_xml(bibstd::workflow::workflow_settings::settings_file_path().generic_string(), tree);
+    boost::property_tree::read_xml(bibstd::workflow::workflow_settings::settings_file_path(version::data_folder_name).generic_string(), tree);
     const auto language = tree.get_optional<std::string>(std::format(
       "{}.{}", bibstd::workflow::workflow_settings::settings_root_name, translations_instance::language_setting_path
     ));

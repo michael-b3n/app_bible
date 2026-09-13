@@ -1,4 +1,5 @@
 #include "src/construct_backend.hpp"
+#include "res/version.hpp"
 
 #include <bibstd/framework/thread_pool.hpp>
 #include <bibstd/system/hotkey.hpp>
@@ -22,7 +23,7 @@ auto construct_backend() -> backend_instance
 {
   // Init backend
   // clang-format off
-  auto workflow_settings = std::make_shared<bibstd::workflow::workflow_settings>();
+  auto workflow_settings = std::make_shared<bibstd::workflow::workflow_settings>(version::data_folder_name);
   auto workflow_hotkey = std::make_shared<bibstd::workflow::workflow_hotkey>();
   auto workflow_scripture = std::make_shared<bibstd::workflow::workflow_scripture>(workflow_settings);
   auto workflow_bible_ref_ocr = std::make_shared<bibstd::workflow::workflow_bible_ref_ocr>(workflow_settings, workflow_scripture);

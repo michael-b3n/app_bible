@@ -10,11 +10,8 @@ namespace bibstd::math
 {
 
 ///
-/// Check if a floating point value is almost equal to another floating point value.
+/// Check if a floating point value is almost equal to another floating point value, as in `|v1 - v2| < epsilon`.
 /// \tparam T Arithmetic floating point type
-/// \param v1 First value
-/// \param v2 Second value
-/// \param epsilon Small value defining almost equal as `|v1 - v2| < epsilon`
 /// \return true, if first value is almost equal to second value
 ///
 template<std::floating_point T>
@@ -27,8 +24,6 @@ constexpr auto is_equal(const T v1, const T v2, const T epsilon = std::numeric_l
 /// Check if a integral value is equal to another integral value.
 /// \tparam T1 Arithmetic integral type
 /// \tparam T2 Arithmetic integral type
-/// \param v1 First value
-/// \param v2 Second value
 /// \return true, if first value is equal to second value
 ///
 template<std::integral T1, std::integral T2>
@@ -60,8 +55,6 @@ constexpr auto is_equal(
 /// Check if a integral value is equal to another equality comparable value.
 /// \tparam T Arithmetic integral type
 /// \tparam T1 Equality comparable to T type
-/// \param v1 First value
-/// \param v2 Second value
 /// \return true, if first value is equal to second value
 ///
 template<std::integral T, typename T1>
@@ -75,8 +68,6 @@ constexpr auto is_equal(const T v1, const T1 v2, [[maybe_unused]] const T epsilo
 /// Check if a integral value is equal to another equality comparable value.
 /// \tparam T Arithmetic integral type
 /// \tparam T1 Equality comparable to T type
-/// \param v1 First value
-/// \param v2 Second value
 /// \return true, if first value is equal to second value
 ///
 template<std::integral T, typename T1>

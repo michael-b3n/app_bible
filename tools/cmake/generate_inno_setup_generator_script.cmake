@@ -64,7 +64,7 @@ else()
   message(WARNING \"undefined APP_NAME variable\")
 endif()
 
-set(INNO_SETUP_OUTPUT_NAME \"setup_${PROJECT_NAME}\")
+set(INNO_SETUP_OUTPUT_NAME \"setup_\${INNO_SETUP_APP_EXE_NAME}\")
 
 configure_file(\"${inno_setup_template}\" \"${CMAKE_INSTALL_PREFIX}/generated_setup.iss\")
 execute_process(COMMAND \"${CMAKE_COMMAND}\" -E env \"${INNOSETUP_EXECUTABLE}\" \"${CMAKE_INSTALL_PREFIX}/generated_setup.iss\")

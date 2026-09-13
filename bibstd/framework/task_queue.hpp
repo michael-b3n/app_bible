@@ -50,7 +50,6 @@ public: // Accessor
 public: // Modifiers
   ///
   /// Add task to queue.
-  /// \param task that shall be added
   /// \warning The task must not destroy `this` on execution.
   ///
   auto queue(task_type&& task) -> void;

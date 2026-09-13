@@ -12,6 +12,7 @@
 
 #include <filesystem>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -78,7 +79,7 @@ class workflow_settings final : public signal::adapter<workflow_settings_signals
   };
 
   // Variables
-  const framework::property_tree::sptr_type tree_{framework::property_tree::create(settings_file_path())};
+  const framework::property_tree::sptr_type tree_;
   mutable std::mutex mtx_;
   std::vector<setting_uptr_data> settings_;
 
@@ -105,10 +106,11 @@ public: // Constants
 
 public: // Static interface
   ///
-  /// Get the default settings file path.
+  /// Get the settings file path inside the local data folder \p folder_name, see system::filesystem::local_data_folder.
   /// \return settings file path
   ///
-  [[nodiscard]] static auto settings_file_path() -> const std::filesystem::path&;
+  [[nodiscard]] static auto settings_file_path(std::optional<std::string_view> folder_name = std::nullopt)
+    -> std::filesystem::path;
 
   ///
   /// Split a setting path into the segments it is made of.
@@ -130,7 +132,10 @@ public: // Static interface
     -> std::optional<setting_type_erased_non_owning_ptr_variant_type>;
 
 public: // Structors
-  workflow_settings() = default;
+  ///
+  /// Construct the settings, stored in the local data folder \p folder_name.
+  ///
+  explicit workflow_settings(std::optional<std::string_view> folder_name = std::nullopt);
 
 public: // Modifiers
   ///

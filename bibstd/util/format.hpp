@@ -16,15 +16,12 @@ struct format final
 {
   ///
   /// Concatenates all elements of the range into a single string with the given delimiter.
-  /// \param range Range such as vectors, lists, ranges, etc.
-  /// \param delimiter string that separates the elements
   /// \return A string that contains all elements of the range separated by the delimiter
   ///
   static auto join(const std::ranges::range auto& range, std::string_view delimiter) -> std::string;
 
   ///
   /// Converts a `std::optional` to a string using std::format.
-  /// \param value The optional value to convert
   /// \return A string representation of the optional value. If the optional is empty, "nullopt" is returned.
   ///
   template<typename T>

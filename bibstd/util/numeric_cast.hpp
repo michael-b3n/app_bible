@@ -12,7 +12,6 @@ namespace bibstd::util
 ///
 /// Performs a static_cast during compile time and a numeric cast on runtime.
 /// \tparam T arithmetic type to cast to
-/// \param v Arithmetic value that shall be casted to another arithmetic type
 /// \return casted value
 ///
 template<typename T>

@@ -12,8 +12,7 @@ namespace detail
 {
 
 ///
-/// Helper function to build the source url of an icon resource.
-/// \param name The file name of the icon inside the qml resource folder
+/// Helper function to build the source url of an icon resource, \p name is its file name inside the qml resource folder.
 /// \return The corresponding resource url
 ///
 auto toIconUrl(std::string_view name) -> QString;

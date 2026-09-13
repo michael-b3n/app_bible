@@ -12,8 +12,10 @@ include(generate_inno_setup_generator_script)
 set(APP_VERSION_MAJOR 2)
 set(APP_VERSION_MINOR 0)
 set(APP_VERSION "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}")
-set(APP_EXE_NAME "app_bible_assistant")
-set(APP_NAME "Bible Assistant")
+set(APP_EXE_NAME "aba")
+set(APP_NAME "ABA")
+# Frozen to the exe name before the rename, installed versions keep their settings and logs there.
+set(APP_DATA_FOLDER_NAME "app_bible_assistant")
 set(APP_FILE_DESCRIPTION ${APP_NAME})
 message(STATUS "project name: " ${APP_EXE_NAME})
 message(STATUS "project version: " ${APP_VERSION})
@@ -40,7 +42,7 @@ endif()
 # Define project
 #
 project(
-  app_bible_assistant
+  aba
   VERSION ${APP_VERSION}
 )
 
@@ -53,8 +55,8 @@ configure_file(${CMAKE_CURRENT_LIST_DIR}/res/version.hpp.in ${CMAKE_CURRENT_BINA
 #
 # Define target files
 #
-file(GLOB_RECURSE app_bible_assistant_CPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.cpp")
-file(GLOB_RECURSE app_bible_assistant_HPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.hpp")
+file(GLOB_RECURSE ${PROJECT_NAME}_CPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.cpp")
+file(GLOB_RECURSE ${PROJECT_NAME}_HPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.hpp")
 file(GLOB_RECURSE ${PROJECT_NAME}_QML_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/qml/*.qml")
 
 foreach(file ${${PROJECT_NAME}_QML_FILES})
@@ -152,7 +154,7 @@ set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <S
 # Set target sources.
 #
 target_sources(${PROJECT_NAME}
-  PRIVATE ${app_bible_assistant_CPP_FILES}
+  PRIVATE ${${PROJECT_NAME}_CPP_FILES}
   PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/res/resource.rc
 )
 
@@ -195,11 +197,13 @@ install(DIRECTORY ${TESSDATA_FOLDER_PATH} DESTINATION share)
 install(SCRIPT ${QT_DEPLOY_SCRIPT})
 
 #
-# Create Inno Setup Executable
+# Create the platform installer, setup/<platform> holds its scripts.
 #
-generate_inno_setup_generator_script(
-  INNO_SETUP_GENERATOR_SCRIPT
-  ${CMAKE_CURRENT_LIST_DIR}/setup/setup.iss
-  ${CMAKE_CURRENT_LIST_DIR}/..
-  ${CMAKE_CURRENT_LIST_DIR}/res/icon.ico)
-install(SCRIPT "${INNO_SETUP_GENERATOR_SCRIPT}")
+if(WIN32)
+  generate_inno_setup_generator_script(
+    INNO_SETUP_GENERATOR_SCRIPT
+    ${CMAKE_CURRENT_LIST_DIR}/setup/windows/setup.iss
+    ${CMAKE_CURRENT_LIST_DIR}/..
+    ${CMAKE_CURRENT_LIST_DIR}/res/icon.ico)
+  install(SCRIPT "${INNO_SETUP_GENERATOR_SCRIPT}")
+endif()

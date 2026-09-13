@@ -69,7 +69,6 @@ struct constructing_params_count_helper<T, I, Is...> final
 
 ///
 /// Converts a variable number of arguments into a tuple.
-/// \param ...args The arguments to be converted into a tuple
 /// \return a tuple containing the forwarded arguments
 ///
 constexpr auto to_tuple(auto&&... args) -> auto
@@ -223,7 +222,6 @@ consteval auto data_member_count() -> std::size_t
 ///
 /// Converts an aggregate type into a tuple.
 /// \tparam T The type of the aggregate to be converted
-/// \param a The aggregate to be converted into a tuple
 /// \return a tuple containing the elements of the aggregate
 ///
 template<typename T>
@@ -270,7 +268,6 @@ using to_tuple_t = decltype(to_tuple(std::declval<T>()));
 ///
 /// Converts a tuple into a struct of type T.
 /// \tparam T The type of the struct to be created
-/// \param tuple The tuple to be converted into a struct
 /// \return a struct of type T containing the elements of the tuple
 ///
 template<typename T>

@@ -19,7 +19,6 @@ concept enum_type = std::is_enum_v<E>;
 ///
 /// Converts enum to integral.
 /// \tparam E enum type
-/// \param e enum value
 /// \return integral value corresponding to enum value
 ///
 template<enum_type E>
@@ -31,7 +30,6 @@ constexpr auto to_integral(const E e) -> std::underlying_type_t<E>
 ///
 /// Converts enum to string.
 /// \tparam E enum type
-/// \param e enum value
 /// \return string_view name corresponding to enum value
 ///
 template<enum_type E>
@@ -76,7 +74,6 @@ consteval auto enum_values() -> std::array<E, enum_count<E>()>
 ///
 /// Converts integral to enum.
 /// \tparam E enum type
-/// \param integral enums underlying type value
 /// \return enum type value
 ///
 template<enum_type E>
@@ -88,7 +85,6 @@ constexpr auto to_enum(const std::underlying_type_t<E> integral) -> E
 ///
 /// Converts string view enum name to enum.
 /// \tparam E enum type
-/// \param name name of enum value as string view
 /// \return optional enum type value, std::nullopt of name does not correspond to any enum value in specified enum type
 ///
 template<enum_type E>
@@ -101,7 +97,6 @@ constexpr auto to_enum(const std::string_view name) -> std::optional<E>
 ///
 /// Get next enum value.
 /// \tparam E enum type
-/// \param e enum value
 /// \return next enum value of param e
 ///
 template<enum_type E>
@@ -118,7 +113,6 @@ constexpr auto next(const E e) -> E
 ///
 /// Checks if next enum value exists.
 /// \tparam E enum type
-/// \param e enum value
 /// \return flag indicating if next enum value exists
 ///
 template<enum_type E>
@@ -131,7 +125,6 @@ constexpr auto has_next(const E e) -> bool
 ///
 /// Get previous enum value.
 /// \tparam E enum type
-/// \param e enum value
 /// \return previous enum value of param e
 ///
 template<enum_type E>
@@ -148,7 +141,6 @@ constexpr auto prev(const E e) -> E
 ///
 /// Checks if previous enum value exists.
 /// \tparam E enum type
-/// \param e enum value
 /// \return flag indicating if previous enum value exists
 ///
 template<enum_type E>
@@ -161,8 +153,7 @@ constexpr auto has_prev(const E e) -> bool
 ///
 /// Checks if enum value of fenced enum type is valid.
 /// \tparam E fenced enum type
-/// \param e fenced enum value
-/// \param true if between begin and end, false otherwise
+/// \return true if valid, false otherwise
 ///
 template<enum_type E>
 constexpr auto valid(E e) -> bool

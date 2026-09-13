@@ -31,7 +31,6 @@ namespace winrt_globalization = winrt::Windows::Globalization;
 
 ///
 /// Map util::language to Windows BCP-47 language tag.
-/// \param language Language to map
 /// \return BCP-47 language tag corresponding to the given language
 ///
 auto to_language_tag(const util::language language) -> winrt::hstring

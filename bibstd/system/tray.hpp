@@ -32,8 +32,7 @@ class tray final
 
 public: // Typedefs
   ///
-  /// Icon file loaded into memory.
-  /// \param buffer Byte buffer view on a `*.ico` file
+  /// Icon file loaded into memory, the buffer views a `*.ico` file.
   ///
   struct icon_buffer final
   {
@@ -54,8 +53,7 @@ public: // Static modifiers
 
   ///
   /// Change the text of an entry, e.g. after a language change. Ignored if no tray exists.
-  /// \param index Position of the entry in the list the tray was initialized with
-  /// \param text UTF-8 encoded text
+  /// \p index is the position in the list the tray was initialized with, \p text is UTF-8 encoded.
   ///
   static auto set_text(std::size_t index, std::string text) -> void;
 

@@ -23,7 +23,7 @@ single_instance::single_instance(const std::string& name)
 {
   try
   {
-    const auto lock_file = system::filesystem::local_data_folder() / std::format("{}.lock", name);
+    const auto lock_file = system::filesystem::local_data_folder(name) / std::format("{}.lock", name);
     std::filesystem::create_directories(lock_file.parent_path());
     std::ignore = std::ofstream{lock_file, std::ios::app}; // file_lock needs an existing file, its content is never read
 

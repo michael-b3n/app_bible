@@ -80,7 +80,7 @@ auto construct_translations(backend_instance& backend) -> translations_instance;
 
 ///
 /// Initialize the translations of an application that owns no settings.
-/// \param language Language the pretty names are displayed in, default language if std::nullopt
+/// The pretty names are displayed in \p language, in the default language if not set.
 /// \return translations instance, holding no pretty names if they could not be loaded
 ///
 auto construct_translations(const std::optional<std::string>& language) -> translations_instance;

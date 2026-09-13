@@ -83,15 +83,11 @@ public: // Typedefs
 public: // Structors
   ///
   /// Construct a ZIP reader for the specified file path.
-  /// \param zip_path Path to the ZIP archive
-  /// \param password Optional password for encrypted archives
   ///
   zip_file_reader(const std::filesystem::path& zip_path, std::string_view password = "");
 
   ///
   /// Construct a ZIP reader from in-memory data.
-  /// \param data Span of bytes containing the ZIP archive
-  /// \param password Optional password for encrypted archives
   ///
   zip_file_reader(std::span<const std::byte> data, std::string_view password = "");
 
@@ -135,37 +131,30 @@ public: // Accessors
 
   ///
   /// Get entry by index.
-  /// \param index Entry index
   /// \return Entry if found, std::nullopt otherwise
   ///
   [[nodiscard]] auto entry(std::size_t index) const -> std::optional<zip_entry>;
 
   ///
   /// Get entry by name.
-  /// \param name Entry name to find
-  /// \param flags  Flags for querying the name
   /// \return Entry if found, null entry otherwise
   ///
   [[nodiscard]] auto entry(const std::string& name, query_flags_type flags = {}) const -> std::optional<zip_entry>;
 
   ///
   /// Check if an entry with the specified name exists.
-  /// \param name Entry name to search for
-  /// \param flags  Flags for querying the name
   /// \return true if entry exists, false otherwise
   ///
   [[nodiscard]] auto has_entry(const std::string& name, query_flags_type flags = {}) const -> bool;
 
   ///
   /// Read an entry's content into memory.
-  /// \param entry Entry to read
   /// \return Binary data as vector, empty if error
   ///
   [[nodiscard]] auto read_entry(const zip_entry& entry) const -> std::vector<std::byte>;
 
   ///
   /// Read an entry's content as text string.
-  /// \param entry Entry to read
   /// \return Text content as string, empty if error
   ///
   [[nodiscard]] auto read_entry_as_string(const zip_entry& entry) const -> std::string;
@@ -173,23 +162,18 @@ public: // Accessors
 private: // Helpers
   ///
   /// Checks if archive contains entry with name.
-  /// \param name Name to find
-  /// \param flag Flags for querying the name
   /// \return true if entry is found, false otherwise
   ///
   [[nodiscard]] auto index_of_entry(const std::string& name, query_flags_type flag = {}) const -> std::optional<std::size_t>;
 
   ///
   /// Get entry by index.
-  /// \param index Entry index
-  /// \param flag Flags for zip_stat_index
   /// \return Entry if found, std::nullopt otherwise
   ///
   [[nodiscard]] auto entry_by_index(std::size_t index, std::uint32_t flag) const -> std::optional<zip_entry>;
 
   ///
   /// Create a zip_entry from libzip stat structure.
-  /// \param stat Pointer to zip_stat structure
   /// \return Created zip_entry
   ///
   [[nodiscard]] auto create_entry(const zip_stat& stat) const -> zip_entry;

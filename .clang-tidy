@@ -61,7 +61,7 @@ Checks: >
 #
 # Only diagnose the projects own headers, not the ones of Qt, boost or other external libraries.
 #
-HeaderFilterRegex: '(bibstd|bibqml|bibstd_test|app_bible_assistant)[/\].*\.hpp$'
+HeaderFilterRegex: '(bibstd|bibqml|bibstd_test|aba)[/\].*\.hpp$'
 ExcludeHeaderFilterRegex: '(build|libs_external)[/\].*'
 
 #
