@@ -23,6 +23,7 @@ hide_window,Fenster ausgeblendet,Window hidden
 kjv,King James Version,King James Version
 language,Sprache,Language
 layout_recognition_ocr_engine,Layouterkennung,Layout recognition
+line_recognition,Zeilenerkennung,Line recognition
 lookup,Nachschlagen,Lookup
 LookupBrowser,Im Browser öffnen,Open in browser
 lut,Lutherbibel,Lutherbibel
@@ -37,7 +38,9 @@ nlb,Neues Leben. Die Bibel,Neues Leben. Die Bibel
 None,Keine Aktion,No action
 ocr,Texterkennung,Text recognition
 ocr_auto,Automatische Texterkennung,Automatic text recognition
+paragraph_recognition,Absatzerkennung,Paragraph recognition
 poll_interval,Abfrageintervall,Poll interval
+recognition_algorithm,Erkennungsverfahren,Recognition algorithm
 scripture,Bibelausgabe,Scripture
 slt,Schlachter,Schlachter
 tessdata_path,Tesseract Datenverzeichnis,Tesseract data folder

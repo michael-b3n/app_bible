@@ -269,9 +269,9 @@ constexpr auto script_common::for_each_char_while(const L& letters, const std::s
 
 ///
 ///
-constexpr auto
-script_common::is_equal_impl(const std::string_view string_view, const std::size_t index, const std::string_view c)
-  -> std::optional<std::string_view>
+constexpr auto script_common::is_equal_impl(
+  const std::string_view string_view, const std::size_t index, const std::string_view c
+) -> std::optional<std::string_view>
 {
   if(index + c.size() > string_view.size())
   {

@@ -63,9 +63,9 @@ constexpr auto versification_common::generate_book_start_indices(const auto& dat
 
 ///
 ///
-constexpr auto
-versification_common::chapter_count(const auto& data, const book_start_indices_type& book_start_indices, const book_id book)
-  -> std::optional<std::uint32_t>
+constexpr auto versification_common::chapter_count(
+  const auto& data, const book_start_indices_type& book_start_indices, const book_id book
+) -> std::optional<std::uint32_t>
 {
   if(!util::valid(book))
   {

@@ -118,7 +118,7 @@ PenaltyBreakString: 10000
 PenaltyBreakTemplateDeclaration: 10
 PenaltyBreakOpenParenthesis: 60
 PenaltyExcessCharacter: 10000
-PenaltyReturnTypeOnItsOwnLine: 60
+PenaltyReturnTypeOnItsOwnLine: 1000
 PointerAlignment: Left
 #RawStringFormats:
 #  - Delimiter:       pb

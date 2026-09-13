@@ -7,18 +7,23 @@
 #include <bibstd/math/rect.hpp>
 #include <bibstd/math/value_range.hpp>
 #include <bibstd/txt/ocr_engine.hpp>
+#include <bibstd/util/ranges.hpp>
 #include <bibstd/util/scope_guard.hpp>
 #include <bibstd/util/screen_types.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <algorithm>
+#include <cstdint>
 #include <filesystem>
 #include <format>
 #include <memory>
 #include <optional>
 #include <ranges>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 namespace bibstd::bible
@@ -31,7 +36,7 @@ using area_type = util::pixel_plane_view_type::area_type;
 ///
 /// \return Capture box as screen rect
 ///
-auto to_rect(const test_utils::capture_box& box) -> util::screen_rect_type
+[[nodiscard]] auto to_rect(const test_utils::capture_box& box) -> util::screen_rect_type
 {
   return util::screen_rect_type{
     math::coordinates(box.x, box.y), static_cast<std::uint32_t>(box.width), static_cast<std::uint32_t>(box.height)
@@ -41,7 +46,8 @@ auto to_rect(const test_utils::capture_box& box) -> util::screen_rect_type
 ///
 /// \return Screen rect moved by the given offset
 ///
-auto shifted(const util::screen_rect_type& box, const util::screen_coordinates_type offset) -> util::screen_rect_type
+[[nodiscard]] auto shifted(const util::screen_rect_type& box, const util::screen_coordinates_type offset)
+  -> util::screen_rect_type
 {
   return util::screen_rect_type{box.origin() + offset, math::size(box.horizontal_range()), math::size(box.vertical_range())};
 }
@@ -49,7 +55,7 @@ auto shifted(const util::screen_rect_type& box, const util::screen_coordinates_t
 ///
 /// \return Centre of a capture box, the position a user would point at to hit the word
 ///
-auto centre(const test_utils::capture_box& box) -> reference_ocr::position_type
+[[nodiscard]] auto centre(const test_utils::capture_box& box) -> reference_ocr::position_type
 {
   return {box.x + (box.width / 2), box.y + (box.height / 2)};
 }
@@ -78,7 +84,7 @@ public: // Accessors
   ///
   /// \return Subarea the engine was initialized with last
   ///
-  auto last_subarea() const -> const std::optional<area_type>& { return subarea_; }
+  [[nodiscard]] auto last_subarea() const -> const std::optional<area_type>& { return subarea_; }
 
 public: // Overrides
   auto name() const -> name_type override { return name_type{default_name}; }
@@ -135,7 +141,7 @@ private: // Implementation
   /// edge does not shift the result.
   /// \return Subarea the engine works on, std::nullopt when the whole image is recognized
   ///
-  auto clipped_subarea() const -> std::optional<area_type>
+  [[nodiscard]] auto clipped_subarea() const -> std::optional<area_type>
   {
     const auto image_box = test_utils::capture_box{
       .width = static_cast<std::int32_t>(data_.width), .height = static_cast<std::int32_t>(data_.height)
@@ -146,7 +152,7 @@ private: // Implementation
   ///
   /// \return Offset turning image coordinates into the coordinates the engine reports its boxes in
   ///
-  auto reported_offset() const -> util::screen_coordinates_type
+  [[nodiscard]] auto reported_offset() const -> util::screen_coordinates_type
   {
     const auto clipped = clipped_subarea();
     return clipped ? util::screen_coordinates_type{
@@ -159,7 +165,7 @@ private: // Implementation
   ///
   /// \return true if the element is part of the recognized area
   ///
-  auto recognized(const test_utils::capture_box& box) const -> bool
+  [[nodiscard]] auto recognized(const test_utils::capture_box& box) const -> bool
   {
     if(!subarea_)
     {
@@ -204,6 +210,44 @@ public: // Overrides
     }
     return result;
   }
+};
+
+///
+/// OCR engine reporting fixed words, whatever image it is given. It keeps the image it was initialized with last.
+///
+class fixed_words_engine final : public txt::ocr_engine<txt::ocr_engine_tag_plain>
+{
+  // Variables
+  recognition_data data_;
+  util::pixel_plane_type image_;
+
+public: // Constants
+  static constexpr auto default_name = "fixed";
+
+public: // Structors
+  explicit fixed_words_engine(recognition_data data)
+    : data_{std::move(data)}
+  {
+  }
+
+public: // Accessors
+  ///
+  /// \return Image the engine was initialized with last
+  ///
+  [[nodiscard]] auto image() const -> const util::pixel_plane_type& { return image_; }
+
+public: // Overrides
+  auto name() const -> name_type override { return name_type{default_name}; }
+
+  auto initialize(pixel_plane_view_type image, [[maybe_unused]] std::optional<area_type> subarea) -> void override
+  {
+    image_ = util::pixel_plane_type{image.width(), image.height()};
+    std::ranges::for_each(
+      util::ranges::index_view_to(image.size()), [&](const auto i) { image_.at(i) = std::as_const(image).at(i); }
+    );
+  }
+
+  auto recognize() const -> recognition_data override { return data_; }
 };
 
 ///
@@ -288,7 +332,7 @@ struct designed_capture final
   ///
   /// \return Box of the word with the given text
   ///
-  auto word(const std::string_view text) const -> test_utils::capture_box
+  [[nodiscard]] auto word(const std::string_view text) const -> test_utils::capture_box
   {
     const auto it = std::ranges::find(data.words, text, [](const auto& w) { return std::string_view{w.word.text}; });
     REQUIRE(it != std::ranges::cend(data.words));
@@ -403,7 +447,7 @@ struct repeated_word_capture final
   ///
   /// \return Boxes of all words with the given text, in reading order
   ///
-  auto word_boxes(const std::string_view text) const -> std::vector<test_utils::capture_box>
+  [[nodiscard]] auto word_boxes(const std::string_view text) const -> std::vector<test_utils::capture_box>
   {
     return data.words | std::views::filter([&](const auto& w) { return w.word.text == text; }) |
            std::views::transform([](const auto& w) { return w.word.box; }) | std::ranges::to<std::vector>();
@@ -412,7 +456,7 @@ struct repeated_word_capture final
   ///
   /// \return Box of the word with the given text, the first one if the text is repeated
   ///
-  auto word(const std::string_view text) const -> test_utils::capture_box
+  [[nodiscard]] auto word(const std::string_view text) const -> test_utils::capture_box
   {
     const auto it = std::ranges::find(data.words, text, [](const auto& w) { return std::string_view{w.word.text}; });
     REQUIRE(it != std::ranges::cend(data.words));
@@ -445,28 +489,26 @@ public: // Accessors
   ///
   /// \return Engine list, to add further engines or to hand it to reference_ocr directly
   ///
-  auto engines() -> reference_ocr::ocr_engine_list_type& { return engines_; }
+  [[nodiscard]] auto engines() -> reference_ocr::ocr_engine_list_type& { return engines_; }
 
   ///
   /// \return Blank image with the dimensions of the capture
   ///
-  auto image() const -> util::pixel_plane_view_type { return util::pixel_plane_view_type{image_}; }
+  [[nodiscard]] auto image() const -> util::pixel_plane_view_type { return util::pixel_plane_view_type{image_}; }
 
   ///
   /// \return Subarea the replaying engine was initialized with last
   ///
-  auto last_subarea() const -> const std::optional<area_type>& { return capture_engine_->last_subarea(); }
+  [[nodiscard]] auto last_subarea() const -> const std::optional<area_type>& { return capture_engine_->last_subarea(); }
 
 public: // Operations
   ///
-  /// \return Algorithm data driving both algorithms with the replaying engine
+  /// \return Engine names driving both algorithms with the replaying engine
   ///
-  static auto algorithm_data(const reference_ocr::algorithm_type algorithm) -> reference_ocr::algorithm_data
+  [[nodiscard]] static auto engine_names() -> reference_ocr::engine_names
   {
-    return reference_ocr::algorithm_data{
-      .algorithm = algorithm,
-      .engine_name_character_recognition = capture_engine::default_name,
-      .engine_name_layout_recognition = capture_engine::default_name
+    return reference_ocr::engine_names{
+      .character_recognition = capture_engine::default_name, .layout_recognition = capture_engine::default_name
     };
   }
 
@@ -474,26 +516,179 @@ public: // Operations
   /// Run the recognition at the given position.
   /// \return Result of \see reference_ocr::run
   ///
-  auto run(
+  [[nodiscard]] auto run(
     const reference_ocr::position_type position,
-    const reference_ocr::algorithm_type algorithm = reference_ocr::algorithm_type::recognize_with_paragraph_recognition
+    const reference_ocr::algorithm_type& algorithm = reference_ocr::paragraph_recognition{}
   )
   {
-    return reference_ocr::run(engines_, image(), position, algorithm_data(algorithm));
+    return reference_ocr::run(engines_, engine_names(), image(), position, algorithm);
   }
 
   ///
   /// Run the recognition at the centre of the given box.
   /// \return Result of \see reference_ocr::run
   ///
-  auto run_at(
-    const test_utils::capture_box& box,
-    const reference_ocr::algorithm_type algorithm = reference_ocr::algorithm_type::recognize_with_paragraph_recognition
+  [[nodiscard]] auto run_at(
+    const test_utils::capture_box& box, const reference_ocr::algorithm_type& algorithm = reference_ocr::paragraph_recognition{}
   )
   {
     return run(centre(box), algorithm);
   }
 };
+
+///
+/// Word placed on a line of \see position_data_of, its box spans the whole height of the word.
+///
+struct placed_word final
+{
+  std::string text;
+  std::int32_t x;
+  std::int32_t width;
+  std::int32_t height;
+};
+
+///
+/// Build position data the way reference_ocr reports it: words and lines separated by a space,
+/// the box of a word divided evenly among its characters and no box for the separators.
+/// \return position data of the lines
+///
+[[nodiscard]] auto position_data_of(const std::vector<std::vector<placed_word>>& lines)
+  -> reference_ocr::reference_position_data
+{
+  auto result = reference_ocr::reference_position_data{};
+  for(const auto& [line_index, line] : lines | std::views::enumerate)
+  {
+    const auto y = static_cast<std::int32_t>(50 + (40 * line_index));
+    for(const auto& [word_index, word] : line | std::views::enumerate)
+    {
+      if(word_index > 0)
+      {
+        result.text.push_back(' ');
+        result.character_bounding_boxes.emplace_back(std::nullopt);
+      }
+      const auto character_width = word.width / static_cast<std::int32_t>(word.text.size());
+      for(const auto& [character_index, character] : word.text | std::views::enumerate)
+      {
+        result.text.push_back(character);
+        result.character_bounding_boxes.emplace_back(
+          util::screen_rect_type{
+            math::coordinates(word.x + (static_cast<std::int32_t>(character_index) * character_width), y),
+            static_cast<std::uint32_t>(character_width),
+            static_cast<std::uint32_t>(word.height)
+          }
+        );
+      }
+    }
+    result.text.push_back(' ');
+    result.character_bounding_boxes.emplace_back(std::nullopt);
+  }
+  return result;
+}
+
+///
+/// \return Index range of the first occurrence of the text
+///
+[[nodiscard]] auto range_of(const reference_ocr::reference_position_data& position_data, const std::string_view text)
+  -> math::value_range<std::size_t>
+{
+  const auto begin = position_data.text.find(text);
+  REQUIRE(begin != std::string::npos);
+  return math::value_range<std::size_t>{begin, begin + text.size()};
+}
+
+///
+/// Line of a screenshot as the windows engine read it. A drawn line crossed the "1" of "Psalm 107, 2" and the engine
+/// read "07,", \p number places either reading. The engine reported these boxes, "107," widens "07," by the "1".
+///
+[[nodiscard]] auto psalm_line(const std::string& number, const std::int32_t number_x, const std::int32_t number_width)
+  -> std::vector<placed_word>
+{
+  return {
+    {  "saja",       13,           45, 20},
+    {   "43,",       68,           33, 20},
+    {     "1",      112,           10, 16},
+    {     "/",      133,            9, 20},
+    {"Jesaja",      149,           70, 20},
+    {   "44,",      228,           34, 20},
+    {    "22",      272,           27, 16},
+    {     "/",      306,           13, 20},
+    { "Psalm",      326,           66, 17},
+    {  number, number_x, number_width, 20},
+    {     "2",      460,           13, 16},
+    {     "/",      480,           13, 20},
+    {"Klage-",      500,           71, 21}
+  };
+}
+
+///
+/// A designed capture of one line whose engine dropped "Gal 6," between "7,19;" and "13)", unless the gap is closed.
+///
+///   y=50  Siehe (Joh 7,19; 13) dazu.
+///
+[[nodiscard]] auto dropped_word_capture(const bool with_gap) -> test_utils::capture_data
+{
+  const auto text_of = [](const std::string& text, const std::int32_t x, const std::int32_t width)
+  {
+    return test_utils::capture_text{
+      .text = text, .box = {.x = x, .y = 50, .width = width, .height = 20}
+    };
+  };
+  const auto shift = with_gap ? 0 : -46;
+  const auto line = text_of("Siehe (Joh 7,19; 13) dazu.\n", 50, 300);
+  const auto word_of = [&](const std::string& text, const std::int32_t x, const std::int32_t width)
+  { return test_utils::capture_word{.word = text_of(text, x, width), .line = line, .paragraph = line}; };
+  return test_utils::capture_data{
+    .id = "dropped word",
+    .width = 400,
+    .height = 120,
+    .layouts = {test_utils::capture_layout{.line = line.box, .paragraph = line.box}},
+    .words = {
+                word_of("Siehe", 50, 50),
+                word_of("(Joh", 108, 40),
+                word_of("7,19;", 156, 50),
+                word_of("13)", 260 + shift, 30),
+                word_of("dazu.", 298 + shift, 50)
+    }
+  };
+}
+
+///
+/// \return Consecutive characters around the first character of \p word, only gaps bordering \p reference count
+///
+[[nodiscard]] auto consecutive_characters_at(
+  const reference_ocr::reference_position_data& position_data, const std::string_view reference, const std::string_view word
+) -> math::value_range<std::size_t>
+{
+  const auto& box = position_data.character_bounding_boxes.at(range_of(position_data, word).begin);
+  REQUIRE(box.has_value());
+  return reference_ocr::consecutive_characters(position_data, box->center(), range_of(position_data, reference));
+}
+
+///
+/// \return Index range from the first character of the text up to the end of \p word
+///
+[[nodiscard]] auto up_to(const reference_ocr::reference_position_data& position_data, const std::string_view word)
+  -> math::value_range<std::size_t>
+{
+  return math::value_range<std::size_t>{0u, range_of(position_data, word).end};
+}
+
+///
+/// \return Index range from the beginning of \p word up to the end of the text
+///
+[[nodiscard]] auto from(const reference_ocr::reference_position_data& position_data, const std::string_view word)
+  -> math::value_range<std::size_t>
+{
+  return math::value_range<std::size_t>{range_of(position_data, word).begin, position_data.text.size()};
+}
+
+///
+/// \return Index range of the whole text
+///
+[[nodiscard]] auto whole_text(const reference_ocr::reference_position_data& position_data) -> math::value_range<std::size_t>
+{
+  return math::value_range<std::size_t>{0u, position_data.text.size()};
+}
 
 } // namespace
 
@@ -507,8 +702,8 @@ TEST_CASE("reference_ocr resolves the position to a character of the paragraph",
     const auto result = driver.run_at(capture.word("Johannes"));
     REQUIRE(result.has_value());
 
-    // Both lines belong to one paragraph, so the whole paragraph is returned, line break included.
-    CHECK(result->text == designed_capture::paragraph_1_text);
+    // Both lines belong to one paragraph, so the whole paragraph is returned, the line break as a space.
+    CHECK(result->text == "Der Vers Johannes 3, 16 ist bekannt. ");
     CHECK(result->character_bounding_boxes.size() == result->text.size());
 
     // The cursor character has to land inside the word that was pointed at.
@@ -521,7 +716,7 @@ TEST_CASE("reference_ocr resolves the position to a character of the paragraph",
   {
     const auto result = driver.run_at(capture.word("Absatz."));
     REQUIRE(result.has_value());
-    CHECK(result->text == designed_capture::paragraph_2_text);
+    CHECK(result->text == "Ein anderer Absatz. ");
   }
   SECTION("a position outside every line")
   {
@@ -532,12 +727,11 @@ TEST_CASE("reference_ocr resolves the position to a character of the paragraph",
   }
   SECTION("recognition without layout analysis")
   {
-    const auto result =
-      driver.run_at(capture.word("Johannes"), reference_ocr::algorithm_type::recognize_just_with_line_recognition);
+    const auto result = driver.run_at(capture.word("Johannes"), reference_ocr::line_recognition{});
     REQUIRE(result.has_value());
 
     // Without a subarea the whole image is recognized, but the reported element is the same.
-    CHECK(result->text == designed_capture::paragraph_1_text);
+    CHECK(result->text == "Der Vers Johannes 3, 16 ist bekannt. ");
     CHECK(result->character_bounding_boxes.size() == result->text.size());
   }
 }
@@ -549,24 +743,26 @@ TEST_CASE("reference_ocr keeps the lines around the position when the engine rep
   auto driver = ocr_driver{capture.data};
   driver.engines().emplace_back(std::make_unique<line_capture_engine>(capture.data));
 
-  auto ad = ocr_driver::algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition);
-  ad.engine_name_character_recognition = line_capture_engine::default_name;
+  auto names = ocr_driver::engine_names();
+  auto algorithm = reference_ocr::algorithm_type{reference_ocr::paragraph_recognition{}};
+  names.character_recognition = line_capture_engine::default_name;
 
   SECTION("both lines of the recognized paragraph")
   {
-    const auto result = reference_ocr::run(driver.engines(), driver.image(), centre(capture.word("Johannes")), ad);
+    const auto result =
+      reference_ocr::run(driver.engines(), names, driver.image(), centre(capture.word("Johannes")), algorithm);
     REQUIRE(result.has_value());
-    CHECK(result->text == designed_capture::paragraph_1_text);
+    CHECK(result->text == "Der Vers Johannes 3, 16 ist bekannt. ");
     CHECK(result->character_bounding_boxes.size() == result->text.size());
   }
   SECTION("without layout analysis only the line above and below")
   {
-    ad.algorithm = reference_ocr::algorithm_type::recognize_just_with_line_recognition;
-    const auto result = reference_ocr::run(driver.engines(), driver.image(), centre(capture.word("anderer")), ad);
+    algorithm = reference_ocr::line_recognition{};
+    const auto result = reference_ocr::run(driver.engines(), names, driver.image(), centre(capture.word("anderer")), algorithm);
     REQUIRE(result.has_value());
 
     // The whole image is recognized here, so the first line stays out of the text.
-    CHECK(result->text == "16 ist bekannt.\nEin anderer Absatz.\n");
+    CHECK(result->text == "16 ist bekannt. Ein anderer Absatz. ");
   }
 }
 
@@ -659,20 +855,21 @@ TEST_CASE("reference_ocr keeps a word of a neighbouring line out of the text it 
   auto driver = ocr_driver{capture.data};
   driver.engines().emplace_back(std::make_unique<line_capture_engine>(capture.data));
 
-  auto ad = ocr_driver::algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition);
+  auto names = ocr_driver::engine_names();
+  auto algorithm = reference_ocr::algorithm_type{reference_ocr::paragraph_recognition{}};
   SECTION("an engine reporting paragraphs")
   {
-    ad.engine_name_character_recognition = capture_engine::default_name;
+    names.character_recognition = capture_engine::default_name;
   }
   SECTION("an engine reporting lines only")
   {
-    ad.engine_name_character_recognition = line_capture_engine::default_name;
+    names.character_recognition = line_capture_engine::default_name;
   }
 
   const auto bekannt = capture.word("bekannt.");
-  const auto result = reference_ocr::run(driver.engines(), driver.image(), centre(bekannt), ad);
+  const auto result = reference_ocr::run(driver.engines(), names, driver.image(), centre(bekannt), algorithm);
   REQUIRE(result.has_value());
-  CHECK(result->text == repeated_word_capture::paragraph_2_text);
+  CHECK(result->text == "Der Vers Johannes 3, 16 ist bekannt. Der Vers gilt. ");
   REQUIRE(result->character_bounding_boxes.size() == result->text.size());
 
   // The cursor character has to land inside the word that was pointed at, it sits on the line
@@ -733,37 +930,32 @@ TEST_CASE("reference_ocr rejects unusable engine setups", "[bible]")
   auto driver = ocr_driver{capture.data};
   const auto position = centre(capture.word("Johannes"));
 
-  auto ad = ocr_driver::algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition);
-  auto expected_error = reference_ocr::unexpected_ocr_result::error;
+  auto names = ocr_driver::engine_names();
+  auto algorithm = reference_ocr::algorithm_type{reference_ocr::paragraph_recognition{}};
 
   SECTION("no engine with the requested character recognition name")
   {
-    ad.engine_name_character_recognition = "not the name of any engine";
+    names.character_recognition = "not the name of any engine";
   }
   SECTION("no engine for the layout recognition")
   {
-    ad.engine_name_layout_recognition = std::nullopt;
+    names.layout_recognition = std::nullopt;
   }
   SECTION("an engine without layout analysis support for the paragraph recognition")
   {
     driver.engines().emplace_back(std::make_unique<plain_engine>());
-    ad.engine_name_layout_recognition = plain_engine::default_name;
+    names.layout_recognition = plain_engine::default_name;
   }
   SECTION("an undefined engine")
   {
     driver.engines().emplace_back(std::monostate{});
-    ad.algorithm = reference_ocr::algorithm_type::recognize_just_with_line_recognition;
-    ad.engine_name_character_recognition = "Undefined";
-  }
-  SECTION("an unsupported algorithm")
-  {
-    ad.algorithm = static_cast<reference_ocr::algorithm_type>(-1);
-    expected_error = reference_ocr::unexpected_ocr_result::unsupported;
+    algorithm = reference_ocr::line_recognition{};
+    names.character_recognition = "Undefined";
   }
 
-  const auto result = reference_ocr::run(driver.engines(), driver.image(), position, ad);
+  const auto result = reference_ocr::run(driver.engines(), names, driver.image(), position, algorithm);
   REQUIRE_FALSE(result.has_value());
-  CHECK(result.error() == expected_error);
+  CHECK(result.error() == reference_ocr::unexpected_ocr_result::error);
 }
 
 TEST_CASE("capture data survives a write and read cycle", "[bible]")
@@ -836,13 +1028,14 @@ TEST_CASE("reference_ocr handles captured screenshots", "[bible]")
     for(const auto& character_recognition : {capture_engine::default_name, line_capture_engine::default_name})
     {
       INFO(std::format("character recognition: {}", character_recognition));
-      auto ad = ocr_driver::algorithm_data(reference_ocr::algorithm_type::recognize_with_paragraph_recognition);
-      ad.engine_name_character_recognition = character_recognition;
+      auto names = ocr_driver::engine_names();
+      auto algorithm = reference_ocr::algorithm_type{reference_ocr::paragraph_recognition{}};
+      names.character_recognition = character_recognition;
 
       for(const auto& element : capture.words)
       {
         INFO(std::format("word: \"{}\"", element.word.text));
-        const auto result = reference_ocr::run(driver.engines(), driver.image(), centre(element.word.box), ad);
+        const auto result = reference_ocr::run(driver.engines(), names, driver.image(), centre(element.word.box), algorithm);
         REQUIRE(result.has_value());
 
         // One box per character, so that the caller can address every character of the text.
@@ -865,6 +1058,196 @@ TEST_CASE("reference_ocr handles captured screenshots", "[bible]")
         CHECK(math::overlap(*cursor_box, to_rect(element.word.box)).has_value());
       }
     }
+  }
+}
+
+TEST_CASE("reference_ocr ends the consecutive characters at a gap of dropped text", "[bible]")
+{
+  SECTION("a digit missing in front of a number")
+  {
+    const auto data = position_data_of({psalm_line("07,", 417, 33)});
+    CHECK(consecutive_characters_at(data, "Psalm 07, 2", "Psalm") == up_to(data, "Psalm"));
+    CHECK(consecutive_characters_at(data, "Psalm 07, 2", "07,") == from(data, "07,"));
+  }
+  SECTION("a word missing between two passages")
+  {
+    // The line the paragraph recognition cropped, "Gal 6," was dropped.
+    const auto data = position_data_of({
+      {{"zes?", 6, 48, 20}, {"(Joh", 63, 28, 16}, {"7,19;", 98, 33, 15}, {"13)", 182, 20, 16}}
+    });
+    CHECK(consecutive_characters_at(data, "Joh 7,19; 13", "Joh") == up_to(data, "7,19;"));
+    CHECK(consecutive_characters_at(data, "Joh 7,19; 13", "13)") == from(data, "13)"));
+  }
+  SECTION("a word missing on a line of three words")
+  {
+    // The boxes of a browser capture, "Gal" was dropped and only two gaps remain.
+    const auto data = position_data_of({
+      {{"(Joh", 9, 36, 20}, {"7,19;", 52, 45, 18}, {"6,13)", 138, 45, 20}}
+    });
+    CHECK(consecutive_characters_at(data, "Joh 7,19; 6,13", "6,13)") == from(data, "6,13)"));
+
+    // Pointing at the dropped "Gal" itself, between "7,19;" ending at x=97 and "6,13)" beginning at x=138, none of
+    // the characters around belong to it.
+    const auto within_gap = reference_ocr::consecutive_characters(data, {115, 60}, range_of(data, "Joh 7,19; 6,13"));
+    CHECK(math::empty(within_gap));
+  }
+  SECTION("a gap on the line a reference continues on")
+  {
+    const auto data = position_data_of({
+      {{"Gott", 20, 40, 20}, {"selbst", 70, 60, 20},  {"(Joh", 140, 40, 20}, {"7,19;", 190, 50, 20}},
+      { {"Gal", 20, 30, 20},  {"13).", 110, 40, 20}, {"Darum", 160, 60, 20},   {"ist", 230, 30, 20}}
+    });
+    CHECK(consecutive_characters_at(data, "Joh 7,19; Gal 13", "Joh") == up_to(data, "Gal"));
+    CHECK(consecutive_characters_at(data, "Joh 7,19;", "Joh") == whole_text(data));
+  }
+  SECTION("a gap on a line followed by a line of wider spacing")
+  {
+    // The spacing of the following line must not hide the gap.
+    const auto data = position_data_of({
+      {{"Siehe", 10, 50, 20}, {"(Joh", 68, 40, 20}, {"7,19;", 116, 50, 20}, {"13)", 200, 30, 20}},
+      {{"Im", 10, 20, 20}, {"Alten", 70, 50, 20}, {"Testament", 160, 90, 20}, {"wird", 290, 40, 20}, {"das", 370, 30, 20}}
+    });
+    CHECK(consecutive_characters_at(data, "Joh 7,19; 13", "Joh") == up_to(data, "7,19;"));
+  }
+  SECTION("a gap on each side")
+  {
+    const auto data = position_data_of({
+      {{"Siehe", 10, 50, 20}, {"(Joh", 68, 40, 20}, {"7,19;", 116, 50, 20}, {"8,1;", 200, 40, 20}, {"13)", 280, 30, 20}}
+    });
+    CHECK(consecutive_characters_at(data, "Joh 7,19; 8,1; 13", "8,1;") == range_of(data, "8,1;"));
+  }
+}
+
+TEST_CASE("reference_ocr reports the characters of regularly spaced text as consecutive", "[bible]")
+{
+  SECTION("words spaced as usual")
+  {
+    const auto data = position_data_of({psalm_line("107,", 402, 48)});
+    CHECK(consecutive_characters_at(data, "Psalm 107, 2", "107,") == whole_text(data));
+  }
+  SECTION("justified text spacing every word wide")
+  {
+    const auto data = position_data_of({
+      {{"Im", 10, 30, 20}, {"Alten", 70, 60, 20}, {"Testament", 160, 110, 20}, {"wird", 300, 50, 20}}
+    });
+    CHECK(consecutive_characters_at(data, "Alten Testament", "Alten") == whole_text(data));
+  }
+  SECTION("a wide gap away from the reference")
+  {
+    const auto data = position_data_of({psalm_line("07,", 417, 33)});
+    CHECK(consecutive_characters_at(data, "Jesaja 44, 22", "44,") == whole_text(data));
+  }
+  SECTION("a line of three words")
+  {
+    const auto data = position_data_of({
+      {{"(Joh", 9, 36, 20}, {"7,19;", 52, 45, 18}, {"Gal", 108, 27, 20}}
+    });
+    CHECK(consecutive_characters_at(data, "Joh 7,19; Gal", "Joh") == whole_text(data));
+  }
+  SECTION("a line beginning right of where the line before ends")
+  {
+    // Only the height tells the lines apart, the distance between them is no gap.
+    const auto data = position_data_of({
+      {    {"Er", 10, 20, 20}, {"sagt", 40, 40, 20},  {"(Joh", 90, 40, 20}},
+      {{"3,16)", 300, 50, 20}, {"und", 360, 30, 20}, {"geht", 400, 40, 20}}
+    });
+    CHECK(consecutive_characters_at(data, "Joh 3,16", "Joh") == whole_text(data));
+  }
+  SECTION("a line of too few words to know its spacing")
+  {
+    const auto data = position_data_of({
+      {{"Joh", 10, 30, 20}, {"3,16", 120, 40, 20}}
+    });
+    CHECK(consecutive_characters_at(data, "Joh 3,16", "3,16") == whole_text(data));
+  }
+  SECTION("position data without a box per character")
+  {
+    // Without a box per character there is no gap to measure.
+    auto data = position_data_of({psalm_line("07,", 417, 33)});
+    data.character_bounding_boxes.pop_back();
+    CHECK(consecutive_characters_at(data, "Psalm 07, 2", "07,") == whole_text(data));
+  }
+}
+
+TEST_CASE("reference_ocr measures the gaps in the area the paragraph recognition cropped", "[bible]")
+{
+  // The engine reports the boxes relative to the cropped area, the gap has to survive shifting them back.
+  const auto with_gap = GENERATE(true, false);
+  INFO(std::format("with gap: {}", with_gap));
+  const auto capture = dropped_word_capture(with_gap);
+  auto driver = ocr_driver{capture};
+  driver.engines().emplace_back(std::make_unique<line_capture_engine>(capture));
+
+  auto names = ocr_driver::engine_names();
+  names.character_recognition = line_capture_engine::default_name;
+  const auto result = reference_ocr::run(
+    driver.engines(), names, driver.image(), centre(capture.words.at(1).word.box), reference_ocr::paragraph_recognition{}
+  );
+  REQUIRE(result.has_value());
+  CHECK(result->text == "Siehe (Joh 7,19; 13) dazu. ");
+  CHECK(
+    consecutive_characters_at(*result, "Joh 7,19; 13", "Joh") == (with_gap ? up_to(*result, "7,19;") : whole_text(*result))
+  );
+}
+
+TEST_CASE("reference_ocr reads the lines around the position again from an enlarged copy", "[bible]")
+{
+  // The whole image read "rühmst 48, 1;" and dropped "(Jes" in front of "48,". A line of the other column is above.
+  auto position_data = position_data_of({
+    {{"Siehe", 400, 60, 20}},
+    {{"rühmst", 100, 60, 20}, {"48,", 200, 30, 20}, {"1;", 240, 20, 20}},
+    {{"und", 100, 40, 20}, {"den", 150, 40, 20}}
+  });
+  position_data.cursor_character_index = range_of(position_data, "48,").begin;
+  // The line of the cursor and the line below span x=100..260 and y=90..150, half their height pads them to the area
+  // x=70..290 and y=60..180. The line of the other column stays out.
+  const auto to_enlarged = [](const std::int32_t x, const std::int32_t y, const std::uint32_t width)
+  { return util::screen_rect_type{math::coordinates((x - 70) * 2, (y - 60) * 2), width * 2, 40u}; };
+  const auto line = txt::ocr_engine<>::line{"(Jes 48,", to_enlarged(160, 90, 70)};
+  auto engine = std::make_unique<fixed_words_engine>(txt::ocr_engine<>::recognition_data{
+    {.word_data = {"(Jes", to_enlarged(160, 90, 32)}, .line_data = line},
+    { .word_data = {"48,", to_enlarged(200, 90, 30)}, .line_data = line}
+  });
+  const auto& engine_ref = *engine;
+  auto engines = reference_ocr::ocr_engine_list_type{};
+  engines.emplace_back(std::move(engine));
+
+  // A horizontal gradient, the red of a pixel is its column less 50.
+  auto image = util::pixel_plane_type{480, 200};
+  std::ranges::for_each(
+    util::ranges::index_view_to(image.size()),
+    [&](const auto i) { image.at(i) = data::pixel{.red = static_cast<std::uint8_t>((i % 480) - 50), .alpha = 255}; }
+  );
+
+  const auto jes = reference_ocr::position_type{178, 100};
+  const auto result = reference_ocr::run(
+    engines,
+    {.character_recognition = fixed_words_engine::default_name},
+    util::pixel_plane_view_type{image},
+    jes,
+    reference_ocr::enlarged_lines_recognition{.earlier_recognition = position_data, .scale = 2.0}
+  );
+  REQUIRE(result.has_value());
+
+  SECTION("the engine reads the padded lines of the column enlarged")
+  {
+    const auto& enlarged = engine_ref.image();
+    CHECK(enlarged.width() == 440);
+    CHECK(enlarged.height() == 240);
+    // The first and the last enlarged pixel of a row lie on the first and the last column of the area, the pixels in
+    // between rise with the gradient.
+    const auto first_row = util::ranges::index_view_to(enlarged.width()) |
+                           std::views::transform([&](const auto x) { return static_cast<int>(enlarged.at(x).red); });
+    CHECK(first_row.front() == 20);
+    CHECK(first_row.back() == 239);
+    CHECK(std::ranges::is_sorted(first_row));
+  }
+  SECTION("the characters are reported in the coordinates of the image")
+  {
+    CHECK(result->text == "(Jes 48, ");
+    CHECK(result->cursor_character_index == range_of(*result, "(Jes").begin + 2);
+    REQUIRE(result->character_bounding_boxes.front().has_value());
+    CHECK(*result->character_bounding_boxes.front() == util::screen_rect_type{math::coordinates(160, 90), 8u, 20u});
   }
 }
 
