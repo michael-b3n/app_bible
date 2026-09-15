@@ -174,6 +174,15 @@ target_link_libraries(${PROJECT_NAME}
   PRIVATE Qt6::Svg
   PRIVATE bibstd
   PRIVATE BibQmlplugin
+  PRIVATE velopack::velopack
+)
+
+#
+# Copy the velopack dll next to the executable, so it starts from the build folder.
+# The install resolves the runtime dependency there as well, without this copy it fails.
+#
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:velopack::velopack> $<TARGET_FILE_DIR:${PROJECT_NAME}>
 )
 
 #

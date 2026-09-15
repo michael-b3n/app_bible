@@ -18,6 +18,9 @@
 #include <QQmlApplicationEngine>
 #include <QtQml/QQmlExtensionPlugin>
 
+#include <Velopack.hpp>
+
+#include <cstdlib>
 #include <format>
 
 Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
@@ -27,6 +30,17 @@ Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
 ///
 int main(int argc, char** argv)
 {
+  // Exits for the Velopack install, update and uninstall hooks, otherwise these would start the whole app.
+  // Velopack's own exit runs the static destructors after the Qt dlls are unloaded, which crashes.
+  const auto exit_hook = []([[maybe_unused]] void* /*user_data*/, [[maybe_unused]] const char* /*version*/)
+  { std::_Exit(EXIT_SUCCESS); };
+  Velopack::VelopackApp::Build()
+    .OnAfterInstall(exit_hook)
+    .OnBeforeUninstall(exit_hook)
+    .OnBeforeUpdate(exit_hook)
+    .OnAfterUpdate(exit_hook)
+    .Run();
+
   // The instance check runs before the logger, a second instance would truncate the log of the running one.
   const auto instance = bibstd::framework::single_instance::claim(std::string{aba::version::data_folder_name});
   if(!instance.is_owner())

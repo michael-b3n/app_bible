@@ -17,10 +17,15 @@ This app shall provide assistance when working with and studying in the bible. C
 More features, OS and language support are planned and in progress.
 
 ### Development
-Configure and build:
+Configure and build. The configure step downloads the prebuilt [Velopack](https://velopack.io) library:
 ```
 cmake -S . -B build
 cmake --build build
+```
+
+Install into `build/install`, which also creates the Windows installer:
+```
+cmake --install build
 ```
 
 Run the unit tests, either directly or through CTest:
