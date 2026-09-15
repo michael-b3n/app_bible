@@ -77,7 +77,7 @@ ParamBase
     }
 
     // Style
-    background: ParamBackground
+    background: BackgroundSimple
     {
       color: input.activeFocus ? Colors.selection : Colors.backgroundSolidDarker
     }

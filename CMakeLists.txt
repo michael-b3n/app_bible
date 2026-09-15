@@ -38,6 +38,9 @@ set(QT_VERSION_NUMBER 6.11)
 #
 add_compile_options(-Wall -Wpedantic -Werror)
 
+# Source paths in __FILE__ and std::source_location are kept relative, the local folder is not shipped in the binary.
+add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:-ffile-prefix-map=${CMAKE_SOURCE_DIR}/=>)
+
 #
 # Force a CMake reconfiguration when the .git/index changes.
 # This is needed to so the git-commit-hash is updated correctly.

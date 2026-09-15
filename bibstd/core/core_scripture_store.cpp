@@ -1,16 +1,18 @@
 #include "bibstd/core/core_scripture_store.hpp"
 #include "bibstd/bible/scripture_usx.hpp"
 #include "bibstd/io/zip_file_reader.hpp"
-#include "bibstd/res/scripture.hpp"
+#include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
-#include "bibstd/util/ranges.hpp"
 #include "bibstd/util/string.hpp"
 
 #include <algorithm>
+#include <filesystem>
 #include <format>
 #include <optional>
 #include <ranges>
 #include <string_view>
+#include <system_error>
+#include <vector>
 
 namespace bibstd::core
 {
@@ -41,24 +43,52 @@ auto file_type(const std::filesystem::path& path) -> std::optional<core_scriptur
 
 ///
 ///
-core_scripture_store::core_scripture_store()
+core_scripture_store::core_scripture_store(const std::filesystem::path& folder)
 {
-  static constexpr auto file_count = res::scripture::file_count();
-  std::ranges::for_each(
-    util::ranges::index_view_to(file_count),
-    [&](const auto index)
+  auto error = std::error_code{};
+  if(!std::filesystem::exists(folder, error))
+  {
+    LOG_WARN("scripture folder not existing: folder=\"{}\"", folder.generic_string());
+    return;
+  }
+  if(!std::filesystem::is_directory(folder, error))
+  {
+    LOG_WARN("scripture folder not found: folder=\"{}\"", folder.generic_string());
+    return;
+  }
+
+  auto files = std::vector<std::filesystem::path>{};
+  for(const auto& entry : std::filesystem::directory_iterator{folder, error})
+  {
+    if(entry.is_regular_file(error))
     {
-      const auto file_name = res::scripture::file_name(index);
-      LOG_INFO("loading scripture data: file_name=\"{}\"", file_name.stem().string());
-      if(const auto type = file_type(file_name))
+      files.push_back(entry.path());
+    }
+  }
+  std::ranges::sort(files);
+
+  std::ranges::for_each(
+    files,
+    [&](const auto& file)
+    {
+      const auto type = file_type(file);
+      if(!type)
       {
-        const auto file_data = res::scripture::file_raw(index);
+        LOG_WARN("file type not supported: file_name=\"{}\"", file.filename().string());
+        return;
+      }
+      LOG_INFO("loading scripture data: file_name=\"{}\"", file.filename().string());
+      try
+      {
         switch(*type)
         {
-        case core_scripture_store::supported_file_type::zip: load_usx(io::zip_file_reader(file_data)); return;
+        case core_scripture_store::supported_file_type::zip: load_usx(io::zip_file_reader(file)); break;
         }
       }
-      LOG_WARN("file type not supported: file_name=\"{}\"", file_name.stem().string());
+      catch(...)
+      {
+        LOG_ERROR("failed to load scripture data: file_name=\"{}\", {}", file.filename().string(), util::exception_report());
+      }
     }
   );
 }

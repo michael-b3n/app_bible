@@ -25,20 +25,20 @@ namespace aba
 /// Keys are the identifiers used by the backend, e.g. the path of a setting. The pretty name
 /// of a setting value is stored under the key "<setting path>/<setting value>".
 ///
-class pretty_names final
+class app_pretty_names final
 {
   // Variables
   std::vector<std::string> languages_;
   std::unordered_map<std::string, std::vector<std::string>> entries_;
 
 public: // Structors
-  pretty_names() = default;
+  app_pretty_names() = default;
 
   ///
   /// Construct the table from a CSV document.
   /// \throws util::exception if the document cannot be parsed
   ///
-  explicit pretty_names(std::span<const std::byte> csv);
+  explicit app_pretty_names(std::span<const std::byte> csv);
 
 public: // Accessors
   ///

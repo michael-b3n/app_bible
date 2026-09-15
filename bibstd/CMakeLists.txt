@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 4.3)
 
-include(GenerateIncbin)
-
 project(bibstd)
 add_library(${PROJECT_NAME} OBJECT)
 
@@ -9,13 +7,6 @@ add_library(${PROJECT_NAME} OBJECT)
 # Debugging setting: if TRUE exports debug data during runtime.
 #
 set(BIBSTD_DEBUG_DATA FALSE)
-
-#
-# Configure incbin files
-#
-file(GLOB BIBSTD_DATA_FILES "${CMAKE_CURRENT_LIST_DIR}/res/scripture/*.zip")
-generate_incbin(LABEL "scripture" FILES "${BIBSTD_DATA_FILES}")
-configure_file(${CMAKE_CURRENT_LIST_DIR}/res/scripture.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/res/scripture.hpp @ONLY)
 
 #
 # Define target sources

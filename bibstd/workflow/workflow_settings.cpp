@@ -18,8 +18,16 @@ auto workflow_settings::settings_file_path(const std::optional<std::string_view>
 ///
 ///
 workflow_settings::workflow_settings(const std::optional<std::string_view> folder_name)
-  : tree_{framework::property_tree::create(settings_file_path(folder_name))}
+  : data_folder_{system::filesystem::local_data_folder(folder_name)}
+  , tree_{framework::property_tree::create(data_folder_ / settings_file_name)}
 {
+}
+
+///
+///
+auto workflow_settings::data_folder() const -> const std::filesystem::path&
+{
+  return data_folder_;
 }
 
 ///

@@ -59,7 +59,7 @@ ParamBase
     }
 
     // Components
-    contentItem: ParamText
+    contentItem: TextSimple
     {
       id: contentText
 
@@ -99,22 +99,11 @@ ParamBase
       Behavior on color { ColorAnimation { duration: Metrics.durationShort } }
     }
 
-    popup: Popup
+    popup: PopupSimple
     {
       // Properties
       y: control.height - 1
       width: control.width
-      padding: Metrics.spacingSmall
-
-      // Animations
-      enter: Transition
-      {
-        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Metrics.durationShort }
-      }
-      exit: Transition
-      {
-        NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Metrics.durationShort }
-      }
 
       // Components
       contentItem: ListView
@@ -130,9 +119,6 @@ ParamBase
         // Components
         ScrollBar.vertical: ScrollBarSimple {}
       }
-
-      // Style
-      background: ParamBackground {}
     }
 
     delegate: ItemDelegate
@@ -148,7 +134,7 @@ ParamBase
       padding: Metrics.spacingSmall
 
       // Components
-      contentItem: ParamText
+      contentItem: TextSimple
       {
         id: textContent
 
@@ -165,7 +151,7 @@ ParamBase
       }
 
       // Style
-      background: ParamBackground
+      background: BackgroundSimple
       {
         color: itemDelegate.highlighted ? Colors.selection : Colors.backgroundSolidDarker
         width: itemDelegate.width
@@ -173,7 +159,7 @@ ParamBase
     }
 
     // Style
-    background: ParamBackground { color: control.activeFocus ? Colors.selection : Colors.backgroundSolidDarker }
+    background: BackgroundSimple { color: control.activeFocus ? Colors.selection : Colors.backgroundSolidDarker }
 
     // Functions
     ///

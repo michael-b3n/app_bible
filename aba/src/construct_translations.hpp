@@ -19,7 +19,7 @@ namespace aba
 /// \throws util::exception if they cannot be parsed
 /// \return table of pretty names
 ///
-[[nodiscard]] auto compiled_pretty_names() -> pretty_names;
+[[nodiscard]] auto compiled_pretty_names() -> app_pretty_names;
 
 ///
 /// Read the language the pretty names are displayed in from the settings file. The file is only
@@ -52,13 +52,13 @@ public: // Structors
   /// Construct the translations instance.
   /// If no setting is provided, the pretty names stay in their default language.
   ///
-  translations_instance(pretty_names names, language_setting_type language_setting);
+  translations_instance(app_pretty_names names, language_setting_type language_setting);
 
   ///
   /// Construct the translations instance without a setting to follow.
   /// The pretty names are displayed in the given language and never change afterwards.
   ///
-  translations_instance(pretty_names names, const std::optional<std::string>& language);
+  translations_instance(app_pretty_names names, const std::optional<std::string>& language);
 
   ~translations_instance() noexcept;
 

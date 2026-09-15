@@ -27,12 +27,10 @@ target_include_directories(bibstd_test
 )
 
 #
-# Provide the scripture resource folder. The embedded scripture data cannot be reused here, because including
-# `bibstd/res/scripture.hpp` emits the data itself and is therefore limited to a single translation unit.
+# Provide the scripture folder, see bibstd_test/res/scripture/README.md.
 #
-cmake_path(GET CMAKE_CURRENT_SOURCE_DIR PARENT_PATH bibstd_test_PARENT_DIR)
 target_compile_definitions(bibstd_test
-  PRIVATE BIBSTD_TEST_SCRIPTURE_DIR="${bibstd_test_PARENT_DIR}/bibstd/res/scripture"
+  PRIVATE BIBSTD_TEST_SCRIPTURE_DIR="${CMAKE_CURRENT_LIST_DIR}/res/scripture"
 )
 
 #

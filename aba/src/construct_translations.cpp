@@ -24,7 +24,7 @@ namespace aba
 
 ///
 ///
-translations_instance::translations_instance(pretty_names names, const language_setting_type language_setting)
+translations_instance::translations_instance(app_pretty_names names, const language_setting_type language_setting)
   : translations_{std::make_unique<qml::Translations>(std::move(names))}
   , language_setting_{language_setting}
 {
@@ -50,7 +50,7 @@ translations_instance::translations_instance(pretty_names names, const language_
 
 ///
 ///
-translations_instance::translations_instance(pretty_names names, const std::optional<std::string>& language)
+translations_instance::translations_instance(app_pretty_names names, const std::optional<std::string>& language)
   : translations_{std::make_unique<qml::Translations>(std::move(names))}
   , language_setting_{nullptr}
 {
@@ -73,9 +73,9 @@ auto translations_instance::disconnect() -> void
 
 ///
 ///
-auto compiled_pretty_names() -> pretty_names
+auto compiled_pretty_names() -> app_pretty_names
 {
-  return pretty_names{pretty_names_view};
+  return app_pretty_names{pretty_names_view};
 }
 
 ///
@@ -85,7 +85,9 @@ auto read_language_setting() -> std::optional<std::string>
   try
   {
     auto tree = boost::property_tree::ptree{};
-    boost::property_tree::read_xml(bibstd::workflow::workflow_settings::settings_file_path(version::data_folder_name).generic_string(), tree);
+    boost::property_tree::read_xml(
+      bibstd::workflow::workflow_settings::settings_file_path(version::data_folder_name).generic_string(), tree
+    );
     const auto language = tree.get_optional<std::string>(std::format(
       "{}.{}", bibstd::workflow::workflow_settings::settings_root_name, translations_instance::language_setting_path
     ));
@@ -114,7 +116,7 @@ auto construct_translations(backend_instance& backend) -> translations_instance
   catch(...)
   {
     LOG_ERROR("construct translations failed: {}", bibstd::util::exception_report());
-    return translations_instance{pretty_names{}, std::nullopt};
+    return translations_instance{app_pretty_names{}, std::nullopt};
   }
 }
 
@@ -129,7 +131,7 @@ auto construct_translations(const std::optional<std::string>& language) -> trans
   catch(...)
   {
     LOG_ERROR("construct translations failed: {}", bibstd::util::exception_report());
-    return translations_instance{pretty_names{}, std::nullopt};
+    return translations_instance{app_pretty_names{}, std::nullopt};
   }
 }
 

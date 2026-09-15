@@ -9,14 +9,14 @@ ParamBase
   id: root
 
   // Components
-  contentItem: ParamBackground
+  contentItem: BackgroundSimple
   {
     // Properties
     width: root.availableWidth
     height: errorText.contentHeight
 
     // Components
-    ParamText
+    TextSimple
     {
       id: errorText
 

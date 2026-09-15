@@ -1,0 +1,91 @@
+#
+# Publishes a release for a pushed tag v<major>.<minor> on the branch release/aba_v<major>.
+# Installed apps pick it up on their next update check.
+#
+# The token for the releases is the GITHUB_TOKEN GitHub creates for every run.
+#
+name: Release
+
+on:
+  push:
+    tags: ["v*.*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  VPK_VERSION: 1.2.0
+  PACK_ID: ABA
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check tag
+        id: version
+        shell: pwsh
+        run: |
+          $cmake = Get-Content aba/CMakeLists.txt -Raw
+          $major, $minor = 'MAJOR', 'MINOR' | ForEach-Object {
+            if ($cmake -notmatch "set\(APP_VERSION_$_ (\d+)\)") { throw "APP_VERSION_$_ not found in aba/CMakeLists.txt" }
+            $Matches[1]
+          }
+          $version = "$major.$minor"
+          if ("${{ github.ref_name }}" -ne "v$version") { throw "tag ${{ github.ref_name }} does not match version $version in aba/CMakeLists.txt" }
+          $branch = "release/aba_v$major"
+          git merge-base --is-ancestor "$env:GITHUB_SHA" "origin/$branch"
+          if ($LASTEXITCODE -ne 0) { throw "tag ${{ github.ref_name }} is not on branch $branch" }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          # Velopack requires three version numbers
+          "pack_version=$version.0" >> $env:GITHUB_OUTPUT
+
+      - name: Build
+        uses: ./.github/actions/build
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install vpk
+        shell: pwsh
+        run: dotnet tool install --global vpk --version $env:VPK_VERSION
+
+      # The previous release lets vpk create a delta package, which keeps updates small.
+      - name: Download previous release
+        shell: pwsh
+        run: vpk download github --repoUrl "${{ github.server_url }}/${{ github.repository }}" --token "${{ secrets.GITHUB_TOKEN }}" --outputDir releases
+
+      - name: Pack
+        shell: pwsh
+        run: >
+          vpk pack
+          --packId $env:PACK_ID
+          --packVersion ${{ steps.version.outputs.pack_version }}
+          --packTitle "ABA - Bible Assistant"
+          --packAuthors michael-b3n
+          --packDir build/install
+          --mainExe bin\aba.exe
+          --icon aba/res/icon.ico
+          --shortcuts StartMenuRoot,Startup
+          --outputDir releases
+
+      - name: Publish
+        shell: pwsh
+        run: >
+          vpk upload github
+          --repoUrl "${{ github.server_url }}/${{ github.repository }}"
+          --token "${{ secrets.GITHUB_TOKEN }}"
+          --releaseName "ABA ${{ steps.version.outputs.version }}"
+          --tag ${{ github.ref_name }}
+          --outputDir releases
+          --publish

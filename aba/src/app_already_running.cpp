@@ -1,4 +1,4 @@
-#include "src/show_already_running.hpp"
+#include "src/app_already_running.hpp"
 #include "res/version.hpp"
 #include "src/construct_translations.hpp"
 #include "src/qml_application.hpp"

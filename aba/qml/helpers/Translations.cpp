@@ -43,7 +43,7 @@ Translations* Translations::create([[maybe_unused]] QQmlEngine* qmlEngine, QJSEn
 
 ///
 ///
-Translations::Translations(pretty_names names, const bibstd::util::non_owning_ptr<QObject> parent)
+Translations::Translations(app_pretty_names names, const bibstd::util::non_owning_ptr<QObject> parent)
   : QObject{parent}
   , names_{std::move(names)}
   , language_{names_.languages().empty() ? QString{} : QString::fromStdString(names_.languages().front())}

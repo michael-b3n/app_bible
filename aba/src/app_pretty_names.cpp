@@ -1,4 +1,4 @@
-#include "src/pretty_names.hpp"
+#include "src/app_pretty_names.hpp"
 
 #include <bibstd/io/csv_reader.hpp>
 #include <bibstd/util/exception.hpp>
@@ -21,7 +21,7 @@ constexpr std::size_t key_column_index = 0;
 
 ///
 ///
-pretty_names::pretty_names(const std::span<const std::byte> csv)
+app_pretty_names::app_pretty_names(const std::span<const std::byte> csv)
 {
   const auto reader = bibstd::io::csv_reader{
     csv, bibstd::io::csv_reader::params{.skip_comment_lines = true, .skip_empty_lines = true}
@@ -62,14 +62,14 @@ pretty_names::pretty_names(const std::span<const std::byte> csv)
 
 ///
 ///
-auto pretty_names::languages() const -> const std::vector<std::string>&
+auto app_pretty_names::languages() const -> const std::vector<std::string>&
 {
   return languages_;
 }
 
 ///
 ///
-auto pretty_names::name(const std::string_view language, const std::string_view key) const -> std::optional<std::string>
+auto app_pretty_names::name(const std::string_view language, const std::string_view key) const -> std::optional<std::string>
 {
   const auto language_it = std::ranges::find(languages_, language);
   if(language_it == std::ranges::cend(languages_))

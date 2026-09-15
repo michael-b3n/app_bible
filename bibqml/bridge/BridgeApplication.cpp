@@ -18,9 +18,41 @@ BridgeApplication::~BridgeApplication() noexcept = default;
 
 ///
 ///
+bool BridgeApplication::updateAvailable() const
+{
+  return updateAvailable_;
+}
+
+///
+///
 void BridgeApplication::requestShowWindow()
 {
   QMetaObject::invokeMethod(this, [this]() { emit showWindowRequested(); }, Qt::QueuedConnection);
+}
+
+///
+///
+void BridgeApplication::notifyUpdateAvailable()
+{
+  QMetaObject::invokeMethod(
+    this,
+    [this]()
+    {
+      if(!updateAvailable_)
+      {
+        updateAvailable_ = true;
+        emit updateAvailableChanged();
+      }
+    },
+    Qt::QueuedConnection
+  );
+}
+
+///
+///
+void BridgeApplication::requestUpdate()
+{
+  emit updateRequested();
 }
 
 } // namespace bibqml

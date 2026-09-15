@@ -16,6 +16,7 @@ english,Englisch,English
 esv,English Standard Version,English Standard Version
 eu,Einheitsübersetzung,Einheitsübersetzung
 fallback_versification_name,Ersatz-Verszählung,Fallback versification
+folder,Ordner,Folder
 german,Deutsch,German
 gnb,Gute Nachricht Bibel,Gute Nachricht Bibel
 hfa,Hoffnung für alle,Hoffnung für alle
@@ -49,5 +50,7 @@ tray_exit,Beenden,Exit
 tray_open_github,GitHub öffnen,Open GitHub
 tray_show_window,Fenster anzeigen,Show window
 ui,Ansicht,Display
+update_available,Update verfügbar,Update available
+update_now,Jetzt aktualisieren!,Update now!
 vxb,Volxbibel,Volxbibel
 zb,Zürcher Bibel,Zürcher Bibel

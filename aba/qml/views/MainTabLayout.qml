@@ -16,6 +16,7 @@ Item
   required property ScriptureListModel listModelScripture
   required property BridgeBibleRefOcr bridgeBibleRefOcr
   required property BridgeBibleRefLookup bridgeBibleRefLookup
+  required property BridgeApplication bridgeApplication
   required property bool pinned
   required property bool movable
 
@@ -145,6 +146,22 @@ Item
 
         // Connections
         onClicked: { root.pinClicked() }
+      }
+
+      ///
+      /// Appears once an update is downloaded, it offers to install it right away.
+      ///
+      UpdateButton
+      {
+        // Properties
+        Layout.fillHeight: true
+        Layout.fillWidth: false
+        Layout.preferredWidth: Metrics.controlHeight
+        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+        visible: root.bridgeApplication.updateAvailable
+
+        // Connections
+        onUpdateClicked: { root.bridgeApplication.requestUpdate() }
       }
 
       ///

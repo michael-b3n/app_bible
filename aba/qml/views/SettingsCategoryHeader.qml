@@ -70,7 +70,7 @@ Item
       }
     }
 
-    ParamText
+    TextSimple
     {
       // Properties
       anchors.left: indicator.right

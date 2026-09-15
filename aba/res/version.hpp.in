@@ -17,6 +17,7 @@ struct version final
   static constexpr unsigned int major_number = @APP_VERSION_MAJOR@;
   static constexpr unsigned int minor_number = @APP_VERSION_MINOR@;
   static constexpr auto app_name = std::string_view("@APP_NAME@");
+  static constexpr auto repository_url = std::string_view("@APP_REPOSITORY_URL@");
   static constexpr auto exe_name = std::string_view("@APP_EXE_NAME@");
   static constexpr auto data_folder_name = std::string_view("@APP_DATA_FOLDER_NAME@");
   static constexpr auto version_string = std::string_view("@APP_VERSION@");

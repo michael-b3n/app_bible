@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/pretty_names.hpp"
+#include "src/app_pretty_names.hpp"
 
 #include <bibstd/util/non_owning_ptr.hpp>
 
@@ -36,7 +36,7 @@ class Translations final : public QObject
   Q_PROPERTY(QStringList availableLanguages READ availableLanguages CONSTANT FINAL)
 
   // Variables
-  const pretty_names names_;
+  const app_pretty_names names_;
   QString language_;
 
 public: // Constants
@@ -59,7 +59,7 @@ public: // Static interface
   static Translations* create(QQmlEngine* qmlEngine, QJSEngine* jsEngine);
 
 public: // Structors
-  explicit Translations(pretty_names names, bibstd::util::non_owning_ptr<QObject> parent = nullptr);
+  explicit Translations(app_pretty_names names, bibstd::util::non_owning_ptr<QObject> parent = nullptr);
   ~Translations() noexcept override;
 
 public: // Accessors

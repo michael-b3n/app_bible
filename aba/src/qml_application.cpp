@@ -1,7 +1,10 @@
 #include "src/qml_application.hpp"
+#include "src/construct_bridge.hpp"
+#include "src/construct_translations.hpp"
 
 #include <bibstd/util/log.hpp>
 
+#include <QMetaObject>
 #include <QQuickStyle>
 #include <QQuickWindow>
 
@@ -39,6 +42,15 @@ auto load_qml_document(QQmlApplicationEngine& engine, QGuiApplication& app, cons
     Qt::QueuedConnection
   );
   engine.load(QUrl(url));
+}
+
+///
+///
+auto quit_application(QGuiApplication& app, bridge_instance& bridge, translations_instance& translations) -> void
+{
+  disconnect_bridge(bridge);
+  translations.disconnect();
+  QMetaObject::invokeMethod(&app, [] { QGuiApplication::quit(); }, Qt::QueuedConnection);
 }
 
 } // namespace aba

@@ -32,6 +32,10 @@ struct shipped_scripture final
 auto load_shipped_scriptures() -> std::vector<shipped_scripture>
 {
   auto result = std::vector<shipped_scripture>{};
+  if(!std::filesystem::is_directory(BIBSTD_TEST_SCRIPTURE_DIR))
+  {
+    SKIP(std::format("no scriptures in {}", BIBSTD_TEST_SCRIPTURE_DIR));
+  }
   for(const auto& file : std::filesystem::directory_iterator{BIBSTD_TEST_SCRIPTURE_DIR})
   {
     if(file.path().extension() != std::filesystem::path{".zip"})
@@ -45,7 +49,11 @@ auto load_shipped_scriptures() -> std::vector<shipped_scripture>
     REQUIRE(loaded != nullptr);
     result.emplace_back(file.path().filename().string(), std::move(loaded));
   }
-  REQUIRE(!result.empty());
+  if(result.empty())
+  {
+    // The scriptures are not part of the repository, \see bibstd_test/res/scripture/README.md.
+    SKIP(std::format("no scriptures in {}", BIBSTD_TEST_SCRIPTURE_DIR));
+  }
   return result;
 }
 

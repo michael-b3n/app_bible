@@ -41,7 +41,7 @@ Control
   ///
   /// Title of the param object.
   ///
-  ParamText
+  TextSimple
   {
     id: title
 
