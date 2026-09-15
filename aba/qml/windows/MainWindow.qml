@@ -15,6 +15,7 @@ Window
   required property ScriptureListModel listModelScripture
   required property BridgeBibleRefOcr bridgeBibleRefOcr
   required property BridgeBibleRefLookup bridgeBibleRefLookup
+  required property BridgeApplication bridgeApplication
   required property rect mainRect
   required property bool pinned
   required property bool shown
@@ -101,6 +102,7 @@ Window
         listModelScripture: root.listModelScripture
         bridgeBibleRefOcr: root.bridgeBibleRefOcr
         bridgeBibleRefLookup: root.bridgeBibleRefLookup
+        bridgeApplication: root.bridgeApplication
         pinned: root.pinned
         movable: true
 

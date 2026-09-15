@@ -1,4 +1,6 @@
 #include "src/construct_tray.hpp"
+#include "res/version.hpp"
+#include "src/qml_application.hpp"
 
 #include <bibqml/bridge/BridgeApplication.hpp>
 
@@ -51,13 +53,8 @@ struct tray_button final
 auto construct_tray(QGuiApplication& app, bridge_instance& bridge, translations_instance& translations)
   -> bibstd::util::shared_scope_guard
 {
-  const auto do_on_exit = [&app, &bridge, &translations]()
-  {
-    disconnect_bridge(bridge);
-    translations.disconnect();
-    QMetaObject::invokeMethod(&app, [] { QGuiApplication::quit(); }, Qt::QueuedConnection);
-  };
-  const auto open_github = []() { bibstd::system::open_browser::open("https://github.com/michael-b3n/app_bible"); };
+  const auto do_on_exit = [&app, &bridge, &translations]() { quit_application(app, bridge, translations); };
+  const auto open_github = []() { bibstd::system::open_browser::open(std::string{version::repository_url}); };
   const auto show_window = [&bridge]() { bridge.bridge_application->requestShowWindow(); };
 
   // The position in this list is the index the tray knows an entry by.

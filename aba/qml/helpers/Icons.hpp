@@ -44,6 +44,7 @@ class Icons final : public QObject
   Q_PROPERTY(QString remove MEMBER remove_ CONSTANT)
   Q_PROPERTY(QString settings MEMBER settings_ CONSTANT)
   Q_PROPERTY(QString stop MEMBER stop_ CONSTANT)
+  Q_PROPERTY(QString updateAvailable MEMBER updateAvailable_ CONSTANT)
 
 public: // Structors
   explicit Icons(bibstd::util::non_owning_ptr<QObject> parent = nullptr);
@@ -63,6 +64,7 @@ private: // Variables
   QString remove_{detail::toIconUrl("remove.svg")};
   QString settings_{detail::toIconUrl("settings.svg")};
   QString stop_{detail::toIconUrl("stop.svg")};
+  QString updateAvailable_{detail::toIconUrl("update_available.svg")};
 };
 
 } // namespace aba::qml

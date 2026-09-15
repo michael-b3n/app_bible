@@ -246,6 +246,7 @@ QtObject
     listModelScripture: root.listModelScripture
     bridgeBibleRefOcr: root.bridgeBibleRefOcr
     bridgeBibleRefLookup: root.bridgeBibleRefLookup
+    bridgeApplication: root.bridgeApplication
     mainRect: mainPlacement.area
     pinned: mainPlacement.pinned
     shown: root.windowShown

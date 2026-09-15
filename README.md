@@ -1,46 +1,33 @@
 # ABA - Bible Assistant
 
-### Description
-This app shall provide assistance when working with and studying in the bible. Currently this app features a basic OCR bible reference lookup on press of a keyboard shortcut `ALT + f` around the current cursor position. The bible reference is parsed and opened on [bibleserver.com](https://www.bibleserver.com) in the current browser.
+ABA is a Windows tray app that finds bible references on the screen. Point the cursor at a reference like "Johannes 3,16" in any window and press `ALT + f`: ABA reads the text around the cursor, recognizes the reference and opens it on [bibleserver.com](https://www.bibleserver.com). With the automatic search enabled, resting the cursor on a reference is enough.
 
-### How to use?
-1. Move your cursor above the bible reference you want to lookup.
-2. Press `ALT + f`.
-3. A new tab with the reference under the cursor is opened on [bibleserver.com](https://www.bibleserver.com).
+## Install
+Download `ABA-win-Setup.exe` from the latest [release](https://github.com/michael-b3n/app_bible/releases/latest) and run it. ABA installs for the current user and starts at sign-in. New versions are downloaded in the background and installed on the next start, or right away through the update icon that appears next to the close button. Start at sign-in can be turned off in the Task Manager under Startup apps.
 
-### Supported OS
-* Windows (Windows10+ is required)
+Uninstall versions 1.x ("Bible Assistant") first, they do not update to 2.x.
 
-### Supported OCR Languages
-* German
+Requires Windows 10 or later.
 
-More features, OS and language support are planned and in progress.
+## Scriptures
+ABA ships without scriptures. To read passages in ABA, download USX bundles from the Digital Bible Library at [library.bible](https://library.bible/) and put the zip files into `%LOCALAPPDATA%\app_bible_assistant\scriptures`. They are loaded on start, the folder can be changed in the settings.
 
-### Development
-Configure and build. The configure step downloads the prebuilt [Velopack](https://velopack.io) library:
+## Development
 ```
 cmake -S . -B build
 cmake --build build
-```
-
-Install into `build/install`, which also creates the Windows installer:
-```
+ctest --test-dir build --output-on-failure
 cmake --install build
 ```
+The configure step downloads the prebuilt [Velopack](https://velopack.io) library, `cmake --install` fills `build/install`, the folder a release is packed from. Static analysis: `tools/run_clang_tidy.ps1`.
 
-Run the unit tests, either directly or through CTest:
+## Release
+On the branch `release/aba_v<major>`, set `APP_VERSION_MAJOR` and `APP_VERSION_MINOR` in `aba/CMakeLists.txt`, then tag and push:
 ```
-cmake --build build --target bibstd_test
-./build/bibstd_test/bibstd_test
-ctest --test-dir build --output-on-failure
+git tag v2.1
+git push origin v2.1
 ```
+The release workflow checks the tag, builds, tests and publishes the release. Installed apps pick it up within a day.
 
-Run the static analysis. It reads the compile flags from `build/compile_commands.json`, so the build has to be configured first. The checks are configured in `.clang-tidy`, with overrides for `bibqml` (Qt naming) and `bibstd_test`:
-```
-tools/run_clang_tidy.ps1
-tools/run_clang_tidy.ps1 -Path bibstd/util
-clang-tidy -p build bibstd/util/scope_guard.cpp
-```
-
-### License
-ABA is released under the [MIT License](LICENSE). The libraries in `libs_external` keep their own licenses. Qt is used under the LGPLv3 and linked dynamically. Tesseract and its `tessdata` are licensed under the Apache License 2.0.
+## License
+[MIT](LICENSE). The libraries in `libs_external` keep their own licenses, Qt is used under the LGPLv3, Tesseract and its `tessdata` under the Apache License 2.0. Scriptures are not part of this repository or of a release.

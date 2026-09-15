@@ -2,6 +2,7 @@
 
 #include "bibstd/bible/scripture.hpp"
 
+#include <filesystem>
 #include <map>
 #include <memory>
 #include <string>
@@ -20,7 +21,7 @@ namespace bibstd::core
 {
 
 ///
-/// Core scripture store. This class contains loaded scripture data.
+/// Core scripture store. This class contains the scripture data loaded from the files of a folder.
 ///
 class core_scripture_store final
 {
@@ -47,7 +48,11 @@ public: // Typedefs
   };
 
 public: // Structors
-  core_scripture_store();
+  ///
+  /// Load every supported file directly inside \p folder, in the order of the file names.
+  /// A file that fails to load is logged and left out.
+  ///
+  explicit core_scripture_store(const std::filesystem::path& folder);
   ~core_scripture_store() noexcept;
 
 public: // Accessors

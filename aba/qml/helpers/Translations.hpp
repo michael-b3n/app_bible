@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/pretty_names.hpp"
+#include "src/qml_pretty_names.hpp"
 
 #include <bibstd/util/non_owning_ptr.hpp>
 

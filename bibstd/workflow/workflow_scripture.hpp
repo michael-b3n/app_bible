@@ -7,6 +7,7 @@
 #include "bibstd/workflow/workflow_base.hpp"
 #include "bibstd/workflow/workflow_settings.hpp"
 
+#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -30,12 +31,17 @@ public: // Structors
   workflow_scripture_settings(std::shared_ptr<workflow_settings> workflow_settings);
   ~workflow_scripture_settings() noexcept override = default;
 
+public: // Constants
+  static constexpr auto default_folder_name = "scriptures";
+
 public: // Variables
   const setting_type<std::optional<std::string>> scripture_name;
+  const setting_type<std::filesystem::path> scripture_folder;
 };
 
 ///
-/// Workflow for scripture.
+/// Workflow for scripture. The scriptures are the zip files in the folder of the setting "scripture.folder",
+/// by default the folder "scriptures" in the local data folder. They are loaded on construction.
 ///
 class workflow_scripture final : public workflow_base<workflow_scripture_settings>
 {

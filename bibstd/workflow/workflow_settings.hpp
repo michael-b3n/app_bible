@@ -79,6 +79,7 @@ class workflow_settings final : public signal::adapter<workflow_settings_signals
   };
 
   // Variables
+  const std::filesystem::path data_folder_;
   const framework::property_tree::sptr_type tree_;
   mutable std::mutex mtx_;
   std::vector<setting_uptr_data> settings_;
@@ -117,6 +118,13 @@ public: // Static interface
   /// \return segments in the order they are written in, empty segments are left out
   ///
   [[nodiscard]] static auto split_path(std::string_view path) -> std::vector<std::string>;
+
+public: // Accessors
+  ///
+  /// Get the local data folder the settings are stored in, see system::filesystem::local_data_folder.
+  /// \return local data folder
+  ///
+  [[nodiscard]] auto data_folder() const -> const std::filesystem::path&;
 
   ///
   /// Access all created settings.

@@ -4,16 +4,17 @@ cmake_minimum_required(VERSION 4.3)
 # Include cmake functions
 #
 include(helper_functions)
-include(generate_inno_setup_generator_script)
 
 #
 # Define app information
+# The release workflow requires the tag v<major>.<minor> to match this version.
 #
 set(APP_VERSION_MAJOR 2)
 set(APP_VERSION_MINOR 0)
 set(APP_VERSION "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}")
 set(APP_EXE_NAME "aba")
 set(APP_NAME "ABA")
+set(APP_REPOSITORY_URL "https://github.com/michael-b3n/app_bible")
 # Frozen to the exe name before the rename, installed versions keep their settings and logs there.
 set(APP_DATA_FOLDER_NAME "app_bible_assistant")
 set(APP_FILE_DESCRIPTION "${APP_NAME} - Bible Assistant")
@@ -204,15 +205,3 @@ install(
 )
 install(DIRECTORY ${TESSDATA_FOLDER_PATH} DESTINATION share)
 install(SCRIPT ${QT_DEPLOY_SCRIPT})
-
-#
-# Create the platform installer, setup/<platform> holds its scripts.
-#
-if(WIN32)
-  generate_inno_setup_generator_script(
-    INNO_SETUP_GENERATOR_SCRIPT
-    ${CMAKE_CURRENT_LIST_DIR}/setup/windows/setup.iss
-    ${CMAKE_CURRENT_LIST_DIR}/..
-    ${CMAKE_CURRENT_LIST_DIR}/res/icon.ico)
-  install(SCRIPT "${INNO_SETUP_GENERATOR_SCRIPT}")
-endif()

@@ -1,9 +1,17 @@
 cmake_minimum_required(VERSION 4.3)
 project(velopack VERSION 1.2.0)
 
-# Checked before the download, the archive is about 30 MB.
-if(NOT WIN32 OR NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
-  message(FATAL_ERROR "velopack is only set up for 64 bit windows")
+#
+# Select the library of the platform, checked before the download since the archive is about 30 MB.
+# The archive ships libraries for windows, linux and macos, another platform adds its file here.
+# Windows builds exist for MSVC only, MinGW links the C api of the dll directly.
+# The dll records its name as velopack_libc.dll, the copy must keep that name to be found at runtime.
+#
+if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+  set(VELOPACK_ARCHIVE_LIBRARY "velopack_libc_win_x64_msvc.dll")
+  set(VELOPACK_LIBRARY "velopack_libc.dll")
+else()
+  message(FATAL_ERROR "velopack is not set up for this platform yet")
 endif()
 
 #
@@ -18,18 +26,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(velopack_libc)
 
-#
-# Windows builds exist for MSVC only, MinGW links the C api of the dll directly.
-# The dll records its name as velopack_libc.dll, the copy must keep that name to be found at runtime.
-#
-set(VELOPACK_DLL "${CMAKE_CURRENT_BINARY_DIR}/bin/velopack_libc.dll")
+set(VELOPACK_LIBRARY_PATH "${CMAKE_CURRENT_BINARY_DIR}/bin/${VELOPACK_LIBRARY}")
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
-file(COPY_FILE "${velopack_libc_SOURCE_DIR}/lib/velopack_libc_win_x64_msvc.dll" "${VELOPACK_DLL}" ONLY_IF_DIFFERENT)
+file(COPY_FILE "${velopack_libc_SOURCE_DIR}/lib/${VELOPACK_ARCHIVE_LIBRARY}" "${VELOPACK_LIBRARY_PATH}" ONLY_IF_DIFFERENT)
 
 add_library(velopack SHARED IMPORTED GLOBAL)
 set_target_properties(velopack PROPERTIES
-  IMPORTED_LOCATION "${VELOPACK_DLL}"
-  IMPORTED_IMPLIB "${VELOPACK_DLL}"
+  IMPORTED_LOCATION "${VELOPACK_LIBRARY_PATH}"
+  IMPORTED_IMPLIB "${VELOPACK_LIBRARY_PATH}"
 )
 target_include_directories(velopack SYSTEM INTERFACE "${velopack_libc_SOURCE_DIR}/include")
 

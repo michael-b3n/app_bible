@@ -21,6 +21,9 @@ workflow_scripture_settings::workflow_scripture_settings(std::shared_ptr<workflo
       setting_value_t<decltype(scripture_name)>{},
       std::make_shared<framework::setting_validator_list<setting_value_t<decltype(scripture_name)>>>()
     )}
+  , scripture_folder{
+      workflow_settings_->create_setting("scripture.folder", workflow_settings_->data_folder() / default_folder_name)
+    }
 {
 }
 
@@ -55,7 +58,7 @@ auto workflow_scripture::versification_wrapper::get() const -> const bible::scri
 ///
 workflow_scripture::workflow_scripture(std::shared_ptr<workflow_settings> workflow_settings)
   : workflow_base{std::move(workflow_settings)}
-  , core_scripture_store_(std::make_unique<core::core_scripture_store>())
+  , core_scripture_store_(std::make_unique<core::core_scripture_store>(settings().scripture_folder->value()))
 {
   init();
 }

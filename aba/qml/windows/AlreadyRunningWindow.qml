@@ -120,7 +120,7 @@ Window
           onMoveRequested: (deltaX, deltaY) => { root.moveBy(deltaX, deltaY) }
 
           // Components
-          ParamText
+          TextSimple
           {
             // Properties
             anchors.fill: parent
@@ -148,7 +148,7 @@ Window
       ///
       /// The notice itself.
       ///
-      ParamText
+      TextSimple
       {
         // Properties
         Layout.fillWidth: false

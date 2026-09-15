@@ -1,7 +1,7 @@
 import QtQuick
 
 ///
-/// Parameter text object with default properties.
+/// Text in the default font size and color of the application.
 /// Height shall be left untouched to be determined
 /// by the content. Width has to be set.
 ///

@@ -1,7 +1,7 @@
 import QtQuick
 
 ///
-/// Default background of a param field.
+/// Default background of fields, popups and their entries.
 ///
 Rectangle
 {

@@ -2,12 +2,15 @@
 /// Main file.
 ///
 #include "res/version.hpp"
+#include "src/app_already_running.hpp"
+#include "src/app_updater.hpp"
+#include "src/app_velopack_startup.hpp"
 #include "src/construct_backend.hpp"
 #include "src/construct_bridge.hpp"
 #include "src/construct_translations.hpp"
 #include "src/construct_tray.hpp"
+#include "src/construct_updater.hpp"
 #include "src/qml_application.hpp"
-#include "src/show_already_running.hpp"
 
 #include <bibstd/framework/single_instance.hpp>
 #include <bibstd/system/filesystem.hpp>
@@ -17,8 +20,6 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QtQml/QQmlExtensionPlugin>
-
-#include <Velopack.hpp>
 
 #include <cstdlib>
 #include <format>
@@ -30,16 +31,12 @@ Q_IMPORT_QML_PLUGIN(BibQmlPlugin)
 ///
 int main(int argc, char** argv)
 {
-  // Exits for the Velopack install, update and uninstall hooks, otherwise these would start the whole app.
-  // Velopack's own exit runs the static destructors after the Qt dlls are unloaded, which crashes.
-  const auto exit_hook = []([[maybe_unused]] void* /*user_data*/, [[maybe_unused]] const char* /*version*/)
-  { std::_Exit(EXIT_SUCCESS); };
-  Velopack::VelopackApp::Build()
-    .OnAfterInstall(exit_hook)
-    .OnBeforeUninstall(exit_hook)
-    .OnBeforeUpdate(exit_hook)
-    .OnAfterUpdate(exit_hook)
-    .Run();
+  // Velopack hooks end the process in here, the updater's download process right after
+  const auto velopack = aba::velopack_startup{};
+  if(const auto exit_code = aba::run_update_download(argc, argv); exit_code.has_value())
+  {
+    return *exit_code;
+  }
 
   // The instance check runs before the logger, a second instance would truncate the log of the running one.
   const auto instance = bibstd::framework::single_instance::claim(std::string{aba::version::data_folder_name});
@@ -63,6 +60,12 @@ int main(int argc, char** argv)
     LOG_WARN("single instance guard inactive: {}", *single_instance_error);
   }
 
+  // An update downloaded by an earlier run restarts the application into the new version
+  if(velopack.install_pending_update())
+  {
+    return EXIT_SUCCESS;
+  }
+
   if(!bibstd::system::screen::init())
   {
     LOG_ERROR("failed to initialize screen settings");
@@ -82,6 +85,9 @@ int main(int argc, char** argv)
 
   // Init the pretty names of the frontend. The backend deals with identifiers only.
   auto translations = aba::construct_translations(backend);
+
+  // Keeps the installed app up to date.
+  const auto updater = aba::construct_updater(app, bridge, translations);
 
   QQmlApplicationEngine engine;
 

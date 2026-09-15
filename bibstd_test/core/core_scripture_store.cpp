@@ -12,11 +12,11 @@ namespace bibstd::core
 
 TEST_CASE("core_scripture_store holds usable scriptures", "[core]")
 {
-  const core_scripture_store store;
+  const core_scripture_store store{BIBSTD_TEST_SCRIPTURE_DIR};
   if(store.scriptures().empty())
   {
-    // The scripture archives are not part of the repository, \see bibstd/res/scripture/.gitignore.
-    SKIP("no scripture data embedded in this build");
+    // The scriptures are not part of the repository, \see bibstd_test/res/scripture/README.md.
+    SKIP(std::format("no scriptures in {}", BIBSTD_TEST_SCRIPTURE_DIR));
   }
   for(const auto& [name, scripture] : store.scriptures())
   {
@@ -33,10 +33,10 @@ TEST_CASE("core_scripture_store holds usable scriptures", "[core]")
 
 TEST_CASE("core_scripture_store keeps scriptures of equal name apart", "[core]")
 {
-  const core_scripture_store store;
+  const core_scripture_store store{BIBSTD_TEST_SCRIPTURE_DIR};
   if(store.scriptures().empty())
   {
-    SKIP("no scripture data embedded in this build");
+    SKIP(std::format("no scriptures in {}", BIBSTD_TEST_SCRIPTURE_DIR));
   }
 
   // The store keys by scripture name, so scriptures sharing one would overwrite each other without
