@@ -36,7 +36,6 @@ public: // Accessors
 public: // Setters
   ///
   /// Set setting value.
-  /// \param v setting value that shall be set
   ///
   auto value(const value_type& v) -> bool;
 
@@ -57,7 +56,6 @@ namespace detail
 
 ///
 /// Convert setting validator to type erased setting validator.
-/// \param validator setting validator that shall be converted
 /// \return type erased setting validator
 ///
 template<underlying_setting_type U>

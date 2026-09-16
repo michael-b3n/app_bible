@@ -2,6 +2,8 @@
 
 #include <boost/dll.hpp>
 #include <filesystem>
+#include <optional>
+#include <string_view>
 
 namespace bibstd::system
 {
@@ -24,10 +26,10 @@ struct filesystem final
   static inline auto executable_folder() -> std::filesystem::path;
 
   ///
-  /// Get path to local data folder.
+  /// Get path to the local data folder \p folder_name, named after the executable if not set.
   /// \return path to local data
   ///
-  static auto local_data_folder() -> std::filesystem::path;
+  static auto local_data_folder(std::optional<std::string_view> folder_name = std::nullopt) -> std::filesystem::path;
 };
 
 ///

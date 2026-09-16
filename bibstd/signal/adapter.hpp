@@ -49,16 +49,12 @@ public: // Structors
 public: // Modifiers
   ///
   /// Connect a slot to the signal specified by the projection.
-  /// \param sig_projection Projection to the signal to connect
-  /// \param slot Slot to connect
   /// \return scoped connection corresponding to connected slot
   ///
   [[nodiscard]] auto connect(auto sig_projection, auto&& slot) const -> scoped_connection_type;
 
   ///
   /// Connect a slot to the signal specified by the projection, allowing extended functionality.
-  /// \param sig_projection Projection to the signal to connect
-  /// \param slot Slot to connect
   /// \return connection corresponding to connected slot
   ///
   auto connect_extended(auto sig_projection, auto&& slot) const -> connection_type;
@@ -67,9 +63,6 @@ public: // Modifiers
   ///  Connect a slot to the signal specified by the projection, ensuring the slot is called
   /// in the context of the provided executor. The lifetime of the executor must exceed the lifetime of the slot. The slot
   /// connection is bound to the lifetime of the executor.
-  /// \param sig_projection Projection to the signal to connect
-  /// \param slot Slot to connect
-  /// \param executor Executor to use for the slot
   ///
   auto connect_queued(auto sig_projection, auto&& slot, executor_kind auto& executor) const -> void;
 
@@ -77,17 +70,12 @@ public: // Modifiers
   /// Connect a slot to the signal specified by the projection, allowing extended functionality and ensuring
   /// the slot is called in the context of the provided executor. The lifetime of the executor must exceed the lifetime of the
   /// slot. The slot connection is bound to the lifetime of the executor.
-  /// \param sig_projection Projection to the signal to connect
-  /// \param slot Slot to connect
-  /// \param executor Executor to use for the slot
   ///
   auto connect_queued_extended(auto sig_projection, auto&& slot, executor_kind auto& executor) const -> void;
 
 protected: // Accessors
   ///
   /// Emit the signal specified by the projection, passing the provided arguments to the connected slots.
-  /// \param sig_projection Projection to the signal to emit
-  /// \param args Arguments to pass to the connected slots
   /// \return result of the signal call, if any
   ///
   auto notify(auto sig_projection, auto&&... args) -> auto;

@@ -1,0 +1,5 @@
+# The scripture archives stay local: translations are licensed individually and are never committed.
+# Only this folder's documentation is tracked.
+*
+!.gitignore
+!README.md

@@ -2,9 +2,10 @@
 
 #include "bibstd/util/source_location_helpers.hpp"
 
-#include <filesystem>
 #include <format>
+#include <optional>
 #include <source_location>
+#include <string>
 #include <string_view>
 
 namespace bibstd::util
@@ -22,34 +23,37 @@ enum class logger_level
 };
 
 ///
-/// Get the global log level.
+/// Get the global log level, debug messages are only logged in debug builds.
 /// \return global log level
 ///
-auto global_log_level() -> logger_level;
+constexpr auto global_log_level() -> logger_level
+{
+#ifdef NDEBUG
+  return logger_level::info;
+#else
+  return logger_level::debug;
+#endif
+}
 
 ///
 /// Log message with debug level.
-/// \param msg String view message
 ///
-auto log_debug(std::string_view&& msg) -> void;
+auto log_debug(std::string_view msg) -> void;
 
 ///
 /// Log message with info level.
-/// \param msg String view message
 ///
-auto log_info(std::string_view&& msg) -> void;
+auto log_info(std::string_view msg) -> void;
 
 ///
 /// Log message with warning level.
-/// \param msg String view message
 ///
-auto log_warn(std::string_view&& msg) -> void;
+auto log_warn(std::string_view msg) -> void;
 
 ///
 /// Log message with error level.
-/// \param msg String view message
 ///
-auto log_error(std::string_view&& msg) -> void;
+auto log_error(std::string_view msg) -> void;
 
 ///
 /// Init logger and shutdown logger with RAII.
@@ -57,7 +61,11 @@ auto log_error(std::string_view&& msg) -> void;
 ///
 struct logger final
 {
-  logger();
+  ///
+  /// Init the logger, writing to the local data folder \p folder_name, see system::filesystem::local_data_folder.
+  /// The \p header is written at the top of every log file, rotated files included.
+  ///
+  explicit logger(std::optional<std::string_view> folder_name = std::nullopt, std::string header = {});
   ~logger() noexcept;
 };
 

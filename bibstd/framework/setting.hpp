@@ -53,7 +53,6 @@ public: // Accessors
 public: // Setters
   ///
   /// Set setting value.
-  /// \param v setting value that shall be set
   ///
   auto value(const value_type& v) -> bool;
 

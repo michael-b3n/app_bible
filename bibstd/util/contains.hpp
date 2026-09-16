@@ -9,8 +9,6 @@ namespace bibstd::util
 
 ///
 /// Check if an element is contained in a container.
-/// \param container Container that shall be checked
-/// \param element Element of container that might be contained in the container
 /// \return true if `element` is found in container, false if not
 ///
 constexpr auto contains(const std::ranges::range auto& container, const auto& element) -> bool
@@ -21,8 +19,6 @@ constexpr auto contains(const std::ranges::range auto& container, const auto& el
 
 ///
 /// Check if an element is inside a container or not.
-/// \param view View on container
-/// \param predicate function
 /// \return bool true if element is found in container, false otherwise
 ///
 constexpr auto contains(const std::ranges::range auto& container, const auto& pred) -> bool
@@ -36,8 +32,6 @@ constexpr auto contains(const std::ranges::range auto& container, const auto& pr
 
 ///
 /// Check if an element is inside a container or not.
-/// \param view View on container
-/// \param predicate function
 /// \return bool true if element is found in container, false otherwise
 ///
 constexpr auto contains(std::ranges::view auto view, const auto& pred) -> bool

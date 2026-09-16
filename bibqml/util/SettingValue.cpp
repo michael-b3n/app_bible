@@ -1,6 +1,5 @@
 #include "bibqml/util/SettingValue.hpp"
 
-#include <bibstd/framework/setting.hpp>
 #include <bibstd/framework/setting_type_erased.hpp>
 #include <bibstd/framework/setting_validator.hpp>
 #include <bibstd/meta/chrono.hpp>

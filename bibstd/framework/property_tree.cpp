@@ -73,7 +73,8 @@ property_tree::property_tree(const std::filesystem::path& tree_file_path)
   }
   try
   {
-    boost::property_tree::read_xml(tree_file_path_.generic_string(), tree_);
+    // Whitespace between elements would be kept as text and indented again on every write.
+    boost::property_tree::read_xml(tree_file_path_.generic_string(), tree_, boost::property_tree::xml_parser::trim_whitespace);
   }
   catch(const boost::property_tree::xml_parser_error& e)
   {
@@ -90,7 +91,12 @@ property_tree::~property_tree() noexcept
   const auto lock = std::scoped_lock{mtx_};
   try
   {
-    boost::property_tree::write_xml(tree_file_path_.generic_string(), tree_);
+    boost::property_tree::write_xml(
+      tree_file_path_.generic_string(),
+      tree_,
+      std::locale{},
+      boost::property_tree::xml_writer_make_settings<std::string>(' ', 2)
+    );
   }
   catch(const boost::property_tree::xml_parser_error& e)
   {

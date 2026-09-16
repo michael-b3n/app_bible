@@ -11,9 +11,7 @@ namespace bibstd::math
 
 ///
 /// Generate all combinations of elements from a nested vector and apply a function to each combination.
-/// \param nested A nested vector containing the elements to combine.
-/// \param func A function to apply to each combination. The function should return a boolean value
-/// indicating whether to continue generating combinations (true) or to stop (false).
+/// The generation stops as soon as \p func returns false.
 ///
 /// \code
 /// const auto nested = std::vector<std::vector<int>>{{1, 2}, {3, 4, 5}};

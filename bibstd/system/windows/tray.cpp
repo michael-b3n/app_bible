@@ -8,23 +8,53 @@
 
 namespace bibstd::system
 {
+namespace
+{
+
+///
+/// Convert UTF-8 text to the ANSI code page, the tray menu is built with the ANSI API.
+/// Characters the code page cannot represent are replaced.
+///
+[[nodiscard]] auto to_ansi(const std::string& text) -> std::string
+{
+  const auto wide_count = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
+  if(wide_count <= 0)
+  {
+    return text;
+  }
+  auto wide = std::wstring(static_cast<std::size_t>(wide_count), wchar_t{});
+  MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, wide.data(), wide_count);
+  const auto ansi_count = WideCharToMultiByte(CP_ACP, 0, wide.c_str(), -1, nullptr, 0, nullptr, nullptr);
+  if(ansi_count <= 0)
+  {
+    return text;
+  }
+  auto ansi = std::string(static_cast<std::size_t>(ansi_count), char{});
+  WideCharToMultiByte(CP_ACP, 0, wide.c_str(), -1, ansi.data(), ansi_count, nullptr, nullptr);
+  ansi.pop_back(); // terminating null
+  return ansi;
+}
+
+} // namespace
 
 ///
 ///
 auto tray::init(const icon_buffer icon, std::vector<entry_type>&& entries) -> util::shared_scope_guard
 {
-  static std::mutex mtx;
   static util::shared_scope_guard::creator guard_creator;
   static util::shared_scope_guard thread_pool_guard;
   static std::condition_variable cv_init;
 
-  auto lock = std::unique_lock{mtx};
+  auto lock = std::unique_lock{mtx_};
   auto guard = guard_creator.create(
     []()
     {
+      const auto lock = std::scoped_lock{mtx_};
       tray_->exit();
-      tray_.reset();
+      // The tray thread may still run a task using the tray, so it is joined first. reset() stores nullptr
+      // in worker_ before the destructor joins, so the tray thread must not reach the worker through worker_.
       worker_.reset();
+      tray_.reset();
       thread_pool_guard.reset();
       cv_init.notify_all();
     }
@@ -58,6 +88,7 @@ auto tray::init(const icon_buffer icon, std::vector<entry_type>&& entries) -> ut
             framework::thread_pool::queue_task(std::move(f));
           };
         };
+        thread_id_ = GetCurrentThreadId();
         tray_ = std::make_unique<Tray::Tray>("system_tray_identifier", Tray::Icon(icon.buffer));
         std::ranges::for_each(
           entries,
@@ -65,15 +96,16 @@ auto tray::init(const icon_buffer icon, std::vector<entry_type>&& entries) -> ut
           {
             util::visit_lambdas(
               entry,
-              [&](const button& v) { tray_->addEntry(Tray::Button(v.text, void_callback_wrapper(v.callback))); },
-              [&](const label& v) { tray_->addEntry(Tray::Label(v.text)); },
+              [&](const button& v) { tray_->addEntry(Tray::Button(to_ansi(v.text), void_callback_wrapper(v.callback))); },
+              [&](const label& v) { tray_->addEntry(Tray::Label(to_ansi(v.text))); },
               [&]([[maybe_unused]] const separator& /*v*/) { tray_->addEntry(Tray::Separator()); },
-              [&](const toggle& v) { tray_->addEntry(Tray::Toggle(v.text, v.state, toggle_callback_wrapper(v.callback))); }
+              [&](const toggle& v)
+              { tray_->addEntry(Tray::Toggle(to_ansi(v.text), v.state, toggle_callback_wrapper(v.callback))); }
             );
           }
         );
         promise.set_value();
-        worker_->queue_task(get_message);
+        worker_->queue_task([&worker = *worker_] { get_message(worker); });
       }
     );
     future.get();
@@ -83,7 +115,35 @@ auto tray::init(const icon_buffer icon, std::vector<entry_type>&& entries) -> ut
 
 ///
 ///
-auto tray::get_message() -> void
+auto tray::set_text(const std::size_t index, std::string text) -> void
+{
+  const auto lock = std::scoped_lock{mtx_};
+  if(!worker_)
+  {
+    return;
+  }
+  // The menu belongs to the tray thread, so it is rebuilt there.
+  worker_->queue_task(
+    [index, text = to_ansi(text)]() mutable
+    {
+      if(!tray_)
+      {
+        return;
+      }
+      const auto entries = tray_->getEntries();
+      if(index < entries.size())
+      {
+        entries[index]->setText(std::move(text));
+      }
+    }
+  );
+  // The tray thread waits for a message, the task only runs once it got one.
+  PostThreadMessage(thread_id_, WM_NULL, 0, 0);
+}
+
+///
+///
+auto tray::get_message(framework::active_worker& worker) -> void
 {
   static MSG msg;
   if(const auto ret = GetMessage(&msg, nullptr, 0, 0); ret != 0)
@@ -98,7 +158,9 @@ auto tray::get_message() -> void
       TranslateMessage(&msg);
       DispatchMessage(&msg);
     }
-    worker_->queue_task(get_message);
+    // On exit a message may still arrive while the worker joins this thread. worker_ is nullptr by then, but
+    // the worker itself lives until the join returns and its shut down queue drops the task.
+    worker.queue_task([&worker] { get_message(worker); });
   }
 }
 

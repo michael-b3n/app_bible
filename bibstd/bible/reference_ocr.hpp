@@ -1,11 +1,13 @@
 #pragma once
 
+#include "bibstd/math/value_range.hpp"
 #include "bibstd/txt/ocr_engine.hpp"
 #include "bibstd/util/screen_types.hpp"
 
 #include <expected>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace bibstd::bible
@@ -46,39 +48,67 @@ struct reference_ocr final
   ///
   enum class unexpected_ocr_result
   {
-    error,
-    unsupported
+    error
   };
 
   ///
-  /// Enum containing flags for OCR algorithm specification.
+  /// Algorithm recognizing the lines around the position within the paragraph the layout recognition finds there. Only
+  /// that area is recognized, which makes a slow engine fast enough.
   ///
-  enum class algorithm_type
-  {
-    recognize_with_paragraph_recognition,
-    recognize_just_with_line_recognition,
-  };
+  struct paragraph_recognition final
+  {};
 
   ///
-  /// OCR algorithm and result recognition data.
-  /// Algorithms specify the algorithms that should run.
-  /// They are run in order and used as fallbacks if the results are empty.
+  /// Algorithm recognizing the whole image and taking the line of the position together with the line above and below.
   ///
-  struct algorithm_data final
+  struct line_recognition final
+  {};
+
+  ///
+  /// Algorithm recognizing the lines around the cursor character of an earlier recognition again from a copy of them
+  /// enlarged by \p scale. Engines drop small text they read once it is larger. Only the line of the cursor and the line
+  /// above and below in its column are enlarged, so this is fast. \p scale has to be at least 1.
+  ///
+  struct enlarged_lines_recognition final
   {
-    algorithm_type algorithm;
-    std::string engine_name_character_recognition;
-    std::optional<std::string> engine_name_layout_recognition;
+    reference_position_data earlier_recognition;
+    double scale{1.0};
+  };
+
+  using algorithm_type = std::variant<paragraph_recognition, line_recognition, enlarged_lines_recognition>;
+
+  ///
+  /// Names of the engines recognizing the text. The layout recognition is only needed by the paragraph recognition.
+  ///
+  struct engine_names final
+  {
+    std::string character_recognition;
+    std::optional<std::string> layout_recognition;
   };
 
   // Operations
   ///
-  /// Run OCR recognition and algorithms on the provided image to find a bible reference at a certain position.
-  /// \return reference position data or unexpected result value
+  /// Recognize the text around \p position in \p image with \p algorithm.
+  /// \return reference position data with the bounding boxes in the coordinates of \p image or unexpected result value
   ///
-  static auto
-  run(const ocr_engine_list_type& engines, const pixel_plane_view_type& image, position_type position, const algorithm_data& ad)
-    -> std::expected<reference_position_data, unexpected_ocr_result>;
+  [[nodiscard]] static auto run(
+    const ocr_engine_list_type& engines,
+    const engine_names& names,
+    const pixel_plane_view_type& image,
+    position_type position,
+    const algorithm_type& algorithm
+  ) -> std::expected<reference_position_data, unexpected_ocr_result>;
+
+  ///
+  /// Find the characters around \p position that follow each other as closely as the spacing of their line allows.
+  /// Engines leave out text they cannot read without a trace in the text, only a wider gap between the remaining boxes
+  /// stays. Text read across such a gap may mean something else. Only gaps bordering the text in \p index_range count.
+  /// \return index range around \p position up to the gaps next to it, the whole text if no gap borders
+  /// \p index_range, an empty range if \p position lies within a gap
+  ///
+  [[nodiscard]] static auto consecutive_characters(
+    const reference_position_data& position_data, position_type position, math::value_range<std::size_t> index_range
+  ) -> math::value_range<std::size_t>;
 };
 
 } // namespace bibstd::bible

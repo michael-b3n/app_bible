@@ -7,14 +7,21 @@ namespace bibstd::framework
 ///
 task_queue::~task_queue() noexcept
 {
+  shutdown();
+  const auto lock = std::scoped_lock{queue_mtx_, task_mtx_}; // wait until lock is freed
+}
+
+///
+///
+auto task_queue::shutdown() -> void
+{
   {
-    const auto queue_lock = std::scoped_lock{queue_mtx_, task_mtx_};
+    const auto queue_lock = std::scoped_lock{queue_mtx_};
     shutdown_ = true;
     std::queue<task_type> empty_queue;
     std::swap(task_queue_, empty_queue);
   }
   task_cv_.notify_all();
-  const auto lock = std::scoped_lock{queue_mtx_, task_mtx_}; // wait until lock is freed
 }
 
 ///
@@ -39,6 +46,10 @@ auto task_queue::queue(task_type&& task) -> void
 {
   {
     const auto lock = std::scoped_lock{queue_mtx_};
+    if(shutdown_)
+    {
+      return;
+    }
     task_queue_.emplace(std::forward<decltype(task)>(task));
   }
   task_cv_.notify_one();

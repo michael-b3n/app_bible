@@ -234,7 +234,6 @@ concept fallback_callable_like =
 
 ///
 /// Marks a callable as the guard of a transition, which decides whether the transition may fire.
-/// \param callable guard of the transition
 /// \return marked callable usable as an argument of make_transition
 ///
 template<detail::plain_type Callable>
@@ -245,7 +244,6 @@ template<detail::plain_type Callable>
 
 ///
 /// Marks a callable as the action of a transition, which runs when the transition fires.
-/// \param callable action of the transition
 /// \return marked callable usable as an argument of make_transition
 ///
 template<detail::plain_type Callable>
@@ -258,7 +256,6 @@ template<detail::plain_type Callable>
 /// Marks a callable as the entry hook of a state, which runs whenever a transition enters it.
 /// The callable takes its state or nothing, a machine holds at most one entry hook per state.
 /// \tparam State state the hook belongs to
-/// \param callable entry hook of the state
 /// \return marked callable usable as a row of a machine
 ///
 template<state_like State, detail::plain_type Callable>
@@ -272,7 +269,6 @@ template<state_like State, detail::plain_type Callable>
 /// Marks a callable as the exit hook of a state, which runs whenever a transition leaves it.
 /// The callable takes its state or nothing, a machine holds at most one exit hook per state.
 /// \tparam State state the hook belongs to
-/// \param callable exit hook of the state
 /// \return marked callable usable as a row of a machine
 ///
 template<state_like State, detail::plain_type Callable>

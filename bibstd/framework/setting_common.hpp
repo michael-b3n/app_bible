@@ -177,8 +177,6 @@ using setting_type_erased_type_from =
 
 ///
 /// Create setting type converter.
-/// \param F From type
-/// \param T To type
 /// \return Converter function from F to T
 ///
 template<underlying_setting_type F, underlying_setting_type T>

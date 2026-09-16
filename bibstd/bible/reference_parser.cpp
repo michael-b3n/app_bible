@@ -159,17 +159,40 @@ auto reference_parser::parse(
   if(!book)
   {
     return parse_result{};
-  };
-  auto passage_template =
+  }
+  const auto passage_template =
     create_passage_template(text.substr(book->index_range_numbers.begin, math::size(book->index_range_numbers)), language);
-
-  const auto index_numbers_end = passage_template.index_numbers_end > 0
-                                   ? book->index_range_numbers.begin + passage_template.index_numbers_end
-                                   : book->index_range_book.end;
+  const auto index_range_origin = reference_index_range(text, index, *book, passage_template, language);
+  if(!index_range_origin)
+  {
+    return parse_result{};
+  }
   return parse_result{
-    .ranges = match_passage_template(book->book, std::move(passage_template.passage_template), versification),
-    .index_range_origin = index_range_type{book->index_range_book.begin, index_numbers_end},
+    .ranges = match_passage_template(book->book, passage_template.passage_template, versification),
+    .index_range_origin = *index_range_origin,
   };
+}
+
+///
+///
+auto reference_parser::reference_index_range(
+  const std::string_view text,
+  const std::size_t index,
+  const find_book_result& book,
+  const passage_template_result& passage_template,
+  const util::language language
+) -> std::optional<index_range_type>
+{
+  // Without a passage number the reference ends with the book name.
+  const auto end = passage_template.index_numbers_end > 0 ? book.index_range_numbers.begin + passage_template.index_numbers_end
+                                                          : book.index_range_book.end;
+  // The numbers found after the book name reach up to the next letter, the passage may end before. A number behind
+  // it, e.g. the verse number "19" of "(Phil 1,10) 19 ...", is no part of the reference, the ")" of its word still is.
+  if(index >= end_of_word(text, end, language))
+  {
+    return std::nullopt;
+  }
+  return index_range_type{book.index_range_book.begin, end};
 }
 
 ///
@@ -271,6 +294,35 @@ auto reference_parser::find_book(const std::string_view text, const std::size_t 
     }
   );
   return found_book;
+}
+
+///
+///
+auto reference_parser::end_of_word(const std::string_view text, const std::size_t index, const util::language language)
+  -> std::size_t
+{
+  auto end = text.size();
+  txt::script_letters::visit(
+    language,
+    [&](const auto& letters)
+    {
+      // finds the index of the first whitespace after the character at \p index
+      txt::script_common::for_each_char_while(
+        letters,
+        text.substr(std::min(index, text.size())),
+        [&]([[maybe_unused]] const auto character, const auto pos, const txt::script_common::category category)
+        {
+          const auto whitespace = category == txt::script_common::category::whitespace;
+          if(whitespace)
+          {
+            end = index + pos;
+          }
+          return !whitespace;
+        }
+      );
+    }
+  );
+  return end;
 }
 
 ///
@@ -522,7 +574,7 @@ auto reference_parser::skip_gap(
 ///
 ///
 auto reference_parser::match_passage_template(
-  const book_id book, passage_template_type&& passage_template, const versification& versification
+  const book_id book, const passage_template_type& passage_template, const versification& versification
 ) -> std::vector<reference_range>
 {
   if(!util::valid(book))

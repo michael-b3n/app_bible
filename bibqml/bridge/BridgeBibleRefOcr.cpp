@@ -56,8 +56,7 @@ struct MonitorMapping final
   qreal devicePixelRatio;
 
   ///
-  /// Map a rectangle that is on this monitor to device independent pixels.
-  /// \param rect Rectangle in native screen pixels
+  /// Map a rectangle in native screen pixels that is on this monitor to device independent pixels.
   /// \return rectangle in device independent pixels
   ///
   [[nodiscard]] auto map(const bibstd::util::screen_rect_type& rect) const -> QRect;

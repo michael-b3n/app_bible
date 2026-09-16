@@ -132,7 +132,6 @@ public: // Structors
 public: // Accessors
   ///
   /// Creates a ranges view on data corresponding to the provided subarea.
-  /// \param area Area defined as rectangle
   /// \return ranges view iterating over the elements within the area
   ///
   template<meta::lossless_convertible<std::int64_t> I>

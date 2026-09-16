@@ -1,5 +1,4 @@
 #include <bibstd/bible/reference_parser.hpp>
-#include <bibstd/bible/scripture.hpp>
 #include <bibstd/util/contains.hpp>
 
 #include <catch2/catch_test_macros.hpp>
@@ -7,7 +6,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
-#include <string>
 #include <string_view>
 #include <vector>
 
@@ -200,6 +198,28 @@ TEST_CASE("reference_parser resolves the reference under the cursor", "[bible]")
   SECTION("cursor on the filler word between both references")
   {
     CHECK(parse(text, 12).ranges.empty());
+  }
+}
+
+TEST_CASE("reference_parser does not resolve a number behind the reference to it", "[bible]")
+{
+  // The verse numbers of a bible text follow the reference closing the verse before.
+  const auto text = std::string_view{"(5Mo 4,8; Phil 1,10) 19 und getraust dich"};
+  SECTION("cursor on the verse number")
+  {
+    CHECK(parse(text, text.find("19")).ranges.empty());
+  }
+  SECTION("cursor on the space in front of the verse number")
+  {
+    CHECK(parse(text, text.find(" 19")).ranges.empty());
+  }
+  SECTION("cursor on the last number of the reference")
+  {
+    check_ranges(text, text.find("10"), {verse(book_id::philippians, 1, 10)});
+  }
+  SECTION("cursor on the parenthesis closing the reference")
+  {
+    check_ranges(text, text.find(')'), {verse(book_id::philippians, 1, 10)});
   }
 }
 

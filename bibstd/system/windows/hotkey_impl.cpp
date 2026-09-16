@@ -118,8 +118,6 @@ auto message() -> MSG&
 
 ///
 /// Message handler for Windows hotkey callbacks.
-/// \param msg The message received from the Windows message queue
-/// \param callback_map Map of hotkey IDs to their corresponding callback functions
 ///
 auto message_handler(const MSG& msg, const std::map<int, std::function<void()>>& callback_map) -> void
 {

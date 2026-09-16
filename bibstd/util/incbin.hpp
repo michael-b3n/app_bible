@@ -25,8 +25,6 @@ namespace bibstd::util::incbin
 
 ///
 /// Reinterpret data pointer and size with string view.
-/// \param data Byte data pointer
-/// \param size Size of pointer array
 /// \return `std::string_view` on data
 ///
 inline auto to_string_view(const std::byte* const data, const unsigned int size) -> std::string_view
@@ -37,8 +35,6 @@ inline auto to_string_view(const std::byte* const data, const unsigned int size)
 ///
 /// Reinterpret data pointer and size with span of given type `T`.
 /// \tparam T value_type of span
-/// \param data Byte data pointer
-/// \param size Size of pointer array
 /// \return `std::span<T>` on data
 ///
 template<typename T>

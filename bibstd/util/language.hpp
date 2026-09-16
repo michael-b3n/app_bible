@@ -50,7 +50,6 @@ static_assert(language_direction_map.size() == util::enum_count<language>());
 
 ///
 /// Get pretty name of language.
-/// \param lang Language enum value
 /// \return Pretty name of language
 ///
 constexpr auto pretty_name(const language lang) -> std::string_view

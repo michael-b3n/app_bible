@@ -5,8 +5,10 @@
 
 #include <tray.hpp>
 
+#include <cstddef>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <span>
 #include <string>
 #include <variant>
@@ -21,14 +23,16 @@ namespace bibstd::system
 class tray final
 {
   // Variables
+  inline static std::mutex mtx_;
   inline static std::unique_ptr<framework::active_worker> worker_{};
   inline static std::unique_ptr<Tray::Tray> tray_{nullptr};
+  // Thread the tray window belongs to, it is woken up by a message to run queued tasks
+  inline static unsigned long thread_id_{0};
   inline static std::map<int, std::function<void()>> callback_map_{};
 
 public: // Typedefs
   ///
-  /// Icon file loaded into memory.
-  /// \param buffer Byte buffer view on a `*.ico` file
+  /// Icon file loaded into memory, the buffer views a `*.ico` file.
   ///
   struct icon_buffer final
   {
@@ -47,8 +51,17 @@ public: // Typedefs
 public: // Static modifiers
   static auto init(icon_buffer icon, std::vector<entry_type>&& entries) -> util::shared_scope_guard;
 
+  ///
+  /// Change the text of an entry, e.g. after a language change. Ignored if no tray exists.
+  /// \p index is the position in the list the tray was initialized with, \p text is UTF-8 encoded.
+  ///
+  static auto set_text(std::size_t index, std::string text) -> void;
+
 private: // Static helpers
-  static auto get_message() -> void;
+  ///
+  /// Dispatch one message of the tray thread and queue the next call on \p worker.
+  ///
+  static auto get_message(framework::active_worker& worker) -> void;
 };
 
 } // namespace bibstd::system

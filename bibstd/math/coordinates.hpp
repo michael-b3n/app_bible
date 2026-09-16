@@ -25,8 +25,6 @@ public: // Typedefs
 public: // Static functions
   ///
   /// Get the distance between two coordinates.
-  /// \param first First coordinates
-  /// \param second Second coordinates
   /// \return distance between `first` and `second`
   ///
   [[nodiscard]] static constexpr auto distance(const coordinates& first, const coordinates& second) -> double;
@@ -60,7 +58,6 @@ public: // Accessors
 
   ///
   /// Get the coordinates value of the defined dimension number.
-  /// \param dim Dimension number
   /// \return coordinates value of dimension `dim`
   ///
   [[nodiscard]] constexpr auto axis_value(std::size_t dim) const -> value_type;

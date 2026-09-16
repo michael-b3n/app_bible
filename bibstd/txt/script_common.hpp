@@ -97,10 +97,6 @@ public: // Constants
 public: // Static
   ///
   /// Checks if char in string at given index is of provided chars category.
-  /// \param letters List of string views that defines the available letters
-  /// \param string_view String view
-  /// \param index to check the character
-  /// \param char_category Category of char that shall be checked
   /// \return optional string view of the char or std::nullopt if category does not match
   ///
   static constexpr auto is_char(const auto& letters, std::string_view string_view, std::size_t index, category char_category)
@@ -109,9 +105,6 @@ public: // Static
   ///
   /// Check if char sequence is contained in a list of string_views.
   /// \tparam T List type with a value type which is equality comparable with std::string_view
-  /// \param chars List of string_views comparable types
-  /// \param string_view String view that shall be checked
-  /// \param index Index in string view to check for
   /// \return optional string_view of the char or std::nullopt if char is not in list
   ///
   template<typename T>
@@ -121,9 +114,6 @@ public: // Static
 
   ///
   /// Determines the category of the char in string at given index.
-  /// \param letters List of string views that defines the available letters
-  /// \param string_view String view data to get character info from
-  /// \param index to check the character
   /// \return category of the char
   ///
   static constexpr auto char_info(const auto& letters, std::string_view string_view, std::size_t index)
@@ -131,8 +121,6 @@ public: // Static
 
   ///
   /// Calls function for each char in string_view. The char is classified to a category and passed to the function.
-  /// \param string_view String view to iterate over
-  /// \param function Function to call for each char of specified category
   ///
   template<typename L, typename Function>
     requires(std::is_invocable_v<Function, const std::string_view, const std::size_t, const category>)
@@ -140,8 +128,6 @@ public: // Static
 
   ///
   /// Calls function for each char in string_view. The char is classified to a category and passed to the function.
-  /// \param string_view String view to iterate over
-  /// \param function Function to call for each char of specified category
   ///
   template<typename L, typename Function>
     requires(std::is_invocable_r_v<bool, Function, const std::string_view, const std::size_t, const category>)
@@ -283,9 +269,9 @@ constexpr auto script_common::for_each_char_while(const L& letters, const std::s
 
 ///
 ///
-constexpr auto
-script_common::is_equal_impl(const std::string_view string_view, const std::size_t index, const std::string_view c)
-  -> std::optional<std::string_view>
+constexpr auto script_common::is_equal_impl(
+  const std::string_view string_view, const std::size_t index, const std::string_view c
+) -> std::optional<std::string_view>
 {
   if(index + c.size() > string_view.size())
   {

@@ -25,7 +25,6 @@ public: // Structors
 public: // Modifiers
   ///
   /// Queue task in active_worker thread.
-  /// \param task Task that shall be run in active_worker thread
   ///
   auto queue_task(task_queue::task_type&& task) -> void;
 

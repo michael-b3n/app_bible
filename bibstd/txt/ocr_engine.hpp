@@ -108,7 +108,6 @@ public: // Operations
   /// Run analyze layout on image and list all bounding boxes
   /// corresponding to the provided resolution. If no character recognition
   /// is required, this method is much more efficient.
-  /// \param resolution_tag Text resolution tag (word, line, paragraph)
   /// \return list of bounding boxes corresponding to resolution tag
   ///
   virtual auto layout_analysis() const -> std::vector<line_layout> = 0;
@@ -146,9 +145,7 @@ public: // Accessors
 
 public: // Modifiers
   ///
-  /// Initialize the OCR engine with the given image.
-  /// \param image Image pixel data and metadata for the image to recognize
-  /// \param subarea Optional subarea of the image to define the area the OCR engine works on
+  /// Initialize the OCR engine with the given image, it only works on \p subarea if set.
   ///
   virtual auto initialize(pixel_plane_view_type image, std::optional<pixel_plane_view_type::area_type> subarea) -> void = 0;
 

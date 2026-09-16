@@ -24,7 +24,6 @@ public: // Constructor
 public: // Modifiers
   ///
   /// Add connection to connection store.
-  /// \param con Connection that shall be added
   ///
   auto store(scoped_connection_type&& con) -> void;
 

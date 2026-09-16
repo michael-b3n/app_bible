@@ -93,7 +93,6 @@ public: // Accessors
 
   ///
   /// Access the names of a book in the language of the scripture.
-  /// \param book Book to get the names of
   /// \return Names of the book, or std::nullopt if the scripture does not provide them
   ///
   auto book_information(book_id book) const -> std::optional<book_name_type>;

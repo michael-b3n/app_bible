@@ -1,8 +1,5 @@
 #
 # Function to copy a folder as post_build command
-# \param target the target on which post_build command shall be appended
-# \param dst the destination folder
-# \param folder that shall be copied
 #
 function(copy_folder target dst folder)
   add_custom_command(
@@ -12,11 +9,8 @@ function(copy_folder target dst folder)
 endfunction(copy_folder)
 
 #
-# Function to copy a file as post_build command
-# \param target the target on which post_build command shall be appended
-# \param dst the destination folder
-# \param file the file that shall be copied
-# \param optional new-file name
+# Function to copy a file as post_build command.
+# An optional fourth argument renames the copied file.
 #
 function(copy_file target dst file)
   if(DEFINED ARGV3)
@@ -33,9 +27,6 @@ endfunction(copy_file)
 
 #
 # Function to copy files as post_build command
-# \param target the target on which post_build command shall be appended
-# \param dst the destination folder
-# \param src the source folder
 #
 function(copy_files target dst src)
   file(GLOB files "${src}/*")
@@ -45,11 +36,9 @@ function(copy_files target dst src)
 endfunction(copy_files)
 
 #
-# Function to add resources that are compiled into a source file using incbin.
+# Function to add the resources given after \p source, which compiles them in via INC_RESOURCE using incbin.
 # The object file of the source is rebuilt whenever one of its resources changes.
 # Relative paths are resolved relative to the current source directory.
-# \param source the source file compiling the resources in via INC_RESOURCE
-# \param ARGN the resource files that are compiled into the source file
 #
 function(add_incbin_resources source)
   cmake_path(ABSOLUTE_PATH source BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} NORMALIZE OUTPUT_VARIABLE source_path)
@@ -75,9 +64,7 @@ function(add_incbin_resources source)
 endfunction(add_incbin_resources)
 
 #
-# Set mingw path variables
-# \param root directory (usually called MINGW_ROOT_DIRECTORY)
-# \param share directory (usually called MINGW_SHARE_DIRECTORY)
+# Set the mingw path variables named by \p mingw_root_dir and \p mingw_share_dir.
 #
 function(set_mingw_path mingw_root_dir mingw_share_dir)
   list(GET CMAKE_SYSTEM_LIBRARY_PATH 1 MINGW_LIB_DIRECTORY)
@@ -87,24 +74,24 @@ function(set_mingw_path mingw_root_dir mingw_share_dir)
 endfunction(set_mingw_path)
 
 #
-# Set git information variables
-# \param git_sha1 (usually called GIT_SHA1)
-# \param git_date (usually called GIT_DATE)
+# Set the git information variables named by \p git_sha1 and \p git_date.
 #
 function(generate_git_info git_sha1 git_date)
+  find_package(Git REQUIRED)
+
   # the commit's SHA1, and whether the building assistant was dirty or not
   execute_process(COMMAND
-    git describe --match=NeVeRmAtCh --always --abbrev=40 --dirty
+    ${GIT_EXECUTABLE} describe --match=NeVeRmAtCh --always --abbrev=40 --dirty
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     OUTPUT_VARIABLE GIT_SHA1
-    ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+    COMMAND_ERROR_IS_FATAL ANY OUTPUT_STRIP_TRAILING_WHITESPACE)
   set(${git_sha1} "${GIT_SHA1}" PARENT_SCOPE)
 
   # the date of the commit
   execute_process(COMMAND
-    git log -1 --format=%ad --date=local
+    ${GIT_EXECUTABLE} log -1 --format=%ad --date=local
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     OUTPUT_VARIABLE GIT_DATE
-    ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+    COMMAND_ERROR_IS_FATAL ANY OUTPUT_STRIP_TRAILING_WHITESPACE)
   set(${git_date} "${GIT_DATE}" PARENT_SCOPE)
 endfunction(generate_git_info)

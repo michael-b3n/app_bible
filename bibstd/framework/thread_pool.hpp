@@ -79,16 +79,11 @@ public: // Init
 public: // Modifiers
   ///
   /// Queue task in thread pool.
-  /// \param task Task that shall be run in thread_pool
   ///
   static auto queue_task(task_type&& task) -> void;
 
   ///
-  /// Queue task in thread pool.
-  /// \param task Task that shall be run in thread_pool
-  /// \param id Optional unique strand ID. If specified the task
-  /// will run after the previous task with the same strand ID has finished.
-  /// \param rule Queue rule \see queue_rule
+  /// Queue task in thread pool. The task runs after the previous task with the same strand \p id has finished.
   ///
   static auto queue_task(task_type&& task, strand_id_type id) -> void;
 

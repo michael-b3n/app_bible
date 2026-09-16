@@ -47,15 +47,12 @@ public: // Typedefs
 public: // Structors
   ///
   /// Creates a reference validator for the default Bible version (ESV).
-  /// \param versification_default The default Bible versification data
   ///
   constexpr versification(auto&& versification_default)
     requires(meta::contains_v<all_defaults_variant, std::decay_t<decltype(versification_default)>>);
 
   ///
   /// Creates a versification for the given Bible version.
-  /// \param name Name of the Bible version to create the versification for
-  /// \param references References of the Bible version
   ///
   versification(std::string_view name, const std::vector<reference>& references);
 
@@ -69,7 +66,6 @@ public: // Operators
   /// Checks if this versification is equal to another versification.
   /// Names are not compared, only the references are compared.
   /// This is an expensive operation that compares all references of the two versifications.
-  /// \param other versification to compare with
   /// \return true if the versifications are equal, false otherwise
   ///
   constexpr auto operator==(const versification& other) const -> bool;
@@ -83,15 +79,12 @@ public: // Accessors
 
   ///
   /// Get the count of chapters in a book.
-  /// \param book The book to get the chapter count of
   /// \return the chapter count, can be zero on invalid arguments
   ///
   constexpr auto chapter_count(book_id book) const -> std::uint32_t;
 
   ///
   /// Get the count of verses in a chapter.
-  /// \param book The book to get the chapter count of
-  /// \param chapter_number The chapter to get the verse count of
   /// \return the verse count, can be zero on invalid arguments
   ///
   constexpr auto verse_count(book_id book, reference::chapter_type chapter) const -> std::uint32_t;
@@ -104,14 +97,12 @@ public: // Accessors
 
   ///
   /// Returns the size of the given reference range.
-  /// \param ref reference range to get the size of
   /// \return size of the reference range if it exists, std::nullopt otherwise
   ///
   constexpr auto size(const reference_range& ref) const -> std::optional<std::uint32_t>;
 
   ///
   /// Checks if the given reference is valid.
-  /// \param ref reference to check
   /// \return true if the reference is valid, false otherwise
   ///
   constexpr auto contains(const reference& ref) const -> bool;
@@ -119,7 +110,6 @@ public: // Accessors
   ///
   /// Validates the given reference by returning the reference
   /// with the chapter and verse numbers clamped to the valid range.
-  /// \param ref reference to validate
   /// \return validated reference
   ///
   constexpr auto validate(const reference& ref) const -> reference;
@@ -127,14 +117,12 @@ public: // Accessors
 public: // Operations
   ///
   /// Returns the next reference after the given reference.
-  /// \param ref reference to get the next reference of
   /// \return next reference if it exists, std::nullopt otherwise
   ///
   constexpr auto next(const reference& ref) const -> std::optional<reference>;
 
   ///
   /// Returns the previous reference before the given reference.
-  /// \param ref reference to get the previous reference of
   /// \return previous reference if it exists, std::nullopt otherwise
   ///
   constexpr auto prev(const reference& ref) const -> std::optional<reference>;

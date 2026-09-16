@@ -133,7 +133,6 @@ class event_queue final
 public: // Modifiers
   ///
   /// Takes an event over, which is stored as the alternative of its own type.
-  /// \param event event to queue
   /// \return true, if the event was taken over, false if the slot is already taken
   ///
   template<typename Event>

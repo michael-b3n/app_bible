@@ -41,13 +41,11 @@ public: // Constructor
 public: // Modifiers
   ///
   /// Set a flag to true.
-  /// \param flag The flag to set
   ///
   constexpr auto set(E flag) -> void;
 
   ///
   /// Set a flag to false.
-  /// \param flag The flag to reset
   ///
   constexpr auto reset(E flag) -> void;
 
@@ -58,7 +56,6 @@ public: // Modifiers
 
   ///
   /// Flip a flag.
-  /// \param flag The flag to flip
   /// \return Reference to this
   ///
   constexpr auto flip(E flag) -> bitflags&;
@@ -72,28 +69,24 @@ public: // Modifiers
 public: // Accessors
   ///
   /// Test if a flag is set.
-  /// \param flag The flag to test
   /// \return true if the flag is set, false otherwise
   ///
   constexpr auto test(E flag) const -> bool;
 
   ///
   /// Check if a flag is set (alias for test).
-  /// \param flag The flag to check
   /// \return true if the flag is set, false otherwise
   ///
   constexpr auto has(E flag) const -> bool;
 
   ///
   /// Check if any of the flags in other are set in this.
-  /// \param other The flags to check
   /// \return true if any flags match, false otherwise
   ///
   constexpr auto has_any(bitflags other) const -> bool;
 
   ///
   /// Check if all of the flags in other are set in this.
-  /// \param other The flags to check
   /// \return true if all flags match, false otherwise
   ///
   constexpr auto has_all(bitflags other) const -> bool;

@@ -72,7 +72,6 @@ public: // Structors
 public: // Modifiers
   ///
   /// Lookup bible references.
-  /// \param params Start parameters for the workflow
   ///
   auto lookup(const params& params) -> void;
 };

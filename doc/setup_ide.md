@@ -34,7 +34,10 @@
 
 ## Deployment
 
-- **Inno Setup** download and install
+Releases are packed by the release workflow, see the Release section of the README. Packing locally is only needed to test an installer:
+
+- **.NET SDK 10** download and install
+- **vpk** run `dotnet tool install --global vpk --version 1.2.0`, the version has to match `libs_external/velopack`
 
 ## Build
 

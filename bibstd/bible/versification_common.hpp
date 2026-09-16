@@ -21,16 +21,12 @@ struct versification_common final
   // Helpers
   ///
   /// Generates book start indices for the given versification data.
-  /// \param data versification data to generate book start indices for
   /// \return book start indices
   ///
   static constexpr auto generate_book_start_indices(const auto& data) -> book_start_indices_type;
 
   ///
   /// Returns the chapter count of the given book for the given versification data.
-  /// \param data versification data to get chapter count from
-  /// \param book_start_indices book start indices to use for the given versification data
-  /// \param book book to get chapter count for
   /// \return chapter count of the given book for the given versification data,
   /// or std::nullopt if the book is invalid (non existent)
   ///
@@ -39,10 +35,6 @@ struct versification_common final
 
   ///
   /// Returns the verse count of the given chapter in the given book for the given versification data.
-  /// \param data versification data to get verse count from
-  /// \param book_start_indices book start indices to use for the given versification data
-  /// \param book book to get verse count for
-  /// \param chapter chapter to get verse count for
   /// \return verse count of the given chapter in the given book for the given versification data,
   /// or std::nullopt if the book or chapter is invalid (non existent)
   ///
@@ -71,9 +63,9 @@ constexpr auto versification_common::generate_book_start_indices(const auto& dat
 
 ///
 ///
-constexpr auto
-versification_common::chapter_count(const auto& data, const book_start_indices_type& book_start_indices, const book_id book)
-  -> std::optional<std::uint32_t>
+constexpr auto versification_common::chapter_count(
+  const auto& data, const book_start_indices_type& book_start_indices, const book_id book
+) -> std::optional<std::uint32_t>
 {
   if(!util::valid(book))
   {

@@ -1,10 +1,8 @@
 #include "bibqml/model/ScriptureListModel.hpp"
 #include "bibqml/util/ScriptureAccess.hpp"
 
-#include <bibstd/bible/common.hpp>
 #include <bibstd/util/enum.hpp>
 #include <bibstd/util/log.hpp>
-#include <bibstd/util/numeric_cast.hpp>
 #include <bibstd/util/ranges.hpp>
 #include <bibstd/workflow/workflow_scripture.hpp>
 

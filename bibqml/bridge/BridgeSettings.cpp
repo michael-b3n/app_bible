@@ -91,7 +91,7 @@ SettingBinding* BridgeSettings::binding(const QString& path, const QVariant& def
     LOG_ERROR("access setting binding failed: no path provided");
     return nullptr;
   }
-  if(const auto it = bindings_.find(path); it != bindings_.cend())
+  if(const auto it = bindings_.find(path); it != std::cend(bindings_))
   {
     if(it->second->defaultValue() != defaultValue)
     {

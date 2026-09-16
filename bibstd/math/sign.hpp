@@ -29,7 +29,6 @@ struct sign_value final
 
 ///
 /// Get the sign of an arithmetic value of type `T`.
-/// \param value Value of type `T`
 /// \return `-1` if `value < 0`, `0` if `value == 0`, `1` if `value > 0`
 ///
 template<typename T>
@@ -41,7 +40,6 @@ constexpr auto sign(T value) -> int
 
 ///
 /// Get the sign of an arithmetic value of type `T`.
-/// \param value Value of type `T`
 /// \return `-1` if `value < 0`, `0` if `value == 0`, `1` if `value > 0`
 ///
 template<typename T>

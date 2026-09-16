@@ -29,7 +29,6 @@ public: // Modifiers
 
   ///
   /// Run task in main thread.
-  /// \param task Task that shall be run in main thread.
   ///
   static auto queue_task(task_queue::task_type&& task) -> void;
 };

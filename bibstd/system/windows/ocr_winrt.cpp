@@ -12,7 +12,6 @@
 #include <winrt/Windows.Globalization.h>
 #include <winrt/Windows.Graphics.Imaging.h>
 #include <winrt/Windows.Media.Ocr.h>
-#include <winrt/Windows.Storage.Streams.h>
 
 #include <algorithm>
 #include <cassert>
@@ -31,7 +30,6 @@ namespace winrt_globalization = winrt::Windows::Globalization;
 
 ///
 /// Map util::language to Windows BCP-47 language tag.
-/// \param language Language to map
 /// \return BCP-47 language tag corresponding to the given language
 ///
 auto to_language_tag(const util::language language) -> winrt::hstring

@@ -36,7 +36,7 @@ struct ocr_book_variants_de final
     std::pair{         book_id::kings2,               util::string::to_string_view_array("2Könige", "2Kön", "2Kö")},
     std::pair{    book_id::chronicles1,                     util::string::to_string_view_array("1Chronik", "1Chr")},
     std::pair{    book_id::chronicles2,                     util::string::to_string_view_array("2Chronik", "2Chr")},
-    std::pair{           book_id::ezra,                                 util::string::to_string_view_array("Esra")},
+    std::pair{           book_id::ezra,                          util::string::to_string_view_array("Esra", "Esr")},
     std::pair{       book_id::nehemiah,                       util::string::to_string_view_array("Nehemia", "Neh")},
     std::pair{         book_id::esther,                         util::string::to_string_view_array("Ester", "Est")},
     std::pair{            book_id::job,                           util::string::to_string_view_array("Hiob", "Hi")},

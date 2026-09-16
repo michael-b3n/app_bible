@@ -10,10 +10,24 @@ namespace bibstd::workflow
 
 ///
 ///
-auto workflow_settings::settings_file_path() -> const std::filesystem::path&
+auto workflow_settings::settings_file_path(const std::optional<std::string_view> folder_name) -> std::filesystem::path
 {
-  static const std::filesystem::path path{system::filesystem::local_data_folder() / settings_file_name};
-  return path;
+  return system::filesystem::local_data_folder(folder_name) / settings_file_name;
+}
+
+///
+///
+workflow_settings::workflow_settings(const std::optional<std::string_view> folder_name)
+  : data_folder_{system::filesystem::local_data_folder(folder_name)}
+  , tree_{framework::property_tree::create(data_folder_ / settings_file_name)}
+{
+}
+
+///
+///
+auto workflow_settings::data_folder() const -> const std::filesystem::path&
+{
+  return data_folder_;
 }
 
 ///

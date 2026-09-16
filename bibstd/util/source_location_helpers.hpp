@@ -9,7 +9,6 @@ namespace bibstd::util
 ///
 /// Get the pretty function name from the source location.
 /// The pretty function name is the function name without the namespace and without the parameters.
-/// \param loc Source location, defaults to the current source location
 /// \return Pretty function name as std::string_view
 ///
 constexpr auto filter_function_name(const std::source_location& loc) -> std::string_view
@@ -27,7 +26,6 @@ constexpr auto filter_function_name(const std::source_location& loc) -> std::str
 ///
 /// Get the pretty file name from the source location.
 /// The pretty file name is the file name without the path and without the file extension.
-/// \param loc Source location, defaults to the current source location
 /// \return Pretty file name as std::string_view
 ///
 constexpr auto filter_file_name(const std::source_location& loc) -> std::string_view
@@ -45,7 +43,6 @@ constexpr auto filter_file_name(const std::source_location& loc) -> std::string_
 ///
 /// Get the pretty folder name from the source location.
 /// The pretty folder name is the name of the parent folder of the file without the complete path.
-/// \param loc Source location, defaults to the current source location
 /// \return Pretty folder name as std::string_view
 ///
 constexpr auto filter_folder_name(const std::source_location& loc) -> std::string_view
