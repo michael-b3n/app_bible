@@ -1,5 +1,5 @@
 #
-# Publishes a release for a pushed tag v<major>.<minor> on the branch release/aba_v<major>.
+# Publishes a release for a pushed tag aba_v<major>.<minor> on the branch release/aba_v<major>.
 # Installed apps pick it up on their next update check.
 #
 # The token for the releases is the GITHUB_TOKEN GitHub creates for every run.
@@ -8,7 +8,7 @@ name: Release
 
 on:
   push:
-    tags: ["v*.*"]
+    tags: ["aba_v*.*"]
 
 permissions:
   contents: write
@@ -40,7 +40,7 @@ jobs:
             $Matches[1]
           }
           $version = "$major.$minor"
-          if ("${{ github.ref_name }}" -ne "v$version") { throw "tag ${{ github.ref_name }} does not match version $version in aba/CMakeLists.txt" }
+          if ("${{ github.ref_name }}" -ne "aba_v$version") { throw "tag ${{ github.ref_name }} does not match version $version in aba/CMakeLists.txt" }
           $branch = "release/aba_v$major"
           git merge-base --is-ancestor "$env:GITHUB_SHA" "origin/$branch"
           if ($LASTEXITCODE -ne 0) { throw "tag ${{ github.ref_name }} is not on branch $branch" }

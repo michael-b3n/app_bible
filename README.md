@@ -24,8 +24,8 @@ The configure step downloads the prebuilt [Velopack](https://velopack.io) librar
 ## Release
 On the branch `release/aba_v<major>`, set `APP_VERSION_MAJOR` and `APP_VERSION_MINOR` in `aba/CMakeLists.txt`, then tag and push:
 ```
-git tag v2.1
-git push origin v2.1
+git tag aba_v2.1
+git push origin aba_v2.1
 ```
 The release workflow checks the tag, builds, tests and publishes the release. Installed apps pick it up within a day.
 
