@@ -3,7 +3,6 @@
 #include "bibstd/util/enum.hpp"
 
 #include <algorithm>
-#include <cstdint>
 
 namespace bibstd::bible
 {

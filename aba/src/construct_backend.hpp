@@ -1,6 +1,5 @@
 #pragma once
 
-#include <bibstd/util/scope_guard.hpp>
 #include <bibstd/workflow/workflow_base.hpp>
 #include <bibstd/workflow/workflow_settings.hpp>
 

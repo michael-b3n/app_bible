@@ -11,7 +11,6 @@
 
 #include <bibstd/data/pixel.hpp>
 #include <bibstd/data/plane.hpp>
-#include <bibstd/math/rect.hpp>
 #include <bibstd/math/value_range.hpp>
 #include <bibstd/txt/ocr_engine_tesseract.hpp>
 #include <bibstd/util/language.hpp>

@@ -12,7 +12,6 @@
 #include <winrt/Windows.Globalization.h>
 #include <winrt/Windows.Graphics.Imaging.h>
 #include <winrt/Windows.Media.Ocr.h>
-#include <winrt/Windows.Storage.Streams.h>
 
 #include <algorithm>
 #include <cassert>

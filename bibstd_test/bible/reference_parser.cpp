@@ -1,5 +1,4 @@
 #include <bibstd/bible/reference_parser.hpp>
-#include <bibstd/bible/scripture.hpp>
 #include <bibstd/util/contains.hpp>
 
 #include <catch2/catch_test_macros.hpp>
@@ -7,7 +6,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
-#include <string>
 #include <string_view>
 #include <vector>
 

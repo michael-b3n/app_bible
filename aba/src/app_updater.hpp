@@ -12,7 +12,6 @@ namespace Velopack
 {
 class UpdateManager;
 } // namespace Velopack
-
 namespace bibqml
 {
 class BridgeApplication;
@@ -29,25 +28,22 @@ namespace aba
 class app_updater final
 {
   // Constants
-  // Starting at sign-in usually happens before the network is up
   static constexpr auto first_check_delay = std::chrono::minutes{3};
   static constexpr auto check_interval = std::chrono::hours{24};
   static constexpr auto retry_interval = std::chrono::hours{6};
-  // Velopack sets no network timeouts, a stalled connection would block all later checks
   static constexpr auto download_timeout = std::chrono::hours{2};
 
   // Variables
   bibqml::BridgeApplication& bridge_;
   std::unique_ptr<Velopack::UpdateManager> manager_;
   bool install_started_{false};
-  // Times the next check while no download runs, the download timeout while one does
   QTimer timer_;
   QProcess download_;
 
 public: // Structors
   ///
-  /// Start checking for updates, unless this executable was not installed by Velopack.
-  /// A downloaded update is reported to \p bridge, which has to outlive the updater.
+  /// Start checking for updates. A downloaded update is reported
+  /// to \p bridge, which has to outlive the updater.
   ///
   explicit app_updater(bibqml::BridgeApplication& bridge);
   ~app_updater() noexcept;
@@ -58,7 +54,7 @@ public: // Structors
 
 public: // Modifiers
   ///
-  /// Install the downloaded update, see install_downloaded_update().
+  /// Install the downloaded update, see aba::install_downloaded_update.
   /// \return true if the update was handed over, which happens once
   ///
   [[nodiscard]] auto install_and_restart() -> bool;

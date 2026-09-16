@@ -7,15 +7,15 @@
 #include "bibstd/util/numeric_cast.hpp"
 #include "bibstd/util/visit_helper.hpp"
 
-#include <boost/filesystem/path.hpp>
 #include <leptonica/allheaders.h>
 #include <leptonica/environ.h>
 #include <leptonica/imageio.h>
 #include <leptonica/pix_internal.h>
-#include <optional>
-#include <string>
 #include <tesseract/baseapi.h>
 #include <tesseract/publictypes.h>
+
+#include <optional>
+#include <string>
 
 namespace bibstd::txt
 {

@@ -1,8 +1,6 @@
 #include "SimpleListModel.hpp"
 
-#include <bibstd/util/exception.hpp>
 #include <bibstd/util/log.hpp>
-#include <bibstd/util/numeric_cast.hpp>
 
 #include <QJSValue>
 

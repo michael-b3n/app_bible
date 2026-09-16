@@ -1,9 +1,6 @@
 #include "src/construct_backend.hpp"
 #include "res/version.hpp"
 
-#include <bibstd/framework/thread_pool.hpp>
-#include <bibstd/system/hotkey.hpp>
-
 #include <bibstd/workflow/workflow_bible_ref_lookup.hpp>
 #include <bibstd/workflow/workflow_bible_ref_ocr.hpp>
 #include <bibstd/workflow/workflow_bible_ref_ocr_auto.hpp>

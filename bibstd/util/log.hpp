@@ -2,7 +2,6 @@
 
 #include "bibstd/util/source_location_helpers.hpp"
 
-#include <filesystem>
 #include <format>
 #include <optional>
 #include <source_location>
