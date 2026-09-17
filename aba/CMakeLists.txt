@@ -10,7 +10,7 @@ include(helper_functions)
 # The release workflow requires the tag v<major>.<minor> to match this version.
 #
 set(APP_VERSION_MAJOR 2)
-set(APP_VERSION_MINOR 1)
+set(APP_VERSION_MINOR 2)
 set(APP_VERSION "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}")
 set(APP_EXE_NAME "aba")
 set(APP_NAME "ABA")
