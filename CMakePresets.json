@@ -1,0 +1,84 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 4,
+    "minor": 3,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}"
+    },
+    {
+      "name": "clang",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "gcc",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "debug",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "clang-debug",
+      "displayName": "Clang Debug",
+      "inherits": ["base", "clang", "debug"]
+    },
+    {
+      "name": "clang-release",
+      "displayName": "Clang Release",
+      "inherits": ["base", "clang", "release"]
+    },
+    {
+      "name": "gcc-debug",
+      "displayName": "GCC Debug",
+      "inherits": ["base", "gcc", "debug"]
+    },
+    {
+      "name": "gcc-release",
+      "displayName": "GCC Release",
+      "inherits": ["base", "gcc", "release"]
+    }
+  ],
+  "buildPresets": [
+    { "name": "clang-debug", "configurePreset": "clang-debug" },
+    { "name": "clang-release", "configurePreset": "clang-release" },
+    { "name": "gcc-debug", "configurePreset": "gcc-debug" },
+    { "name": "gcc-release", "configurePreset": "gcc-release" }
+  ],
+  "testPresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    { "name": "clang-debug", "inherits": "base", "configurePreset": "clang-debug" },
+    { "name": "clang-release", "inherits": "base", "configurePreset": "clang-release" },
+    { "name": "gcc-debug", "inherits": "base", "configurePreset": "gcc-debug" },
+    { "name": "gcc-release", "inherits": "base", "configurePreset": "gcc-release" }
+  ]
+}

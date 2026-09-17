@@ -34,25 +34,25 @@ runs:
       shell: msys2 {0}
       run: |
         git config --global --add safe.directory '*'
-        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        cmake --preset gcc-release
 
     - name: Build
       shell: msys2 {0}
-      run: cmake --build build
+      run: cmake --build --preset gcc-release
 
     - name: Test
       shell: msys2 {0}
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --preset gcc-release
 
     - name: Install
       shell: msys2 {0}
-      run: cmake --install build
+      run: cmake --install build/gcc-release
 
     # Runs outside of MSYS2, so a dll that is only found on its PATH fails here.
     # The install hook exits before the window opens, a missing dll or a crashing hook does not.
     - name: Check the installed executable starts
       shell: pwsh
       run: |
-        $process = Start-Process -FilePath build/install/bin/aba.exe -ArgumentList '--veloapp-install', '0.0.0' -PassThru
+        $process = Start-Process -FilePath build/gcc-release/install/bin/aba.exe -ArgumentList '--veloapp-install', '0.0.0' -PassThru
         if (-not $process.WaitForExit(60000)) { $process.Kill(); throw 'aba.exe did not exit within 60 seconds' }
         if ($process.ExitCode -ne 0) { throw "aba.exe exited with $($process.ExitCode)" }

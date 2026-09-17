@@ -73,7 +73,7 @@ jobs:
           --packVersion ${{ steps.version.outputs.pack_version }}
           --packTitle "ABA - Bible Assistant"
           --packAuthors michael-b3n
-          --packDir build/install
+          --packDir build/gcc-release/install
           --mainExe bin\aba.exe
           --icon aba/res/icon.ico
           --shortcuts StartMenuRoot,Startup
