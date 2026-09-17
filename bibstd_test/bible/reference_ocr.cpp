@@ -281,8 +281,6 @@ struct designed_capture final
 {
   // Constants
   static constexpr auto line_height = std::int32_t{20};
-  static constexpr auto paragraph_1_text = "Der Vers Johannes 3,\n16 ist bekannt.\n";
-  static constexpr auto paragraph_2_text = "Ein anderer Absatz.\n";
 
   // Variables
   test_utils::capture_data data;
@@ -386,7 +384,6 @@ struct repeated_word_capture final
 {
   // Constants
   static constexpr auto line_height = std::int32_t{20};
-  static constexpr auto paragraph_2_text = "Der Vers Johannes 3,\n16 ist bekannt.\nDer Vers gilt.\n";
 
   // Variables
   test_utils::capture_data data;

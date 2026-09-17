@@ -7,7 +7,8 @@
 5.  run `pacman -S --needed base-devel mingw-w64-x86_64-toolchain`
 6.  run `pacman -S mingw-w64-x86_64-cmake`
 7.  run `pacman -S mingw-w64-x86_64-clang`
-8.  open Visual Studio Code and install atleast
+8.  run `pacman -S mingw-w64-x86_64-lld`
+9.  open Visual Studio Code and install atleast
     - C/C++ Extension Pack [here](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools-extension-pack)
     - Clang-Format [here](https://marketplace.visualstudio.com/items?itemName=xaver.clang-format)
     - Code Spell Checker
