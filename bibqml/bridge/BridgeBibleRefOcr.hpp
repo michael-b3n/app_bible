@@ -1,5 +1,7 @@
 #pragma once
 
+#include "bibqml/util/NativeScreen.hpp"
+
 #include <bibstd/bible/reference_range.hpp>
 #include <bibstd/framework/process_params.hpp>
 #include <bibstd/framework/setting_type_erased.hpp>
@@ -56,6 +58,9 @@ class BridgeBibleRefOcr final : public QObject
   const AutoSearchSettingType autoSearchSetting_;
 
   std::optional<bibstd::framework::process_id_type> manualSearchProcessId_;
+  std::optional<CursorPositionPair> manualSearchCursor_;
+  std::optional<bibstd::framework::process_id_type> autoSearchDetectionId_;
+  std::optional<CursorPositionPair> autoSearchCursor_;
   bool manualSearchRunning_{false};
   bool autoSearchRunning_{false};
   QPoint cursorPosition_{0, 0};
@@ -128,12 +133,18 @@ private: // Implementation
     std::optional<bibstd::bible::reference_range> referenceRange,
     std::optional<bibstd::util::screen_rect_type> boundingBox
   );
+  void notifyAutoSearchDetecting(bibstd::framework::process_id_type detectionId);
   void notifyAutoSearchDetection(
-    bibstd::bible::reference_range referenceRange, std::optional<bibstd::util::screen_rect_type> boundingBox
+    bibstd::framework::process_id_type detectionId,
+    bibstd::bible::reference_range referenceRange,
+    std::optional<bibstd::util::screen_rect_type> boundingBox
   );
   void notifyAutoSearchRunning(bool running);
+  void emitCursorPosition(const std::optional<CursorPositionPair>& cursor);
   void emitReference(
-    const bibstd::bible::reference_range& referenceRange, const std::optional<bibstd::util::screen_rect_type>& boundingBox
+    const bibstd::bible::reference_range& referenceRange,
+    const std::optional<bibstd::util::screen_rect_type>& boundingBox,
+    const std::optional<CursorPositionPair>& cursor
   );
 };
 

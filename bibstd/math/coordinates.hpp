@@ -31,7 +31,8 @@ public: // Static functions
 
 public: // Constructors
   template<typename... T>
-  constexpr coordinates(T... coords);
+  constexpr coordinates(T... coords)
+    requires(sizeof...(T) == D);
   constexpr coordinates(std::array<value_type, D> coordinates);
 
 public: // Accessors
@@ -103,6 +104,7 @@ constexpr auto coordinates<ValueType, D>::distance(const coordinates& first, con
 template<typename ValueType, std::size_t D>
 template<typename... T>
 constexpr coordinates<ValueType, D>::coordinates(T... coords)
+  requires(sizeof...(T) == D)
   : coordinates_{std::array{static_cast<value_type>(coords)...}}
 {
 }

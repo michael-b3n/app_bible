@@ -33,6 +33,7 @@ private: // Constants
     {std::string_view{"m"}, std::string_view{"M"}},
     {std::string_view{"O"}, std::string_view{"o"}},
     {std::string_view{"s"}, std::string_view{"S"}},
+    {std::string_view{"S"}, std::string_view{"s"}},
   });
 
   ///

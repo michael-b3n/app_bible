@@ -46,7 +46,7 @@ target_compile_definitions(bibstd_test
 #
 target_link_libraries(
   bibstd_test
-  PUBLIC
+  PRIVATE
   Catch2::Catch2WithMain
   bibstd)
 

@@ -4,7 +4,6 @@ cmake_minimum_required(VERSION 4.3)
 # Set global CMake variables.
 #
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/tools/cmake")
-set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install")
 
 #
 # Limit CMake to only provide "Release" and "Debug" others are not needed.
@@ -14,6 +13,19 @@ set(CMAKE_CONFIGURATION_TYPES Release Debug)
 
 project(app_bible)
 
+# An empty build type builds without optimization and debug info.
+get_property(IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(NOT IS_MULTI_CONFIG AND NOT CMAKE_BUILD_TYPE)
+  message(FATAL_ERROR "CMAKE_BUILD_TYPE is not set, configure with a preset, e.g. `cmake --preset gcc-release --fresh`")
+endif()
+
+#
+# Install into the build folder unless another prefix is given, a release is packed from there.
+#
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "Install directory" FORCE)
+endif()
+
 #
 #
 #
@@ -21,11 +33,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
-
-# set(CMAKE_CXX_STANDARD_LIBRARIES "-static-libgcc -static-libstdc++ -lwsock32 -lws2_32 ${CMAKE_CSS_STANDARD_LIBRARIES}")
-# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 #
 # Main Qt Versions
@@ -36,14 +44,20 @@ set(QT_VERSION_NUMBER 6.11)
 #
 # Sets compile flag defaults.
 #
-add_compile_options(-Wall -Wpedantic -Werror)
+add_compile_options(-Wall -Wpedantic)
+set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
-# Source paths in __FILE__ and std::source_location are kept relative, the local folder is not shipped in the binary.
+# Source paths in __FILE__ and std::source_location are kept relative
 add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:-ffile-prefix-map=${CMAKE_SOURCE_DIR}/=>)
+
+# GNU ld overflows REL32 relocations linking clang objects against the GCC-built mingw libraries.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  set(CMAKE_LINKER_TYPE LLD)
+endif()
 
 #
 # Force a CMake reconfiguration when the .git/index changes.
-# This is needed to so the git-commit-hash is updated correctly.
+# This is needed so the git-commit-hash is updated correctly.
 #
 set_property(GLOBAL APPEND
   PROPERTY CMAKE_CONFIGURE_DEPENDS
@@ -51,7 +65,7 @@ set_property(GLOBAL APPEND
 )
 
 #
-# Inlcude all subdirectories.
+# Include all subdirectories.
 #
 enable_testing()
 add_subdirectory(libs_external)

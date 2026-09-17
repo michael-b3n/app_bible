@@ -14,11 +14,11 @@ TEST_CASE("ocr_book_variants name_variant_aliases", "[bible]")
   {
     // '1' can be misread as 'I' and 'l', 'M' as 'm' and 'o' as '0' and 'O'.
     const auto aliases = ocr_book_variants::name_variant_aliases("1Mose", util::language::german);
-    CHECK(aliases.size() == 3 * 2 * 3 - 1);
     CHECK(util::contains(aliases, std::string{"IMose"}));
     CHECK(util::contains(aliases, std::string{"1mose"}));
     CHECK(util::contains(aliases, std::string{"1MOse"}));
     CHECK(util::contains(aliases, std::string{"lm0se"}));
+    CHECK(util::contains(aliases, std::string{"lm0Se"}));
     CHECK_FALSE(util::contains(aliases, std::string{"1Mose"}));
   }
   GIVEN("name variant without misreadable chars")

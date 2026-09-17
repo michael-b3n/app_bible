@@ -179,7 +179,7 @@ auto screen::window_at(const screen_coordinates_type coordinates) -> std::option
 
 ///
 ///
-auto screen::monitor_at(const screen_coordinates_type coordinates) -> std::optional<monitor_type>
+auto screen::monitor_at(const screen_coordinates_type coordinates) -> std::optional<screen_rect_type>
 {
   SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
   HMONITOR monitor = MonitorFromPoint(POINT{.x = coordinates.x(), .y = coordinates.y()}, MONITOR_DEFAULTTONULL);
@@ -187,21 +187,17 @@ auto screen::monitor_at(const screen_coordinates_type coordinates) -> std::optio
   {
     return std::nullopt;
   }
-  // The ansi variant is used since monitor device names are ascii only.
-  MONITORINFOEXA info;
+  MONITORINFO info;
   info.cbSize = sizeof(info);
-  if(!static_cast<bool>(GetMonitorInfoA(monitor, &info)))
+  if(!static_cast<bool>(GetMonitorInfoW(monitor, &info)))
   {
     return std::nullopt;
   }
   decltype(auto) rect = info.rcMonitor;
-  return monitor_type{
-    .rect = screen_rect_type(
-      math::coordinates{numeric_cast<std::int32_t>(rect.left), numeric_cast<std::int32_t>(rect.top)},
-      math::coordinates{numeric_cast<std::int32_t>(rect.right), numeric_cast<std::int32_t>(rect.bottom)}
-    ),
-    .device_name = std::string{static_cast<const char*>(info.szDevice)}
-  };
+  return screen_rect_type(
+    math::coordinates{numeric_cast<std::int32_t>(rect.left), numeric_cast<std::int32_t>(rect.top)},
+    math::coordinates{numeric_cast<std::int32_t>(rect.right), numeric_cast<std::int32_t>(rect.bottom)}
+  );
 }
 
 ///

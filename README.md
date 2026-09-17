@@ -13,13 +13,14 @@ Requires Windows 10 or later.
 ABA ships without scriptures. To read passages in ABA, download USX bundles from the Digital Bible Library at [library.bible](https://library.bible/) and put the zip files into `%LOCALAPPDATA%\app_bible_assistant\scriptures`. They are loaded on start, the folder can be changed in the settings.
 
 ## Development
+In the MSYS2 MINGW64 shell:
 ```
-cmake -S . -B build
-cmake --build build
-ctest --test-dir build --output-on-failure
+cmake --preset gcc-release --fresh
+cmake --build --preset gcc-release
+ctest --preset gcc-release
 cmake --install build
 ```
-The configure step downloads the prebuilt [Velopack](https://velopack.io) library, `cmake --install` fills `build/install`, the folder a release is packed from. Static analysis: `tools/run_clang_tidy.ps1`.
+The presets `clang-debug`, `clang-release`, `gcc-debug` and `gcc-release` all build into `build`, `--fresh` replaces the configuration of the previous preset. CI and releases use `gcc-release`. The configure step downloads the prebuilt [Velopack](https://velopack.io) library, `cmake --install` fills `build/install`, the folder a release is packed from. Static analysis: `tools/run_clang_tidy.ps1`.
 
 ## Release
 On the branch `release/aba_v<major>`, set `APP_VERSION_MAJOR` and `APP_VERSION_MINOR` in `aba/CMakeLists.txt`, then tag and push:

@@ -200,6 +200,12 @@ auto workflow_bible_ref_ocr_auto::examine(
 {
   try
   {
+    const auto detection_id = framework::process_id_type{};
+    notify(
+      &signals_type::detecting,
+      detection_started_type{.process_id = id, .detection_id = detection_id, .cursor_position = position}
+    );
+
     const auto window = system::screen::window_at(position);
     if(!window)
     {
@@ -239,11 +245,11 @@ auto workflow_bible_ref_ocr_auto::examine(
     );
     notify(
       &signals_type::detected,
-      detection_type{
+      detection_result_type{
         .process_id = id,
+        .detection_id = detection_id,
         .reference_ranges = std::move(result->reference_ranges),
-        .reference_bounding_box = bounding_box,
-        .cursor_position = position
+        .reference_bounding_box = bounding_box
       }
     );
   }
