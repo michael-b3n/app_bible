@@ -12,6 +12,7 @@
 #include <ranges>
 #include <string_view>
 #include <system_error>
+#include <tuple>
 #include <vector>
 
 namespace bibstd::core
@@ -48,7 +49,7 @@ core_scripture_store::core_scripture_store(const std::filesystem::path& folder)
   auto error = std::error_code{};
   if(!std::filesystem::exists(folder, error))
   {
-    LOG_WARN("scripture folder not existing: folder=\"{}\"", folder.generic_string());
+    std::ignore = std::filesystem::create_directories(folder, error);
     return;
   }
   if(!std::filesystem::is_directory(folder, error))

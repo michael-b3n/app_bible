@@ -114,6 +114,11 @@ auto workflow_scripture::passage(const passage_params& params) -> passage_result
   {
     const auto lock = std::scoped_lock{mtx_};
     decltype(auto) scriptures = core_scripture_store_->scriptures();
+    if(scriptures.empty())
+    {
+      // no scriptures loaded, no warning since this is a valid state
+      return passage_result{return_failure};
+    }
     const auto scripture_name = params->scripture_name ? params->scripture_name : settings().scripture_name->value();
     auto result = passage_result{return_failure};
     if(scripture_name)
