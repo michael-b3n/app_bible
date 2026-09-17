@@ -30,7 +30,7 @@ cmake --build --preset gcc-release
 ctest --preset gcc-release
 cmake --install build
 ```
-The presets `clang-debug`, `clang-release`, `gcc-debug` and `gcc-release` all build into `build`, `--fresh` replaces the configuration of the previous preset. CI and releases use `gcc-release`. The configure step downloads the prebuilt [Velopack](https://velopack.io) library, `cmake --install` fills `build/install`, the folder a release is packed from. Static analysis: `tools/run_clang_tidy.ps1`.
+The presets `clang-debug`, `clang-release`, `gcc-debug` and `gcc-release` all build into `build`, `--fresh` replaces the configuration of the previous preset. CI and releases use `gcc-release`. The configure step downloads the prebuilt [Velopack](https://velopack.io) library, `cmake --install` fills `build/install`, the folder a release is packed from. Static analysis: `tools/run_clang_tidy.ps1`. The app icon is drawn in `verselens/res/icon`, one cut per size range, `tools/make_icons.ps1` renders it into `verselens/res/icon.ico` and the assets of the store package.
 
 ## Release
 On the branch `release/verselens_v<major>`, set `APP_VERSION_MAJOR` and `APP_VERSION_MINOR` in `verselens/CMakeLists.txt`, then tag and push:
