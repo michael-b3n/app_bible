@@ -14,12 +14,8 @@
 #include <bibstd/workflow/workflow_settings.hpp>
 
 #include <QCursor>
-#include <QGuiApplication>
 #include <QMetaObject>
-#include <QScreen>
 
-#include <algorithm>
-#include <cmath>
 #include <ranges>
 #include <utility>
 
@@ -40,67 +36,19 @@ struct CaptureResult final
 };
 
 ///
-/// Mapping of one monitor between the two coordinate systems in play:
-/// - native screen pixels, the system the backend captures and searches the screen in
-/// - device independent pixels, the system the QML layer positions its windows in
-/// Both systems describe the same monitors, but a monitor has a different origin in each of
-/// them: Qt lays out its screens on its own if they are scaled differently. The origin of a
-/// monitor can therefore not be converted, it has to be known in both systems. Everything
-/// else is mapped relative to it.
+/// Read the cursor position in native and device independent pixels at once.
+/// \note This accesses the cursor of the QML layer, it must be called on its thread.
+/// \return cursor position pair, or std::nullopt if the native cursor position is unknown
 ///
-struct MonitorMapping final
+[[nodiscard]] auto readCursorPositionPair() -> std::optional<CursorPositionPair>
 {
-  // Variables
-  bibstd::util::screen_coordinates_type nativeOrigin;
-  QPoint deviceIndependentOrigin;
-  qreal devicePixelRatio;
-
-  ///
-  /// Map a rectangle in native screen pixels that is on this monitor to device independent pixels.
-  /// \return rectangle in device independent pixels
-  ///
-  [[nodiscard]] auto map(const bibstd::util::screen_rect_type& rect) const -> QRect;
-};
-
-///
-///
-auto MonitorMapping::map(const bibstd::util::screen_rect_type& rect) const -> QRect
-{
-  const auto scale = [this](const auto nativePixels)
-  { return numeric_cast<int>(std::lround(static_cast<qreal>(nativePixels) / devicePixelRatio)); };
-  const auto offset = QPoint{scale(rect.origin().x() - nativeOrigin.x()), scale(rect.origin().y() - nativeOrigin.y())};
-  const auto size = QSize{scale(bibstd::math::size(rect.horizontal_range())), scale(bibstd::math::size(rect.vertical_range()))};
-  return QRect{deviceIndependentOrigin + offset, size};
-}
-
-///
-/// Find the mapping of the monitor showing the specified position. The system and the QML
-/// layer identify a monitor by the same platform device name, which is what the monitor of
-/// the position is looked up by.
-/// \note This accesses the screens of the QML layer, it must be called on its thread.
-/// \return monitor mapping, or std::nullopt if the monitor is unknown to the QML layer
-///
-[[nodiscard]] auto monitorMappingAt(const bibstd::util::screen_coordinates_type& position) -> std::optional<MonitorMapping>
-{
-  const auto monitor = bibstd::system::screen::monitor_at(position);
-  if(!monitor)
+  const auto native = bibstd::system::screen::cursor_position();
+  if(!native)
   {
-    LOG_WARN("no monitor found at position: position={}", position);
+    LOG_WARN("identify cursor position failed: not found");
     return std::nullopt;
   }
-  const auto deviceName = QString::fromStdString(monitor->device_name);
-  const auto screens = QGuiApplication::screens();
-  const auto screen = std::ranges::find_if(screens, [&](const auto s) { return s->name() == deviceName; });
-  if(screen == std::ranges::cend(screens))
-  {
-    LOG_WARN("no screen found for monitor: device_name=\"{}\"", monitor->device_name);
-    return std::nullopt;
-  }
-  return MonitorMapping{
-    .nativeOrigin = monitor->rect.origin(),
-    .deviceIndependentOrigin = (*screen)->geometry().topLeft(),
-    .devicePixelRatio = (*screen)->devicePixelRatio()
-  };
+  return CursorPositionPair{.native = *native, .deviceIndependent = QCursor::pos()};
 }
 
 ///
@@ -129,9 +77,9 @@ auto MonitorMapping::map(const bibstd::util::screen_rect_type& rect) const -> QR
 /// Shift a rectangle given in image coordinates onto the screen the image was captured from.
 /// \return rectangle in native screen pixels
 ///
-[[nodiscard]] auto
-toScreenRect(const bibstd::util::screen_rect_type& rect, const bibstd::util::screen_coordinates_type& imageOrigin)
-  -> bibstd::util::screen_rect_type
+[[nodiscard]] auto toScreenRect(
+  const bibstd::util::screen_rect_type& rect, const bibstd::util::screen_coordinates_type& imageOrigin
+) -> bibstd::util::screen_rect_type
 {
   return bibstd::util::screen_rect_type{
     rect.origin() + imageOrigin, bibstd::math::size(rect.horizontal_range()), bibstd::math::size(rect.vertical_range())
@@ -200,13 +148,18 @@ BridgeBibleRefOcr::BridgeBibleRefOcr(
   });
 
   workflowBibleRefOcrAuto_->connect_queued(
+    &bibstd::workflow::workflow_bible_ref_ocr_auto_sigs::detecting,
+    [this](const auto& started) { notifyAutoSearchDetecting(started.detection_id); },
+    executor_
+  );
+  workflowBibleRefOcrAuto_->connect_queued(
     &bibstd::workflow::workflow_bible_ref_ocr_auto_sigs::detected,
     [this](const auto& detected)
     {
       // The ranges are ordered canonically, the first one is the reference that was detected.
       if(detected && !detected->reference_ranges.empty())
       {
-        notifyAutoSearchDetection(detected->reference_ranges.front(), detected->reference_bounding_box);
+        notifyAutoSearchDetection(detected->detection_id, detected->reference_ranges.front(), detected->reference_bounding_box);
       }
     },
     executor_
@@ -329,8 +282,9 @@ void BridgeBibleRefOcr::notifyManualSearchStarted(const bibstd::framework::proce
     [this, processId]()
     {
       setManualSearch(processId);
-      cursorPosition_ = QCursor::pos();
-      emit cursorPositionChanged(cursorPosition_);
+      // Read right after the capture, the cursor is still where the search runs
+      manualSearchCursor_ = readCursorPositionPair();
+      emitCursorPosition(manualSearchCursor_);
     },
     Qt::QueuedConnection
   );
@@ -357,7 +311,7 @@ void BridgeBibleRefOcr::notifyManualSearchFinished(
 
       if(referenceRange)
       {
-        emitReference(*referenceRange, boundingBox);
+        emitReference(*referenceRange, boundingBox, manualSearchCursor_);
       }
     },
     Qt::QueuedConnection
@@ -366,20 +320,39 @@ void BridgeBibleRefOcr::notifyManualSearchFinished(
 
 ///
 ///
+void BridgeBibleRefOcr::notifyAutoSearchDetecting(const bibstd::framework::process_id_type detectionId)
+{
+  QMetaObject::invokeMethod(
+    this,
+    [this, detectionId]()
+    {
+      // Read before the search runs, the cursor is still on the monitor being examined
+      autoSearchDetectionId_ = detectionId;
+      autoSearchCursor_ = readCursorPositionPair();
+    },
+    Qt::QueuedConnection
+  );
+}
+
+///
+///
 void BridgeBibleRefOcr::notifyAutoSearchDetection(
-  const bibstd::bible::reference_range referenceRange, const std::optional<bibstd::util::screen_rect_type> boundingBox
+  const bibstd::framework::process_id_type detectionId,
+  const bibstd::bible::reference_range referenceRange,
+  const std::optional<bibstd::util::screen_rect_type> boundingBox
 )
 {
   QMetaObject::invokeMethod(
     this,
-    [this, referenceRange, boundingBox]()
+    [this, detectionId, referenceRange, boundingBox]()
     {
       // A manual search that is still in flight is left behind by this detection, so it is no
       // longer the current one and its result is dropped when it arrives
       setManualSearch(std::nullopt);
-      cursorPosition_ = QCursor::pos();
-      emit cursorPositionChanged(cursorPosition_);
-      emitReference(referenceRange, boundingBox);
+      // The signals are not ordered, the current cursor stands in if the detection is not known yet
+      const auto cursor = autoSearchDetectionId_ == detectionId ? autoSearchCursor_ : readCursorPositionPair();
+      emitCursorPosition(cursor);
+      emitReference(referenceRange, boundingBox, cursor);
     },
     Qt::QueuedConnection
   );
@@ -405,14 +378,24 @@ void BridgeBibleRefOcr::notifyAutoSearchRunning(const bool running)
 
 ///
 ///
+void BridgeBibleRefOcr::emitCursorPosition(const std::optional<CursorPositionPair>& cursor)
+{
+  cursorPosition_ = cursor ? cursor->deviceIndependent : QCursor::pos();
+  emit cursorPositionChanged(cursorPosition_);
+}
+
+///
+///
 void BridgeBibleRefOcr::emitReference(
-  const bibstd::bible::reference_range& referenceRange, const std::optional<bibstd::util::screen_rect_type>& boundingBox
+  const bibstd::bible::reference_range& referenceRange,
+  const std::optional<bibstd::util::screen_rect_type>& boundingBox,
+  const std::optional<CursorPositionPair>& cursor
 )
 {
   decltype(auto) begin = referenceRange.begin();
   decltype(auto) end = referenceRange.end();
   const auto bookId = QString::fromStdString(std::string{bibstd::util::enum_name(begin.book())});
-  const auto mapping = boundingBox ? monitorMappingAt(boundingBox->origin()) : std::optional<MonitorMapping>{};
+  const auto area = boundingBox && cursor ? toDeviceIndependent(*boundingBox, *cursor) : std::nullopt;
 
   emit referenceFound(bookId, numeric_cast<int>(begin.chapter().value), numeric_cast<int>(begin.verse().value));
   emit referenceRangeFound(
@@ -421,7 +404,7 @@ void BridgeBibleRefOcr::emitReference(
     numeric_cast<int>(begin.verse().value),
     numeric_cast<int>(end.chapter().value),
     numeric_cast<int>(end.verse().value),
-    mapping ? mapping->map(*boundingBox) : QRect{}
+    area.value_or(QRect{})
   );
 }
 

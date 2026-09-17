@@ -52,18 +52,30 @@ struct workflow_bible_ref_ocr_auto_sigs final
   };
 
   ///
+  /// Resting spot the automatic search is about to capture. A detection reported for this spot
+  /// carries the same detection ID. The cursor position is given in native pixels of the virtual screen.
+  ///
+  struct detection_started final
+  {
+    framework::process_id_type process_id;
+    framework::process_id_type detection_id;
+    util::screen_coordinates_type cursor_position;
+  };
+
+  ///
   /// Bible reference the automatic search detected on the screen, its ranges ordered canonically.
-  /// Bounding box and cursor position are given in native pixels of the virtual screen.
+  /// The bounding box is given in native pixels of the virtual screen.
   ///
   struct detection_result final
   {
     framework::process_id_type process_id;
+    framework::process_id_type detection_id;
     std::vector<bible::reference_range> reference_ranges;
     std::optional<util::screen_rect_type> reference_bounding_box;
-    util::screen_coordinates_type cursor_position;
   };
 
   // Variables
+  signal::signal_type<void(const detection_started&)> detecting;
   signal::signal_type<void(const std::expected<detection_result, error_code>&)> detected;
 };
 
@@ -88,9 +100,10 @@ struct workflow_bible_ref_ocr_auto_settings final : public framework::settings_b
 /// cursor away and back searches it again since the content below it might have changed.
 ///
 /// Signal IDs to connect to:
-/// - detected: Emitted for every detected bible reference. Slots receive the detection \see detection_type.
+/// - detecting: Emitted for every resting spot before it is captured. Slots receive the start \see detection_started_type.
+/// - detected: Emitted for every detected bible reference. Slots receive the detection \see detection_result_type.
 ///
-/// \note detected is emitted from the thread of the run.
+/// \note detecting and detected are emitted from the thread of the run.
 ///
 class workflow_bible_ref_ocr_auto final
   : public workflow_base<workflow_bible_ref_ocr_auto_settings>
@@ -119,7 +132,8 @@ class workflow_bible_ref_ocr_auto final
 
   using clock_type = std::chrono::steady_clock;
   using error_code = signals_type::error_code;
-  using detection_type = signals_type::detection_result;
+  using detection_started_type = signals_type::detection_started;
+  using detection_result_type = signals_type::detection_result;
   class machine_holder;
 
   ///
