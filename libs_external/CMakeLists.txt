@@ -9,7 +9,7 @@ add_subdirectory(sfsm)
 add_subdirectory(traypp)
 add_subdirectory(velopack)
 
-add_library(libs_external_all INTERFACE IMPORTED GLOBAL)
+add_library(libs_external_all INTERFACE)
 target_link_libraries(libs_external_all
   INTERFACE
   incbin::incbin

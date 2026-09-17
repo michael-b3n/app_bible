@@ -1,72 +1,59 @@
 cmake_minimum_required(VERSION 4.3)
 
 project(bibstd)
-add_library(${PROJECT_NAME} OBJECT)
+add_library(${PROJECT_NAME} STATIC)
 
 #
-# Debugging setting: if TRUE exports debug data during runtime.
+# Debugging setting: if ON exports debug data during runtime.
 #
-set(BIBSTD_DEBUG_DATA FALSE)
+option(BIBSTD_DEBUG_DATA "Export debug data during runtime" OFF)
 
 #
 # Define target sources
 #
-file(GLOB BIBSTD_SRC_FILES
-  "${CMAKE_CURRENT_LIST_DIR}/*/*.cpp"
+file(GLOB BIBSTD_SRC_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*/*.cpp")
+file(GLOB BIBSTD_INC_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*/*.hpp")
 
-  # Include OS specific sources
-  IF(WIN32)
-  "${CMAKE_CURRENT_LIST_DIR}/*/windows/*.cpp"
-  ENDIF()
-)
-file(GLOB BIBSTD_INC_FILES
-  "${CMAKE_CURRENT_LIST_DIR}/*/*.hpp"
-
-  # Include OS specific headers
-  IF(WIN32)
-  "${CMAKE_CURRENT_LIST_DIR}/*/windows/*.hpp"
-  ENDIF()
-)
+# Include OS specific sources and headers
+if(WIN32)
+  file(GLOB BIBSTD_WINDOWS_SRC_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*/windows/*.cpp")
+  file(GLOB BIBSTD_WINDOWS_INC_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*/windows/*.hpp")
+  list(APPEND BIBSTD_SRC_FILES ${BIBSTD_WINDOWS_SRC_FILES})
+  list(APPEND BIBSTD_INC_FILES ${BIBSTD_WINDOWS_INC_FILES})
+endif()
 
 target_sources(${PROJECT_NAME}
-  PRIVATE ${BIBSTD_SRC_FILES}
-  PUBLIC ${BIBSTD_INC_FILES}
+  PRIVATE ${BIBSTD_SRC_FILES} ${BIBSTD_INC_FILES}
 )
 
-find_package(Boost REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem url)
-target_include_directories(${PROJECT_NAME} PUBLIC ${Boost_INCLUDE_DIRS})
 find_package(spdlog REQUIRED)
-target_include_directories(${PROJECT_NAME} INTERFACE ${spdlog_INCLUDE_DIRS})
 find_package(pugixml REQUIRED)
-target_include_directories(${PROJECT_NAME} PUBLIC ${pugixml_INCLUDE_DIRS})
 find_package(libzip REQUIRED)
-target_include_directories(${PROJECT_NAME} PUBLIC ${libzip_INCLUDE_DIRS})
 
 find_package(PkgConfig REQUIRED)
-pkg_search_module(TESSERACT REQUIRED tesseract)
-target_include_directories(${PROJECT_NAME} PUBLIC ${TESSERACT_INCLUDE_DIRS})
-pkg_search_module(LEPTONICA REQUIRED lept)
-target_include_directories(${PROJECT_NAME} PUBLIC ${LEPTONICA_INCLUDE_DIRS})
-pkg_search_module(LIBCURL REQUIRED libcurl)
-target_include_directories(${PROJECT_NAME} PUBLIC ${LIBCURL_INCLUDE_DIRS})
+pkg_search_module(TESSERACT REQUIRED IMPORTED_TARGET tesseract)
+pkg_search_module(LEPTONICA REQUIRED IMPORTED_TARGET lept)
+pkg_search_module(LIBCURL REQUIRED IMPORTED_TARGET libcurl)
 
 #
 # Link libraries.
 #
 target_link_libraries(${PROJECT_NAME}
-  PUBLIC ${Boost_LIBRARIES}
+  PUBLIC Boost::headers
+  PUBLIC Boost::filesystem
+  PUBLIC Boost::url
   PUBLIC spdlog::spdlog
-  PUBLIC pugixml
-  PUBLIC libzip
-  ${TESSERACT_LIBRARIES}
-  ${LEPTONICA_LIBRARIES}
-  ${LIBCURL_LIBRARIES}
+  PUBLIC pugixml::pugixml
+  PUBLIC libzip::zip
+  PUBLIC PkgConfig::TESSERACT
+  PUBLIC PkgConfig::LEPTONICA
+  PUBLIC PkgConfig::LIBCURL
   PUBLIC libs_external::all
   PUBLIC stdc++exp
 )
 
-IF(WIN32)
+if(WIN32)
   target_link_libraries(${PROJECT_NAME} PRIVATE mswsock)
 
   # Windows OCR and the Windows.Graphics.Capture screen capture, both built on C++/WinRT
@@ -76,26 +63,25 @@ IF(WIN32)
   # GCC is allowed to reorder around that from -O2 on and does, leading to crashes.
   # Every source built on those headers carries winrt in its name and is compiled without
   # the strict aliasing assumption.
-  file(GLOB BIBSTD_WINRT_SRC_FILES "${CMAKE_CURRENT_LIST_DIR}/*/windows/*winrt*.cpp")
+  file(GLOB BIBSTD_WINRT_SRC_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*/windows/*winrt*.cpp")
   set_source_files_properties(${BIBSTD_WINRT_SRC_FILES} PROPERTIES COMPILE_OPTIONS "-fno-strict-aliasing")
-ENDIF()
+endif()
 
 #
 # Target compile definitions.
 #
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:BIBSTD_DEBUG>)
 
-IF(${BIBSTD_DEBUG_DATA})
+if(BIBSTD_DEBUG_DATA)
   target_compile_definitions(${PROJECT_NAME} PRIVATE BIBSTD_DEBUG_DATA)
-ENDIF()
+endif()
 
-IF(WIN32)
+if(WIN32)
   target_compile_definitions(${PROJECT_NAME} PUBLIC NOMINMAX)
-ENDIF()
+endif()
 
 #
-# Add target include dirs and target sources.
+# Add target include dirs.
 #
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR})
 cmake_path(GET CMAKE_CURRENT_SOURCE_DIR PARENT_PATH BIBSTD_INCLUDE_DIR)
 target_include_directories(${PROJECT_NAME} PUBLIC ${BIBSTD_INCLUDE_DIR})

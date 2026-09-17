@@ -5,9 +5,10 @@
 3.  open `MSYS2 MSYS` (`msys2_shell.cmd`)
 4.  run `pacman -Syu`
 5.  run `pacman -S --needed base-devel mingw-w64-x86_64-toolchain`
-6.  run `pacman -S mingw-w64-x86_64-cmake`
+6.  run `pacman -S mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja`
 7.  run `pacman -S mingw-w64-x86_64-clang`
-8.  open Visual Studio Code and install atleast
+8.  run `pacman -S mingw-w64-x86_64-lld`
+9.  open Visual Studio Code and install atleast
     - C/C++ Extension Pack [here](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools-extension-pack)
     - Clang-Format [here](https://marketplace.visualstudio.com/items?itemName=xaver.clang-format)
     - Code Spell Checker
@@ -41,8 +42,13 @@ Releases are packed by the release workflow, see the Release section of the READ
 
 ## Build
 
+Clang and GCC are both supported. `CMakePresets.json` holds a preset for each combination of compiler and build type: `clang-debug`, `clang-release`, `gcc-debug` and `gcc-release`, all building into `build`. CI and releases use `gcc-release`.
+
+The presets expect the compilers and Ninja on the PATH, as in the `MSYS2 MINGW64` shell:
+
 1.  cd to root directory
-2.  run `mkdir build`
-3.  run `cd build`
-4.  run `cmake ..`
-5.  run `cmake --build .`
+2.  run `cmake --preset clang-debug --fresh`, `--fresh` replaces the configuration of the previous preset
+3.  run `cmake --build --preset clang-debug`
+4.  run `ctest --preset clang-debug`
+
+In Visual Studio Code, CMake Tools can build with kits and variants instead, which put the compiler folder on the PATH. Set `"cmake.useCMakePresets": "never"` in `.vscode/settings.json` to keep them when the presets file is present.

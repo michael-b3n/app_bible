@@ -34,15 +34,15 @@ runs:
       shell: msys2 {0}
       run: |
         git config --global --add safe.directory '*'
-        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        cmake --preset gcc-release
 
     - name: Build
       shell: msys2 {0}
-      run: cmake --build build
+      run: cmake --build --preset gcc-release
 
     - name: Test
       shell: msys2 {0}
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --preset gcc-release
 
     - name: Install
       shell: msys2 {0}
