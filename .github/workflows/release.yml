@@ -1,5 +1,5 @@
 #
-# Publishes a release for a pushed tag aba_v<major>.<minor> on the branch release/aba_v<major>.
+# Publishes a release for a pushed tag verselens_v<major>.<minor> on the branch release/verselens_v<major>.
 # Installed apps pick it up on their next update check.
 #
 # The token for the releases is the GITHUB_TOKEN GitHub creates for every run.
@@ -8,7 +8,7 @@ name: Release
 
 on:
   push:
-    tags: ["aba_v*.*"]
+    tags: ["verselens_v*.*"]
 
 permissions:
   contents: write
@@ -19,7 +19,8 @@ concurrency:
 
 env:
   VPK_VERSION: 1.2.0
-  PACK_ID: ABA
+  # Velopack names the installer and the install folder after this id, it changed with the rename from ABA.
+  PACK_ID: VerseLens
 
 jobs:
   release:
@@ -34,14 +35,14 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $cmake = Get-Content aba/CMakeLists.txt -Raw
+          $cmake = Get-Content verselens/CMakeLists.txt -Raw
           $major, $minor = 'MAJOR', 'MINOR' | ForEach-Object {
-            if ($cmake -notmatch "set\(APP_VERSION_$_ (\d+)\)") { throw "APP_VERSION_$_ not found in aba/CMakeLists.txt" }
+            if ($cmake -notmatch "set\(APP_VERSION_$_ (\d+)\)") { throw "APP_VERSION_$_ not found in verselens/CMakeLists.txt" }
             $Matches[1]
           }
           $version = "$major.$minor"
-          if ("${{ github.ref_name }}" -ne "aba_v$version") { throw "tag ${{ github.ref_name }} does not match version $version in aba/CMakeLists.txt" }
-          $branch = "release/aba_v$major"
+          if ("${{ github.ref_name }}" -ne "verselens_v$version") { throw "tag ${{ github.ref_name }} does not match version $version in verselens/CMakeLists.txt" }
+          $branch = "release/verselens_v$major"
           git merge-base --is-ancestor "$env:GITHUB_SHA" "origin/$branch"
           if ($LASTEXITCODE -ne 0) { throw "tag ${{ github.ref_name }} is not on branch $branch" }
           "version=$version" >> $env:GITHUB_OUTPUT
@@ -71,13 +72,33 @@ jobs:
           vpk pack
           --packId $env:PACK_ID
           --packVersion ${{ steps.version.outputs.pack_version }}
-          --packTitle "ABA - Bible Assistant"
+          --packTitle "VerseLens - Bible references on screen"
           --packAuthors michael-b3n
           --packDir build/install
-          --mainExe bin\aba.exe
-          --icon aba/res/icon.ico
+          --mainExe bin\verselens.exe
+          --icon verselens/res/icon.ico
           --shortcuts StartMenuRoot,Startup
           --outputDir releases
+
+      # The store signs the package during certification, it is uploaded to partner center by hand.
+      - name: Pack MSIX
+        if: vars.MSIX_IDENTITY_NAME != ''
+        shell: pwsh
+        run: >
+          tools/make_msix.ps1
+          -IdentityName "${{ vars.MSIX_IDENTITY_NAME }}"
+          -Publisher "${{ vars.MSIX_PUBLISHER }}"
+          -PublisherDisplayName "${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}"
+          -InstallDir build/install
+          -Version ${{ steps.version.outputs.version }}
+          -Out msix/VerseLens.msix
+
+      - name: Upload MSIX
+        if: vars.MSIX_IDENTITY_NAME != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: msix
+          path: msix/VerseLens.msix
 
       - name: Publish
         shell: pwsh
@@ -85,7 +106,7 @@ jobs:
           vpk upload github
           --repoUrl "${{ github.server_url }}/${{ github.repository }}"
           --token "${{ secrets.GITHUB_TOKEN }}"
-          --releaseName "ABA ${{ steps.version.outputs.version }}"
+          --releaseName "VerseLens ${{ steps.version.outputs.version }}"
           --tag ${{ github.ref_name }}
           --outputDir releases
           --publish
