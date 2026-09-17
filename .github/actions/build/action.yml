@@ -46,13 +46,13 @@ runs:
 
     - name: Install
       shell: msys2 {0}
-      run: cmake --install build/gcc-release
+      run: cmake --install build
 
     # Runs outside of MSYS2, so a dll that is only found on its PATH fails here.
     # The install hook exits before the window opens, a missing dll or a crashing hook does not.
     - name: Check the installed executable starts
       shell: pwsh
       run: |
-        $process = Start-Process -FilePath build/gcc-release/install/bin/aba.exe -ArgumentList '--veloapp-install', '0.0.0' -PassThru
+        $process = Start-Process -FilePath build/install/bin/aba.exe -ArgumentList '--veloapp-install', '0.0.0' -PassThru
         if (-not $process.WaitForExit(60000)) { $process.Kill(); throw 'aba.exe did not exit within 60 seconds' }
         if ($process.ExitCode -ne 0) { throw "aba.exe exited with $($process.ExitCode)" }

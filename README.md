@@ -15,12 +15,12 @@ ABA ships without scriptures. To read passages in ABA, download USX bundles from
 ## Development
 In the MSYS2 MINGW64 shell:
 ```
-cmake --preset gcc-release
+cmake --preset gcc-release --fresh
 cmake --build --preset gcc-release
 ctest --preset gcc-release
-cmake --install build/gcc-release
+cmake --install build
 ```
-The presets `clang-debug`, `clang-release`, `gcc-debug` and `gcc-release` build into `build/<preset>`, CI and releases use `gcc-release`. The configure step downloads the prebuilt [Velopack](https://velopack.io) library, `cmake --install` fills `build/<preset>/install`, the folder a release is packed from. Static analysis: `tools/run_clang_tidy.ps1`.
+The presets `clang-debug`, `clang-release`, `gcc-debug` and `gcc-release` all build into `build`, `--fresh` replaces the configuration of the previous preset. CI and releases use `gcc-release`. The configure step downloads the prebuilt [Velopack](https://velopack.io) library, `cmake --install` fills `build/install`, the folder a release is packed from. Static analysis: `tools/run_clang_tidy.ps1`.
 
 ## Release
 On the branch `release/aba_v<major>`, set `APP_VERSION_MAJOR` and `APP_VERSION_MINOR` in `aba/CMakeLists.txt`, then tag and push:

@@ -42,12 +42,12 @@ Releases are packed by the release workflow, see the Release section of the READ
 
 ## Build
 
-Clang and GCC are both supported. `CMakePresets.json` holds a preset for each combination of compiler and build type: `clang-debug`, `clang-release`, `gcc-debug` and `gcc-release`, each building into `build/<preset>`. CI and releases use `gcc-release`.
+Clang and GCC are both supported. `CMakePresets.json` holds a preset for each combination of compiler and build type: `clang-debug`, `clang-release`, `gcc-debug` and `gcc-release`, all building into `build`. CI and releases use `gcc-release`.
 
 The presets expect the compilers and Ninja on the PATH, as in the `MSYS2 MINGW64` shell:
 
 1.  cd to root directory
-2.  run `cmake --preset clang-debug`
+2.  run `cmake --preset clang-debug --fresh`, `--fresh` replaces the configuration of the previous preset
 3.  run `cmake --build --preset clang-debug`
 4.  run `ctest --preset clang-debug`
 

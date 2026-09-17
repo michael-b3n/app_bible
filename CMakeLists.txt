@@ -13,6 +13,12 @@ set(CMAKE_CONFIGURATION_TYPES Release Debug)
 
 project(app_bible)
 
+# An empty build type builds without optimization and debug info.
+get_property(IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(NOT IS_MULTI_CONFIG AND NOT CMAKE_BUILD_TYPE)
+  message(FATAL_ERROR "CMAKE_BUILD_TYPE is not set, configure with a preset, e.g. `cmake --preset gcc-release --fresh`")
+endif()
+
 #
 # Install into the build folder unless another prefix is given, a release is packed from there.
 #
