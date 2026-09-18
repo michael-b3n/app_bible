@@ -1,5 +1,5 @@
-#include "src/app_velopack_startup.hpp"
-#include "src/app_updater.hpp"
+#include "src/windows/app_velopack_startup.hpp"
+#include "src/windows/app_velopack_updater.hpp"
 
 #include <Velopack.hpp>
 

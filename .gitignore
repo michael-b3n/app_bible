@@ -1,5 +1,6 @@
 # Custom
 /build
+/build_msix
 /msix
 /CMakeUserPresets.json
 /.vscode

@@ -21,6 +21,19 @@ message(STATUS "project name: " ${APP_EXE_NAME})
 message(STATUS "project version: " ${APP_VERSION})
 
 #
+# The MSIX package gets its updates from the store, it is built without the Velopack updater.
+# Velopack is set up for windows only, elsewhere the option is off.
+# Only this app uses Velopack, so it adds the library itself and skips its download without it.
+#
+include(CMakeDependentOption)
+cmake_dependent_option(VERSELENS_VELOPACK "Build the Velopack installer hooks and updater into VerseLens" ON "WIN32" OFF)
+message(STATUS "velopack: " ${VERSELENS_VELOPACK})
+
+if(VERSELENS_VELOPACK)
+  add_subdirectory(${CMAKE_SOURCE_DIR}/libs_external/velopack ${CMAKE_BINARY_DIR}/libs_external/velopack)
+endif()
+
+#
 # Define resources
 #
 set(TESSDATA_FOLDER_NAME "tessdata")
@@ -55,8 +68,20 @@ configure_file(${CMAKE_CURRENT_LIST_DIR}/res/version.hpp.in ${CMAKE_CURRENT_BINA
 #
 # Define target files
 #
-file(GLOB_RECURSE ${PROJECT_NAME}_CPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.cpp")
-file(GLOB_RECURSE ${PROJECT_NAME}_HPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.hpp")
+file(GLOB ${PROJECT_NAME}_CPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.cpp")
+file(GLOB ${PROJECT_NAME}_HPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/*.hpp")
+
+# Include OS specific sources, the ones built on Velopack carry velopack in their name.
+if(WIN32)
+  file(GLOB ${PROJECT_NAME}_WINDOWS_CPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/windows/*.cpp")
+  file(GLOB ${PROJECT_NAME}_WINDOWS_HPP_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/src/windows/*.hpp")
+  if(NOT VERSELENS_VELOPACK)
+    list(FILTER ${PROJECT_NAME}_WINDOWS_CPP_FILES EXCLUDE REGEX "velopack[^/]*$")
+    list(FILTER ${PROJECT_NAME}_WINDOWS_HPP_FILES EXCLUDE REGEX "velopack[^/]*$")
+  endif()
+  list(APPEND ${PROJECT_NAME}_CPP_FILES ${${PROJECT_NAME}_WINDOWS_CPP_FILES})
+  list(APPEND ${PROJECT_NAME}_HPP_FILES ${${PROJECT_NAME}_WINDOWS_HPP_FILES})
+endif()
 file(GLOB_RECURSE ${PROJECT_NAME}_QML_FILES_RELATIVE RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/qml/*.qml")
 file(GLOB_RECURSE ${PROJECT_NAME}_SVG_FILES_RELATIVE RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/qml/*.svg")
 file(GLOB_RECURSE ${PROJECT_NAME}_QML_CPP_FILES_RELATIVE RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/qml/*.cpp")
@@ -149,16 +174,20 @@ target_link_libraries(${PROJECT_NAME}
   PRIVATE Qt6::Svg
   PRIVATE bibstd
   PRIVATE BibQmlplugin
-  PRIVATE velopack::velopack
 )
 
-#
-# Copy the velopack dll next to the executable, so it starts from the build folder.
-# The install resolves the runtime dependency there as well, without this copy it fails.
-#
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:velopack::velopack> $<TARGET_FILE_DIR:${PROJECT_NAME}>
-)
+if(VERSELENS_VELOPACK)
+  target_link_libraries(${PROJECT_NAME} PRIVATE velopack::velopack)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE VERSELENS_VELOPACK)
+
+  #
+  # Copy the velopack dll next to the executable, so it starts from the build folder.
+  # The install resolves the runtime dependency there as well, without this copy it fails.
+  #
+  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:velopack::velopack> $<TARGET_FILE_DIR:${PROJECT_NAME}>
+  )
+endif()
 
 #
 # Configure installation

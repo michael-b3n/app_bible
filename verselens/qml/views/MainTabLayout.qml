@@ -20,6 +20,9 @@ Item
   required property bool pinned
   required property bool movable
 
+  // Whether the bell rings. Starts with an update found before this layout, a click on the tab clears it.
+  property bool notificationsUnread: root.bridgeApplication.updateAvailable
+
   // Constants
   // Index of the tab a found reference is shown in
   readonly property int scriptureTabIndex: 0
@@ -45,6 +48,19 @@ Item
     function onReferenceFound(bookId, chapter, verse)
     {
       bar.setCurrentIndex(root.scriptureTabIndex)
+    }
+  }
+
+  ///
+  /// Rings the bell for every new notification.
+  ///
+  Connections
+  {
+    target: root.bridgeApplication
+
+    function onUpdateAvailableChanged()
+    {
+      if(root.bridgeApplication.updateAvailable) { root.notificationsUnread = true }
     }
   }
 
@@ -93,6 +109,15 @@ Item
         }
 
         TabSettingsButton {}
+
+        TabNotificationsButton
+        {
+          // Properties
+          unread: root.notificationsUnread
+
+          // Connections
+          onClicked: { root.notificationsUnread = false }
+        }
       }
 
       ///
@@ -149,22 +174,6 @@ Item
       }
 
       ///
-      /// Appears once an update is downloaded, it offers to install it right away.
-      ///
-      UpdateButton
-      {
-        // Properties
-        Layout.fillHeight: true
-        Layout.fillWidth: false
-        Layout.preferredWidth: Metrics.controlHeight
-        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-        visible: root.bridgeApplication.updateAvailable
-
-        // Connections
-        onUpdateClicked: { root.bridgeApplication.requestUpdate() }
-      }
-
-      ///
       /// Takes the window off the screen.
       ///
       ButtonIconSimple
@@ -203,6 +212,12 @@ Item
       {
         // Properties
         listModelSettings: root.listModelSettings
+      }
+
+      TabNotificationsContent
+      {
+        // Properties
+        bridgeApplication: root.bridgeApplication
       }
     }
   }

@@ -80,6 +80,16 @@ jobs:
           --shortcuts StartMenuRoot,Startup
           --outputDir releases
 
+      # The store delivers the updates of the MSIX, so its build leaves out Velopack.
+      # MSYS2 is set up by the build action already.
+      - name: Build MSIX
+        if: vars.MSIX_IDENTITY_NAME != ''
+        shell: msys2 {0}
+        run: |
+          cmake --preset gcc-release-msix
+          cmake --build --preset gcc-release-msix
+          cmake --install build_msix
+
       # The store signs the package during certification, it is uploaded to partner center by hand.
       - name: Pack MSIX
         if: vars.MSIX_IDENTITY_NAME != ''
@@ -89,7 +99,7 @@ jobs:
           -IdentityName "${{ vars.MSIX_IDENTITY_NAME }}"
           -Publisher "${{ vars.MSIX_PUBLISHER }}"
           -PublisherDisplayName "${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}"
-          -InstallDir build/install
+          -InstallDir build_msix/install
           -Version ${{ steps.version.outputs.version }}
           -Out msix/VerseLens.msix
 

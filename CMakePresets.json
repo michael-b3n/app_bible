@@ -43,6 +43,14 @@
       }
     },
     {
+      "name": "msix",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build_msix",
+      "cacheVariables": {
+        "VERSELENS_VELOPACK": "OFF"
+      }
+    },
+    {
       "name": "clang-debug",
       "displayName": "Clang Debug",
       "inherits": ["base", "clang", "debug"]
@@ -61,13 +69,19 @@
       "name": "gcc-release",
       "displayName": "GCC Release",
       "inherits": ["base", "gcc", "release"]
+    },
+    {
+      "name": "gcc-release-msix",
+      "displayName": "GCC Release MSIX",
+      "inherits": ["msix", "base", "gcc", "release"]
     }
   ],
   "buildPresets": [
     { "name": "clang-debug", "configurePreset": "clang-debug" },
     { "name": "clang-release", "configurePreset": "clang-release" },
     { "name": "gcc-debug", "configurePreset": "gcc-debug" },
-    { "name": "gcc-release", "configurePreset": "gcc-release" }
+    { "name": "gcc-release", "configurePreset": "gcc-release" },
+    { "name": "gcc-release-msix", "configurePreset": "gcc-release-msix" }
   ],
   "testPresets": [
     {

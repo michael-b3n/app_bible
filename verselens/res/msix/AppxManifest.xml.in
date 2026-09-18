@@ -7,8 +7,9 @@
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
+  xmlns:uap11="http://schemas.microsoft.com/appx/manifest/uap/windows10/11"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap uap5 rescap">
+  IgnorableNamespaces="uap uap5 uap11 rescap">
 
   <Identity
     Name="@IDENTITY_NAME@"
@@ -54,6 +55,8 @@
   <Capabilities>
     <!-- A packaged desktop application, it keeps the rights of the user that runs it. -->
     <rescap:Capability Name="runFullTrust" />
+    <!-- Lets the screen capture ask the user to leave out the colored border it draws otherwise. -->
+    <uap11:Capability Name="graphicsCaptureWithoutBorder" />
   </Capabilities>
 
 </Package>

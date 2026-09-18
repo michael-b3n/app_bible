@@ -25,7 +25,7 @@ namespace verselens
 /// The check and the download run in a process of their own, see run_update_download(). Destroying the updater ends
 /// that process, a download it did not finish is discarded.
 ///
-class app_updater final
+class app_velopack_updater final
 {
   // Constants
   static constexpr auto first_check_delay = std::chrono::minutes{3};
@@ -45,14 +45,19 @@ public: // Structors
   /// Start checking for updates. A downloaded update is reported
   /// to \p bridge, which has to outlive the updater.
   ///
-  explicit app_updater(bibqml::BridgeApplication& bridge);
-  ~app_updater() noexcept;
-  app_updater(const app_updater&) = delete;
-  app_updater(app_updater&&) = delete;
-  auto operator=(const app_updater&) -> app_updater& = delete;
-  auto operator=(app_updater&&) -> app_updater& = delete;
+  explicit app_velopack_updater(bibqml::BridgeApplication& bridge);
+  ~app_velopack_updater() noexcept;
+  app_velopack_updater(const app_velopack_updater&) = delete;
+  app_velopack_updater(app_velopack_updater&&) = delete;
+  auto operator=(const app_velopack_updater&) -> app_velopack_updater& = delete;
+  auto operator=(app_velopack_updater&&) -> app_velopack_updater& = delete;
 
 public: // Modifiers
+  ///
+  /// Check for an update right away, unless a check is running already.
+  ///
+  auto check_now() -> void;
+
   ///
   /// Install the downloaded update, see verselens::install_downloaded_update.
   /// \return true if the update was handed over, which happens once

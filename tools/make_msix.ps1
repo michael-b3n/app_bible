@@ -2,12 +2,14 @@
 # Packs an installed build into an MSIX package for the microsoft store. The store signs the package during
 # certification, so the package this script writes is unsigned and only installs on a machine with a test signature.
 #
+# The store delivers the updates, so the build comes from the gcc-release-msix preset, which leaves out Velopack.
+#
 # Identity name, publisher and publisher display name are the values partner center shows for the reserved app name.
 # Keep them out of the sources, the release workflow passes them from repository variables.
 #
 # Examples:
 #   tools/make_msix.ps1 -IdentityName 12345MyName.VerseLens -Publisher "CN=..." -PublisherDisplayName "My Name"
-#   tools/make_msix.ps1 -InstallDir build/install -Version 2.2 -Out msix/VerseLens.msix -IdentityName ... -Publisher ...
+#   tools/make_msix.ps1 -InstallDir build_msix/install -Version 2.2 -Out msix/VerseLens.msix -IdentityName ... -Publisher ...
 #
 [CmdletBinding()]
 param(
@@ -18,7 +20,7 @@ param(
   # Publisher name shown to the user in the store listing.
   [Parameter(Mandatory = $true)] [string] $PublisherDisplayName,
   # Installed build that shall be packed, the folder 'cmake --install' wrote.
-  [string] $InstallDir = "build/install",
+  [string] $InstallDir = "build_msix/install",
   # Version of the package, <major>.<minor> or a full version. The store requires the revision to be zero.
   [string] $Version = "",
   # Path of the package this script writes.
@@ -90,7 +92,11 @@ function Resolve-RepoPath([string] $path)
 $installPath = Resolve-RepoPath $InstallDir
 if(-not (Test-Path (Join-Path $installPath "bin/$exeName.exe")))
 {
-  throw "No installed build at $installPath. Run the install of the release preset first."
+  throw "No installed build at $installPath. Run the install of the gcc-release-msix preset first."
+}
+if(Test-Path (Join-Path $installPath "bin/velopack_libc.dll"))
+{
+  throw "The build at $installPath contains the Velopack updater. Pack a build of the gcc-release-msix preset."
 }
 
 $stagingDir = Join-Path ([System.IO.Path]::GetTempPath()) "verselens_msix_$([System.IO.Path]::GetRandomFileName())"
@@ -105,7 +111,8 @@ try
     "@PUBLISHER@"               = $Publisher
     "@PUBLISHER_DISPLAY_NAME@"  = $PublisherDisplayName
     "@VERSION@"                 = $packageVersion
-    "@DISPLAY_NAME@"            = $description
+    # Partner center takes the package only if its display name is the reserved app name
+    "@DISPLAY_NAME@"            = $appName
     "@DESCRIPTION@"             = $description
     "@APPLICATION_ID@"          = $appName
     "@EXE_NAME@"                = $exeName

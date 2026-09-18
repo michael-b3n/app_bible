@@ -1,4 +1,4 @@
-#include "src/app_updater.hpp"
+#include "src/windows/app_velopack_updater.hpp"
 #include "res/version.hpp"
 
 #include <bibqml/bridge/BridgeApplication.hpp>
@@ -42,7 +42,7 @@ constexpr auto download_argument = std::string_view{"--download-update"};
 
 ///
 ///
-app_updater::app_updater(bibqml::BridgeApplication& bridge)
+app_velopack_updater::app_velopack_updater(bibqml::BridgeApplication& bridge)
   : bridge_{bridge}
 {
   try
@@ -55,6 +55,7 @@ app_updater::app_updater(bibqml::BridgeApplication& bridge)
     LOG_INFO("update checks inactive: {}", bibstd::util::exception_report());
     return;
   }
+  bridge_.notifyUpdateCheck(bibqml::BridgeApplication::UpdateCheckIdle);
   timer_.setSingleShot(true);
   download_.setProcessChannelMode(QProcess::MergedChannels);
   QObject::connect(&timer_, &QTimer::timeout, &timer_, [this]() { timer_elapsed(); });
@@ -74,6 +75,7 @@ app_updater::app_updater(bibqml::BridgeApplication& bridge)
       if(error == QProcess::FailedToStart)
       {
         LOG_WARN("update check failed to start: {}", download_.errorString().toStdString());
+        bridge_.notifyUpdateCheck(bibqml::BridgeApplication::UpdateCheckFailed);
         timer_.start(retry_interval);
       }
     }
@@ -83,7 +85,7 @@ app_updater::app_updater(bibqml::BridgeApplication& bridge)
 
 ///
 ///
-app_updater::~app_updater() noexcept
+app_velopack_updater::~app_velopack_updater() noexcept
 {
   // A download in flight ends here and is not reported as a failed check
   QObject::disconnect(&download_, nullptr, nullptr, nullptr);
@@ -93,7 +95,19 @@ app_updater::~app_updater() noexcept
 
 ///
 ///
-auto app_updater::install_and_restart() -> bool
+auto app_velopack_updater::check_now() -> void
+{
+  // Inactive updater, running check or an install on its way
+  if(manager_ == nullptr || download_.state() != QProcess::NotRunning || install_started_)
+  {
+    return;
+  }
+  timer_elapsed();
+}
+
+///
+///
+auto app_velopack_updater::install_and_restart() -> bool
 {
   // A second request before the application quit would start a second install
   if(install_started_)
@@ -106,7 +120,7 @@ auto app_updater::install_and_restart() -> bool
 
 ///
 ///
-auto app_updater::timer_elapsed() -> void
+auto app_velopack_updater::timer_elapsed() -> void
 {
   if(download_.state() != QProcess::NotRunning)
   {
@@ -117,20 +131,23 @@ auto app_updater::timer_elapsed() -> void
   }
   // Started first, a process that fails to start sets the retry
   timer_.start(download_timeout);
+  bridge_.notifyUpdateCheck(bibqml::BridgeApplication::UpdateCheckRunning);
   download_.start(QCoreApplication::applicationFilePath(), QStringList{QString::fromUtf8(download_argument)});
 }
 
 ///
 ///
-auto app_updater::download_finished(const int exit_code, const QProcess::ExitStatus exit_status) -> void
+auto app_velopack_updater::download_finished(const int exit_code, const QProcess::ExitStatus exit_status) -> void
 {
   if(exit_status != QProcess::NormalExit || exit_code != EXIT_SUCCESS)
   {
     // Offline or GitHub not reachable
     LOG_WARN("update check failed: exit_code={}, output=\"{}\"", exit_code, download_.readAll().trimmed().toStdString());
+    bridge_.notifyUpdateCheck(bibqml::BridgeApplication::UpdateCheckFailed);
     timer_.start(retry_interval);
     return;
   }
+  bridge_.notifyUpdateCheck(bibqml::BridgeApplication::UpdateCheckFinished);
   timer_.start(check_interval);
   if(const auto pending = manager_->UpdatePendingRestart(); pending.has_value())
   {

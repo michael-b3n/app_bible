@@ -32,6 +32,8 @@ class Icons final : public QObject
   QML_SINGLETON
 
   Q_PROPERTY(QString addToQueue MEMBER addToQueue_ CONSTANT)
+  Q_PROPERTY(QString bell MEMBER bell_ CONSTANT)
+  Q_PROPERTY(QString bellRinging MEMBER bellRinging_ CONSTANT)
   Q_PROPERTY(QString checkMark MEMBER checkMark_ CONSTANT)
   Q_PROPERTY(QString close MEMBER close_ CONSTANT)
   Q_PROPERTY(QString copyright MEMBER copyright_ CONSTANT)
@@ -44,7 +46,6 @@ class Icons final : public QObject
   Q_PROPERTY(QString remove MEMBER remove_ CONSTANT)
   Q_PROPERTY(QString settings MEMBER settings_ CONSTANT)
   Q_PROPERTY(QString stop MEMBER stop_ CONSTANT)
-  Q_PROPERTY(QString updateAvailable MEMBER updateAvailable_ CONSTANT)
 
 public: // Structors
   explicit Icons(bibstd::util::non_owning_ptr<QObject> parent = nullptr);
@@ -52,6 +53,8 @@ public: // Structors
 
 private: // Variables
   QString addToQueue_{detail::toIconUrl("add_to_queue.svg")};
+  QString bell_{detail::toIconUrl("bell.svg")};
+  QString bellRinging_{detail::toIconUrl("bell_ringing.svg")};
   QString checkMark_{detail::toIconUrl("check_mark.svg")};
   QString close_{detail::toIconUrl("close.svg")};
   QString copyright_{detail::toIconUrl("copyright.svg")};
@@ -64,7 +67,6 @@ private: // Variables
   QString remove_{detail::toIconUrl("remove.svg")};
   QString settings_{detail::toIconUrl("settings.svg")};
   QString stop_{detail::toIconUrl("stop.svg")};
-  QString updateAvailable_{detail::toIconUrl("update_available.svg")};
 };
 
 } // namespace verselens::qml
