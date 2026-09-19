@@ -11,6 +11,7 @@
 namespace bibstd::bible
 {
 class scripture;
+class versification;
 } // namespace bibstd::bible
 namespace bibstd::workflow
 {
@@ -41,12 +42,10 @@ namespace bibqml
 [[nodiscard]] auto scriptureCopyright(bibstd::workflow::workflow_scripture& workflowScripture) -> QString;
 
 ///
-/// Create a bible reference from QML provided values. The reference is validated
-/// against the versification of the default scripture.
+/// Create a bible reference from QML provided values, validated against the provided versification.
 /// \return reference, or std::nullopt if the values do not describe a valid reference
 ///
-[[nodiscard]] auto
-toReference(bibstd::workflow::workflow_scripture& workflowScripture, const QString& bookId, int chapter, int verse)
+[[nodiscard]] auto toReference(const bibstd::bible::versification& versification, const QString& bookId, int chapter, int verse)
   -> std::optional<bibstd::bible::reference>;
 
 } // namespace bibqml

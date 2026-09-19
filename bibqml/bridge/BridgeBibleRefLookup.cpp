@@ -54,12 +54,15 @@ void BridgeBibleRefLookup::lookup(
   const QString& bookId, const int chapterBegin, const int verseBegin, const int chapterEnd, const int verseEnd
 )
 {
-  const auto begin = toReference(*workflowScripture_, bookId, chapterBegin, verseBegin);
+  using params = bibstd::workflow::workflow_scripture::scripture_params::value_type;
+  const auto versification = workflowScripture_->versification_or_fallback(params{});
+
+  const auto begin = toReference(versification.get(), bookId, chapterBegin, verseBegin);
   if(!begin)
   {
     return;
   }
-  const auto end = toReference(*workflowScripture_, bookId, chapterEnd, verseEnd);
+  const auto end = toReference(versification.get(), bookId, chapterEnd, verseEnd);
   start({
     bibstd::bible::reference_range{*begin, end.value_or(*begin)}
   });
@@ -69,19 +72,15 @@ void BridgeBibleRefLookup::lookup(
 ///
 void BridgeBibleRefLookup::lookupChapter(const QString& bookId, const int chapter)
 {
-  const auto first = toReference(*workflowScripture_, bookId, chapter, 1);
+  using params = bibstd::workflow::workflow_scripture::scripture_params::value_type;
+  const auto versification = workflowScripture_->versification_or_fallback(params{});
+  const auto first = toReference(versification.get(), bookId, chapter, 1);
   if(!first)
   {
     return;
   }
-  const auto scripture = defaultScripture(*workflowScripture_);
-  if(!scripture)
-  {
-    return;
-  }
-  decltype(auto) versification = scripture.value()->versification();
-  const auto verseCount = versification.verse_count(first->book(), first->chapter());
-  const auto last = bibstd::bible::reference::create(first->book(), chapter, verseCount, versification);
+  const auto verseCount = versification.get().verse_count(first->book(), first->chapter());
+  const auto last = bibstd::bible::reference::create(first->book(), chapter, verseCount, versification.get());
   start({
     bibstd::bible::reference_range{*first, last.value_or(*first)}
   });

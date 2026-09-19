@@ -21,10 +21,22 @@ workflow_scripture_settings::workflow_scripture_settings(std::shared_ptr<workflo
       setting_value_t<decltype(scripture_name)>{},
       std::make_shared<framework::setting_validator_list<setting_value_t<decltype(scripture_name)>>>()
     )}
-  , scripture_folder{
-      workflow_settings_->create_setting("scripture.folder", workflow_settings_->data_folder() / default_folder_name)
-    }
+  , scripture_folder{workflow_settings_->create_setting(
+      "scripture.folder", workflow_settings_->data_folder() / default_folder_name
+    )}
+  , fallback_versification{workflow_settings_->create_setting(
+      "scripture.fallback_versification_name",
+      std::string{bible::scripture::versification_type::default_kjv::name},
+      std::make_shared<framework::setting_validator_list<setting_value_t<decltype(fallback_versification)>>>(
+        workflow_scripture::default_versifications | std::views::keys |
+        std::views::transform([](const auto& n) { return std::string{n}; }) | std::ranges::to<std::vector>()
+      )
+    )}
 {
+  // The default value set above must be one of the default versifications, else it would be invalid.
+  static_assert(meta::contains_v<
+                bible::scripture::versification_type::all_defaults_variant,
+                bible::scripture::versification_type::default_kjv>);
 }
 
 ///
@@ -36,7 +48,7 @@ workflow_scripture::versification_wrapper::versification_wrapper(std::shared_ptr
 
 ///
 ///
-workflow_scripture::versification_wrapper::versification_wrapper(bible::scripture::versification_type&& versification)
+workflow_scripture::versification_wrapper::versification_wrapper(bible::scripture::versification_type versification)
   : data_{std::move(versification)}
 {
 }
@@ -69,12 +81,17 @@ workflow_scripture::~workflow_scripture() noexcept = default;
 
 ///
 ///
-auto workflow_scripture::scripture(const scripture_params& params) -> scripture_result
+auto workflow_scripture::scripture(const scripture_params& params) const -> scripture_result
 {
   try
   {
     const auto lock = std::scoped_lock{mtx_};
     decltype(auto) scriptures = core_scripture_store_->scriptures();
+    if(scriptures.empty())
+    {
+      // no scriptures loaded, no warning since this is a valid state
+      return scripture_result{return_failure};
+    }
     const auto scripture_name = params->scripture_name ? params->scripture_name : settings().scripture_name->value();
     auto result = scripture_result{return_failure};
     if(scripture_name)
@@ -88,14 +105,10 @@ auto workflow_scripture::scripture(const scripture_params& params) -> scripture_
         LOG_WARN("scripture name not found: \"{}\"", *scripture_name);
       }
     }
-    else if(!scriptures.empty())
+    else
     {
       LOG_WARN("scripture name not set: using first scripture in store: \"{}\"", scriptures.begin()->first);
       result = scripture_result::value_type{.name = scriptures.begin()->first, .scripture = scriptures.begin()->second};
-    }
-    else
-    {
-      LOG_WARN("no scriptures loaded");
     }
     return result;
   }
@@ -108,7 +121,18 @@ auto workflow_scripture::scripture(const scripture_params& params) -> scripture_
 
 ///
 ///
-auto workflow_scripture::passage(const passage_params& params) -> passage_result
+auto workflow_scripture::versification_or_fallback(const scripture_params& params) const -> versification_wrapper_type
+{
+  if(const auto result = scripture(params))
+  {
+    return versification_wrapper_type{result.value().scripture};
+  }
+  return versification_wrapper_type{default_versifications.at(settings().fallback_versification->value())};
+}
+
+///
+///
+auto workflow_scripture::passage(const passage_params& params) const -> passage_result
 {
   try
   {

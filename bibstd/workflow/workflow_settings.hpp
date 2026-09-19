@@ -69,9 +69,6 @@ class workflow_settings final : public signal::adapter<workflow_settings_signals
   using setting_type_erased_uptr_variant_type =
     meta::for_each_t<framework::setting_type_erased_variant, setting_type_erased_uptr_type>;
 
-  ///
-  /// Internal settings data struct.
-  ///
   struct setting_uptr_data final
   {
     std::string path;

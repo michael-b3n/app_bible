@@ -132,7 +132,12 @@ QString ScriptureListModel::scriptureCopyright() const
 ///
 void ScriptureListModel::resetWithReference(const QString& bookId, const int chapter, const int verse)
 {
-  const auto ref = toReference(*workflowScripture_, bookId, chapter, verse);
+  decltype(auto) scripture = defaultScripture(*workflowScripture_);
+  if(!scripture)
+  {
+    return;
+  }
+  const auto ref = toReference(scripture.value()->versification(), bookId, chapter, verse);
   if(!ref)
   {
     return;

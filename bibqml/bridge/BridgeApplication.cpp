@@ -25,6 +25,13 @@ bool BridgeApplication::updateAvailable() const
 
 ///
 ///
+BridgeApplication::UpdateCheck BridgeApplication::updateCheck() const
+{
+  return updateCheck_;
+}
+
+///
+///
 void BridgeApplication::requestShowWindow()
 {
   QMetaObject::invokeMethod(this, [this]() { emit showWindowRequested(); }, Qt::QueuedConnection);
@@ -46,6 +53,31 @@ void BridgeApplication::notifyUpdateAvailable()
     },
     Qt::QueuedConnection
   );
+}
+
+///
+///
+void BridgeApplication::notifyUpdateCheck(const UpdateCheck state)
+{
+  QMetaObject::invokeMethod(
+    this,
+    [this, state]()
+    {
+      if(updateCheck_ != state)
+      {
+        updateCheck_ = state;
+        emit updateCheckChanged();
+      }
+    },
+    Qt::QueuedConnection
+  );
+}
+
+///
+///
+void BridgeApplication::requestUpdateCheck()
+{
+  emit updateCheckRequested();
 }
 
 ///

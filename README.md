@@ -1,16 +1,16 @@
-# ABA - Bible Assistant
+# biblia
 
-ABA is a Windows tray app that finds bible references on the screen. Point the cursor at a reference like "Johannes 3,16" in any window and press `ALT + f`: ABA reads the text around the cursor, recognizes the reference and opens it on [bibleserver.com](https://www.bibleserver.com). With the automatic search enabled, resting the cursor on a reference is enough.
+Libraries that find bible references on the screen, and VerseLens, the app built on them.
 
-## Install
-Download `ABA-win-Setup.exe` from the latest [release](https://github.com/michael-b3n/app_bible/releases/latest) and run it. ABA installs for the current user and starts at sign-in. New versions are downloaded in the background and installed on the next start, or right away through the update icon that appears next to the close button. Start at sign-in can be turned off in the Task Manager under Startup apps.
+## Repository
+The app is the smaller part of this repository, the library below it holds the logic.
 
-Uninstall versions 1.x ("Bible Assistant") first, they do not update to 2.x.
-
-Requires Windows 10 or later.
-
-## Scriptures
-ABA ships without scriptures. To read passages in ABA, download USX bundles from the Digital Bible Library at [library.bible](https://library.bible/) and put the zip files into `%LOCALAPPDATA%\app_bible_assistant\scriptures`. They are loaded on start, the folder can be changed in the settings.
+- `bibstd` — the library: bible references and their parsing (`bible`), the workflows that turn a hotkey into a lookup (`workflow`), OCR engines and text scripts (`txt`), scripture store and bibleserver lookup (`core`), threading and settings (`framework`), and a system layer whose Windows implementations sit in `system/windows`.
+- `bibqml` — the Qt layer: the bridge between QML and the library, models and shared controls.
+- `bibstd_test` — Catch2 tests of `bibstd`. Their scripture zips are local only, see `bibstd_test/res/scripture`.
+- `verselens` — the app: window, tray, updater and the resources a release ships.
+- `libs_external` — third party sources, used as they are.
+- `tools` — CMake helpers, the clang-tidy runner and the MSIX packaging script.
 
 ## Development
 In the MSYS2 MINGW64 shell:
@@ -20,15 +20,30 @@ cmake --build --preset gcc-release
 ctest --preset gcc-release
 cmake --install build
 ```
-The presets `clang-debug`, `clang-release`, `gcc-debug` and `gcc-release` all build into `build`, `--fresh` replaces the configuration of the previous preset. CI and releases use `gcc-release`. The configure step downloads the prebuilt [Velopack](https://velopack.io) library, `cmake --install` fills `build/install`, the folder a release is packed from. Static analysis: `tools/run_clang_tidy.ps1`.
+The presets `clang-debug`, `clang-release`, `gcc-debug` and `gcc-release` all build into `build`, `--fresh` replaces the configuration of the previous preset. CI and releases use `gcc-release`, `cmake --install` fills `build/install`. Static analysis: `tools/run_clang_tidy.ps1`.
 
-## Release
-On the branch `release/aba_v<major>`, set `APP_VERSION_MAJOR` and `APP_VERSION_MINOR` in `aba/CMakeLists.txt`, then tag and push:
+## VerseLens
+VerseLens is a Windows tray app that finds bible references on the screen. Point the cursor at a reference like "Matthew 23, 10-11" in any window and press `ALT + f`: VerseLens reads the text around the cursor, recognizes the reference and opens it on [bibleserver.com](https://www.bibleserver.com). With the automatic search enabled, resting the cursor on a reference is enough.
+
+### Install
+Download `VerseLens-win-Setup.exe` from the latest [release](https://github.com/michael-b3n/biblia/releases/latest) and run it. VerseLens installs for the current user and starts at sign-in. New versions are downloaded in the background and installed on the next start, or right away from the notifications tab, whose bell rings once an update is ready. The tab also checks for updates on request. Start at sign-in can be turned off in the Task Manager under Startup apps.
+
+Uninstall versions 1.x ("Bible Assistant") first, they do not update to 2.x.
+
+Requires Windows 10 or later.
+
+### Scriptures
+VerseLens ships without scriptures. To read passages in VerseLens, download USX bundles from the Digital Bible Library at [library.bible](https://library.bible/) and put the zip files into `%LOCALAPPDATA%\verselens\scriptures`. They are loaded on start, the folder can be changed in the settings.
+
+### Release
+On the branch `release/verselens_v<major>`, set `APP_VERSION_MAJOR` and `APP_VERSION_MINOR` in `verselens/CMakeLists.txt`, then tag and push:
 ```
-git tag aba_v2.1
-git push origin aba_v2.1
+git tag verselens_vX.Y
+git push origin verselens_vX.Y
 ```
-The release workflow checks the tag, builds, tests and publishes the release. Installed apps pick it up within a day.
+The release workflow `release_verselens.yml` checks the tag, builds, tests and publishes the release, packed from `build/install` with [Velopack](https://velopack.io), whose prebuilt library the configure step downloads. Installed apps pick it up within a day.
+
+The workflow also packs an MSIX for the Microsoft Store and offers it as a build artifact, which is uploaded to Partner Center by hand. The store signs the package and delivers its updates, so it is packed from the preset `gcc-release-msix`, which builds into `build_msix` without the Velopack updater (`-DVERSELENS_VELOPACK=OFF`). `tools/make_msix_verselens.ps1` packs the same package from an installed `gcc-release-msix` build locally, it needs the Windows SDK for `makeappx`.
 
 ## License
 [MIT](LICENSE). The libraries in `libs_external` keep their own licenses, Qt is used under the LGPLv3, Tesseract and its `tessdata` under the Apache License 2.0. Scriptures are not part of this repository or of a release.
