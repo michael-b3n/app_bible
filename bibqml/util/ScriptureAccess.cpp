@@ -21,7 +21,6 @@ auto defaultScripture(bibstd::workflow::workflow_scripture& workflowScripture)
   auto scripture = workflowScripture.scripture(defaultScriptureParams);
   if(!scripture)
   {
-    LOG_WARN("failed to get default scripture");
     return std::nullopt;
   }
   return scripture.value().scripture;
@@ -69,7 +68,10 @@ auto scriptureCopyright(bibstd::workflow::workflow_scripture& workflowScripture)
 ///
 ///
 auto toReference(
-  bibstd::workflow::workflow_scripture& workflowScripture, const QString& bookId, const int chapter, const int verse
+  const bibstd::bible::versification& versification,
+  const QString& bookId,
+  const int chapter,
+  const int verse
 ) -> std::optional<bibstd::bible::reference>
 {
   const auto book = bibstd::util::to_enum<bibstd::bible::book_id>(bookId.toStdString());
@@ -78,12 +80,7 @@ auto toReference(
     LOG_WARN("invalid book id: {}", bookId.toStdString());
     return std::nullopt;
   }
-  const auto scripture = defaultScripture(workflowScripture);
-  if(!scripture)
-  {
-    return std::nullopt;
-  }
-  const auto ref = bibstd::bible::reference::create(*book, chapter, verse, scripture.value()->versification());
+  const auto ref = bibstd::bible::reference::create(*book, chapter, verse, versification);
   if(!ref)
   {
     LOG_WARN("invalid reference: {} {}, {}", bookId.toStdString(), chapter, verse);

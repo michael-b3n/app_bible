@@ -136,10 +136,6 @@ class workflow_bible_ref_ocr_auto final
   using detection_result_type = signals_type::detection_result;
   class machine_holder;
 
-  ///
-  /// Snapshot of the workflow settings for one poll iteration,
-  /// clamped to values that keep the search responsive and the machine usable.
-  ///
   struct settings_t final
   {
     std::chrono::milliseconds poll_interval;
