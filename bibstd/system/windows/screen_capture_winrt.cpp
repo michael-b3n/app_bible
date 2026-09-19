@@ -1,8 +1,12 @@
 #include "bibstd/system/windows/screen_capture_winrt.hpp"
+#include "bibstd/util/enum.hpp"
 #include "bibstd/util/exception.hpp"
 #include "bibstd/util/log.hpp"
 #include "bibstd/util/numeric_cast.hpp"
 
+#include <winrt/Windows.Security.Authorization.AppCapabilityAccess.h>
+
+#include <chrono>
 #include <condition_variable>
 #include <optional>
 #include <utility>
@@ -308,6 +312,33 @@ auto place(const util::screen_rect_type rect) -> std::optional<placement>
   };
 }
 
+///
+/// Request captures without the colored border, windows ignores IsBorderRequired(false) until then.
+/// A packaged app asks the user once, an unpackaged one is granted without a prompt.
+/// Captures run either way, without the access they show the border.
+///
+auto request_borderless_capture() -> void
+{
+  // How long the startup waits for the user to answer the prompt for captures without a border
+  static constexpr auto borderless_consent_timeout = std::chrono::minutes{1};
+  try
+  {
+    const auto request = winrt_capture::capture_api::GraphicsCaptureAccess::RequestAccessAsync(
+      winrt_capture::capture_api::GraphicsCaptureAccessKind::Borderless
+    );
+    if(request.wait_for(borderless_consent_timeout) != winrt::Windows::Foundation::AsyncStatus::Completed)
+    {
+      LOG_WARN("borderless capture not answered in time, captures show the border until the next start");
+      return;
+    }
+    LOG_INFO("borderless capture access: {}", util::enum_name(request.GetResults()));
+  }
+  catch(...)
+  {
+    LOG_WARN("borderless capture access not requested: {}", util::exception_report());
+  }
+}
+
 } // namespace
 
 ///
@@ -328,6 +359,11 @@ auto screen_capture::create() -> std::unique_ptr<screen_capture>
     {
       LOG_INFO("windows graphics capture cannot exclude the cursor on this system");
       return nullptr;
+    }
+    // Asked before the first session starts, so every session starts with the answer
+    if(winrt_capture::metadata_api::ApiInformation::IsPropertyPresent(winrt_capture::session_class, L"IsBorderRequired"))
+    {
+      request_borderless_capture();
     }
     auto capture_device = winrt_capture::device::create();
     if(!capture_device)

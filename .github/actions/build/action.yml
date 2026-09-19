@@ -1,5 +1,5 @@
 name: Build
-description: Configure, build, test and install ABA with MSYS2, then check that the installed executable starts.
+description: Configure, build, test and install VerseLens with MSYS2, then check that the installed executable starts.
 
 runs:
   using: composite
@@ -53,6 +53,6 @@ runs:
     - name: Check the installed executable starts
       shell: pwsh
       run: |
-        $process = Start-Process -FilePath build/install/bin/aba.exe -ArgumentList '--veloapp-install', '0.0.0' -PassThru
-        if (-not $process.WaitForExit(60000)) { $process.Kill(); throw 'aba.exe did not exit within 60 seconds' }
-        if ($process.ExitCode -ne 0) { throw "aba.exe exited with $($process.ExitCode)" }
+        $process = Start-Process -FilePath build/install/bin/verselens.exe -ArgumentList '--veloapp-install', '0.0.0' -PassThru
+        if (-not $process.WaitForExit(60000)) { $process.Kill(); throw 'verselens.exe did not exit within 60 seconds' }
+        if ($process.ExitCode -ne 0) { throw "verselens.exe exited with $($process.ExitCode)" }

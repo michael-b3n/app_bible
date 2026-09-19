@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Manifest of the MSIX package published in the microsoft store, see tools/make_msix_verselens.ps1 which fills the placeholders.
+  Identity name, publisher and publisher display name are the values partner center shows for the reserved app name.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
+  xmlns:uap11="http://schemas.microsoft.com/appx/manifest/uap/windows10/11"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap5 uap11 rescap">
+
+  <Identity
+    Name="@IDENTITY_NAME@"
+    Publisher="@PUBLISHER@"
+    Version="@VERSION@"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>@DISPLAY_NAME@</DisplayName>
+    <PublisherDisplayName>@PUBLISHER_DISPLAY_NAME@</PublisherDisplayName>
+    <Description>@DESCRIPTION@</Description>
+    <Logo>assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+    <Resource Language="de-de" />
+  </Resources>
+
+  <Applications>
+    <Application Id="@APPLICATION_ID@" Executable="bin\@EXE_NAME@.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="@DISPLAY_NAME@"
+        Description="@DESCRIPTION@"
+        Square150x150Logo="assets\Square150x150Logo.png"
+        Square44x44Logo="assets\Square44x44Logo.png"
+        BackgroundColor="transparent">
+        <uap:DefaultTile Wide310x150Logo="assets\Wide310x150Logo.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <!-- Replaces the startup shortcut the velopack install creates, windows settings let the user switch it off. -->
+        <uap5:Extension Category="windows.startupTask">
+          <uap5:StartupTask TaskId="@APPLICATION_ID@Startup" Enabled="false" DisplayName="@DISPLAY_NAME@" />
+        </uap5:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- A packaged desktop application, it keeps the rights of the user that runs it. -->
+    <rescap:Capability Name="runFullTrust" />
+    <!-- Lets the screen capture ask the user to leave out the colored border it draws otherwise. -->
+    <uap11:Capability Name="graphicsCaptureWithoutBorder" />
+  </Capabilities>
+
+</Package>

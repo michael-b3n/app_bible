@@ -44,7 +44,6 @@ struct workflow_bible_ref_ocr_settings final : public framework::settings_base
   const setting_type<std::optional<std::string>> layout_recognition_ocr_engine;
   const setting_type<ocr_recognition_algorithm> recognition_algorithm;
   const setting_type<util::language> language;
-  const setting_type<std::string> fallback_versification_name;
 };
 
 ///
@@ -56,33 +55,21 @@ class workflow_bible_ref_ocr final : public workflow_base<workflow_bible_ref_ocr
   struct params_t final
   {
     util::pixel_plane_view_type image;
-    util::screen_coordinates_type position{0, 0};
+    util::screen_coordinates_type position;
   };
 
-  ///
-  /// Result of bible reference OCR process. This contains the found reference ranges ordered
-  /// canonically and the bounding box of the recognized reference text within the image.
-  ///
   struct result_t final
   {
     std::vector<bible::reference_range> reference_ranges;
     std::optional<util::screen_rect_type> reference_bounding_box;
   };
 
-  ///
-  /// Result of a reference search on an image. Besides the found reference ranges this
-  /// contains the bounding box of the recognized reference text within the image.
-  ///
   struct find_references_result_t final
   {
     std::vector<bible::reference_range> ranges;
     std::optional<util::screen_rect_type> bounding_box;
   };
 
-  ///
-  /// Local settings for the find_references function.
-  /// The settings are a partial snapshot of the workflow settings.
-  ///
   struct settings_t final
   {
     std::string character_recognition_ocr_engine;
@@ -92,9 +79,6 @@ class workflow_bible_ref_ocr final : public workflow_base<workflow_bible_ref_ocr
     workflow_scripture::versification_wrapper_type versification;
   };
 
-  ///
-  /// Recognized text around the position, or unexpected result.
-  ///
   using position_data_result_type =
     std::expected<bible::reference_ocr::reference_position_data, bible::reference_ocr::unexpected_ocr_result>;
 
@@ -130,7 +114,6 @@ private: // Implementation
   auto init() -> void;
   auto load_ocr_engines() -> void;
   auto limit_settings_to_loaded_engines() -> void;
-  [[nodiscard]] auto versification() const -> decltype(settings_t::versification);
   [[nodiscard]] auto find_references(
     const auto& params, const settings_t& settings, const position_data_result_type& position_data
   ) -> framework::process_result<find_references_result_t>;

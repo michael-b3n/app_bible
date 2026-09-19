@@ -11,7 +11,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/tools/cmake")
 #
 set(CMAKE_CONFIGURATION_TYPES Release Debug)
 
-project(app_bible)
+project(biblia)
 
 # An empty build type builds without optimization and debug info.
 get_property(IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
@@ -72,4 +72,4 @@ add_subdirectory(libs_external)
 add_subdirectory(bibstd)
 add_subdirectory(bibqml)
 add_subdirectory(bibstd_test)
-add_subdirectory(aba)
+add_subdirectory(verselens)

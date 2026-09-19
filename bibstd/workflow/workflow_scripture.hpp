@@ -37,6 +37,7 @@ public: // Constants
 public: // Variables
   const setting_type<std::optional<std::string>> scripture_name;
   const setting_type<std::filesystem::path> scripture_folder;
+  const setting_type<std::string> fallback_versification;
 };
 
 ///
@@ -55,7 +56,7 @@ class workflow_scripture final : public workflow_base<workflow_scripture_setting
   {
   public: // Constructor
     explicit versification_wrapper(std::shared_ptr<bible::scripture> scripture);
-    explicit versification_wrapper(bible::scripture::versification_type&& versification);
+    explicit versification_wrapper(bible::scripture::versification_type versification);
 
   public: // Accessors
     ///
@@ -68,35 +69,23 @@ class workflow_scripture final : public workflow_base<workflow_scripture_setting
     std::variant<bible::scripture::versification_type, std::shared_ptr<bible::scripture>> data_;
   };
 
-  ///
-  /// Struct containing params for scripture accessor.
-  ///
   struct scripture_params_t final
   {
     std::optional<std::string> scripture_name;
   };
 
-  ///
-  /// Struct containing result for scripture accessor.
-  ///
   struct scripture_result_t final
   {
     std::string name;
     std::shared_ptr<bible::scripture> scripture;
   };
 
-  ///
-  /// Struct containing params for passage accessor.
-  ///
   struct passage_params_t final
   {
     bible::scripture::reference_type reference;
     std::optional<std::string> scripture_name;
   };
 
-  ///
-  /// Struct containing result for passage accessor.
-  ///
   struct passage_result_t final
   {
     bible::scripture::passage_html_type passage;
@@ -137,14 +126,22 @@ public: // Accessors
   /// the scripture defined in the settings will be used.
   /// \return scripture, or an unexpected result in case of failure
   ///
-  [[nodiscard]] auto scripture(const scripture_params& params) -> scripture_result;
+  [[nodiscard]] auto scripture(const scripture_params& params) const -> scripture_result;
+
+  ///
+  /// Get the versification of the specifieds scripture, or the fallback versification
+  /// if the scripture is not available. No matter if there are no scriptures loaded or
+  /// the scripture name does not exist, the fallback versification is always returned.
+  /// \return versification
+  ///
+  [[nodiscard]] auto versification_or_fallback(const scripture_params& params) const -> versification_wrapper_type;
 
   ///
   /// Get passage from scripture. If no scripture name is provided in the params,
   /// the scripture defined in the settings will be used.
   /// \return passage, or an unexpected result in case of failure
   ///
-  [[nodiscard]] auto passage(const passage_params& params) -> passage_result;
+  [[nodiscard]] auto passage(const passage_params& params) const -> passage_result;
 
 private: // Implementation
   auto init() -> void;

@@ -1,0 +1,122 @@
+#
+# Publishes a release for a pushed tag verselens_v<major>.<minor> on the branch release/verselens_v<major>.
+# Installed apps pick it up on their next update check.
+#
+# The token for the releases is the GITHUB_TOKEN GitHub creates for every run.
+#
+name: Release VerseLens
+
+on:
+  push:
+    tags: ["verselens_v*.*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release_verselens
+  cancel-in-progress: false
+
+env:
+  VPK_VERSION: 1.2.0
+  # Velopack names the installer and the install folder after this ID.
+  PACK_ID: VerseLens
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check tag
+        id: version
+        shell: pwsh
+        run: |
+          $cmake = Get-Content verselens/CMakeLists.txt -Raw
+          $major, $minor = 'MAJOR', 'MINOR' | ForEach-Object {
+            if ($cmake -notmatch "set\(APP_VERSION_$_ (\d+)\)") { throw "APP_VERSION_$_ not found in verselens/CMakeLists.txt" }
+            $Matches[1]
+          }
+          $version = "$major.$minor"
+          if ("${{ github.ref_name }}" -ne "verselens_v$version") { throw "tag ${{ github.ref_name }} does not match version $version in verselens/CMakeLists.txt" }
+          $branch = "release/verselens_v$major"
+          git merge-base --is-ancestor "$env:GITHUB_SHA" "origin/$branch"
+          if ($LASTEXITCODE -ne 0) { throw "tag ${{ github.ref_name }} is not on branch $branch" }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          # Velopack requires three version numbers
+          "pack_version=$version.0" >> $env:GITHUB_OUTPUT
+
+      - name: Build
+        uses: ./.github/actions/build
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install vpk
+        shell: pwsh
+        run: dotnet tool install --global vpk --version $env:VPK_VERSION
+
+      # The previous release lets vpk create a delta package, which keeps updates small.
+      - name: Download previous release
+        shell: pwsh
+        run: vpk download github --repoUrl "${{ github.server_url }}/${{ github.repository }}" --token "${{ secrets.GITHUB_TOKEN }}" --outputDir releases
+
+      - name: Pack
+        shell: pwsh
+        run: >
+          vpk pack
+          --packId $env:PACK_ID
+          --packVersion ${{ steps.version.outputs.pack_version }}
+          --packTitle "VerseLens"
+          --packAuthors michael-b3n
+          --packDir build/install
+          --mainExe bin\verselens.exe
+          --icon verselens/res/icon.ico
+          --shortcuts StartMenuRoot,Startup
+          --outputDir releases
+
+      # Microsoft store delivers the updates of the MSIX, so its build leaves out Velopack.
+      # MSYS2 is set up by the build action already.
+      - name: Build MSIX
+        if: vars.VERSELENS_MSIX_IDENTITY_NAME != ''
+        shell: msys2 {0}
+        run: |
+          cmake --preset gcc-release-msix
+          cmake --build --preset gcc-release-msix
+          cmake --install build_msix
+
+      # Microsoft store signs the package during certification, it is uploaded to partner center by hand.
+      - name: Pack MSIX
+        if: vars.VERSELENS_MSIX_IDENTITY_NAME != ''
+        shell: pwsh
+        run: >
+          tools/make_msix_verselens.ps1
+          -IdentityName "${{ vars.VERSELENS_MSIX_IDENTITY_NAME }}"
+          -Publisher "${{ vars.VERSELENS_MSIX_PUBLISHER }}"
+          -PublisherDisplayName "${{ vars.VERSELENS_MSIX_PUBLISHER_DISPLAY_NAME }}"
+          -InstallDir build_msix/install
+          -Version ${{ steps.version.outputs.version }}
+          -Out msix/VerseLens.msix
+
+      - name: Upload MSIX
+        if: vars.VERSELENS_MSIX_IDENTITY_NAME != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: msix
+          path: msix/VerseLens.msix
+
+      - name: Publish
+        shell: pwsh
+        run: >
+          vpk upload github
+          --repoUrl "${{ github.server_url }}/${{ github.repository }}"
+          --token "${{ secrets.GITHUB_TOKEN }}"
+          --releaseName "VerseLens ${{ steps.version.outputs.version }}"
+          --tag ${{ github.ref_name }}
+          --outputDir releases
+          --publish

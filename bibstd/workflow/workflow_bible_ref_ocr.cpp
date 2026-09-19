@@ -142,20 +142,7 @@ workflow_bible_ref_ocr_settings::workflow_bible_ref_ocr_settings(std::shared_ptr
       "ocr.recognition_algorithm", ocr_recognition_algorithm::line_recognition
     )}
   , language{workflow_settings_->create_setting("ocr.language", util::language::german)}
-  , fallback_versification_name{workflow_settings_->create_setting(
-      "ocr.fallback_versification_name",
-      std::string{bible::scripture::versification_type::default_esv::name},
-      std::make_shared<framework::setting_validator_list<setting_value_t<decltype(fallback_versification_name)>>>(
-        workflow_scripture::default_versifications | std::views::keys |
-        std::views::transform([](const auto& n) { return std::string{n}; }) | std::ranges::to<std::vector>()
-      )
-    )}
 {
-  // Check if the default value set above is contained in all default versification names.
-  // If not the fallback versification name would be invalid.
-  static_assert(meta::contains_v<
-                bible::scripture::versification_type::all_defaults_variant,
-                bible::scripture::versification_type::default_esv>);
 }
 
 ///
@@ -192,7 +179,7 @@ auto workflow_bible_ref_ocr::find(const params& params) -> result
       .layout_recognition_ocr_engine = settings().layout_recognition_ocr_engine->value(),
       .recognition_algorithm = settings().recognition_algorithm->value(),
       .language = settings().language->value(),
-      .versification = versification()
+      .versification = workflow_scripture_->versification_or_fallback({{}})
     };
     LOG_DEBUG(
       "find references: image=[width={}, height={}], position=[{}]",
@@ -317,24 +304,6 @@ auto workflow_bible_ref_ocr::limit_settings_to_loaded_engines() -> void
 
 ///
 ///
-auto workflow_bible_ref_ocr::versification() const -> decltype(settings_t::versification)
-{
-  const auto scripture_result = workflow_scripture_->scripture(workflow_scripture::scripture_params::value_type{});
-  if(scripture_result)
-  {
-    return decltype(settings_t::versification){scripture_result.value().scripture};
-  }
-  else
-  {
-    LOG_WARN("failed to get versification from selected default scripture: using fallback versification");
-    return decltype(settings_t::versification){bible::scripture::versification_type{
-      workflow_scripture::default_versifications.at(settings().fallback_versification_name->value())
-    }};
-  }
-}
-
-///
-///
 auto workflow_bible_ref_ocr::find_references(
   const auto& params, const settings_t& settings, const position_data_result_type& position_data
 ) -> framework::process_result<find_references_result_t>
@@ -342,12 +311,9 @@ auto workflow_bible_ref_ocr::find_references(
   if(position_data)
   {
     decltype(auto) versification = settings.versification.get();
-
     const auto parse = [&](const std::string_view text)
     { return bible::reference_parser::parse(text, position_data->cursor_character_index, settings.language, versification); };
     auto parse_result = parse(position_data->text);
-    // The engine drops text it cannot read, e.g. "Gal" of "Joh 7,19; Gal 6,13" reads "Joh 7,19; 6,13" and gives John 6,13.
-    // Only the characters on the side of the gap the position is on belong together, so only they are parsed.
     const auto consecutive =
       bible::reference_ocr::consecutive_characters(*position_data, params->position, parse_result.index_range_origin);
     if(consecutive != math::value_range<std::size_t>{0u, position_data->text.size()})

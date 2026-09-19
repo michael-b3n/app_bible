@@ -1,6 +1,6 @@
 ---
 #
-# Clang-Tidy configuration for app_bible.
+# Clang-Tidy configuration for biblia.
 #
 # Run over the whole project with `tools/run_clang_tidy.ps1`, or over a single file with
 # `clang-tidy -p build <file>`. The build directory has to be configured first, because
@@ -61,7 +61,7 @@ Checks: >
 #
 # Only diagnose the projects own headers, not the ones of Qt, boost or other external libraries.
 #
-HeaderFilterRegex: '(bibstd|bibqml|bibstd_test|aba)[/\].*\.hpp$'
+HeaderFilterRegex: '(bibstd|bibqml|bibstd_test|verselens)[/\].*\.hpp$'
 ExcludeHeaderFilterRegex: '(build|libs_external)[/\].*'
 
 #

@@ -19,9 +19,6 @@ namespace bibstd::workflow
 class workflow_hotkey final : public workflow_base<void>
 {
   // Typedefs
-  ///
-  /// Hotkey parameters to assign a registered callback to a specific hotkey.
-  ///
   struct assign_params_t final
   {
     // Typedefs
