@@ -8,8 +8,8 @@
 # Keep them out of the sources, the release workflow passes them from repository variables.
 #
 # Examples:
-#   tools/make_msix.ps1 -IdentityName 12345MyName.VerseLens -Publisher "CN=..." -PublisherDisplayName "My Name"
-#   tools/make_msix.ps1 -InstallDir build_msix/install -Version 2.2 -Out msix/VerseLens.msix -IdentityName ... -Publisher ...
+#   tools/make_msix_verselens.ps1 -IdentityName 12345MyName.VerseLens -Publisher "CN=..." -PublisherDisplayName "My Name"
+#   tools/make_msix_verselens.ps1 -InstallDir build_msix/install -Version 2.2 -Out msix/VerseLens.msix -IdentityName ... -Publisher ...
 #
 [CmdletBinding()]
 param(

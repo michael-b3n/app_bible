@@ -4,7 +4,7 @@
 #
 # The token for the releases is the GITHUB_TOKEN GitHub creates for every run.
 #
-name: Release
+name: Release VerseLens
 
 on:
   push:
@@ -14,12 +14,12 @@ permissions:
   contents: write
 
 concurrency:
-  group: release
+  group: release_verselens
   cancel-in-progress: false
 
 env:
   VPK_VERSION: 1.2.0
-  # Velopack names the installer and the install folder after this id, it changed with the rename from ABA.
+  # Velopack names the installer and the install folder after this ID.
   PACK_ID: VerseLens
 
 jobs:
@@ -72,7 +72,7 @@ jobs:
           vpk pack
           --packId $env:PACK_ID
           --packVersion ${{ steps.version.outputs.pack_version }}
-          --packTitle "VerseLens - Bible references on screen"
+          --packTitle "VerseLens"
           --packAuthors michael-b3n
           --packDir build/install
           --mainExe bin\verselens.exe
@@ -80,31 +80,31 @@ jobs:
           --shortcuts StartMenuRoot,Startup
           --outputDir releases
 
-      # The store delivers the updates of the MSIX, so its build leaves out Velopack.
+      # Microsoft store delivers the updates of the MSIX, so its build leaves out Velopack.
       # MSYS2 is set up by the build action already.
       - name: Build MSIX
-        if: vars.MSIX_IDENTITY_NAME != ''
+        if: vars.VERSELENS_MSIX_IDENTITY_NAME != ''
         shell: msys2 {0}
         run: |
           cmake --preset gcc-release-msix
           cmake --build --preset gcc-release-msix
           cmake --install build_msix
 
-      # The store signs the package during certification, it is uploaded to partner center by hand.
+      # Microsoft store signs the package during certification, it is uploaded to partner center by hand.
       - name: Pack MSIX
-        if: vars.MSIX_IDENTITY_NAME != ''
+        if: vars.VERSELENS_MSIX_IDENTITY_NAME != ''
         shell: pwsh
         run: >
-          tools/make_msix.ps1
-          -IdentityName "${{ vars.MSIX_IDENTITY_NAME }}"
-          -Publisher "${{ vars.MSIX_PUBLISHER }}"
-          -PublisherDisplayName "${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}"
+          tools/make_msix_verselens.ps1
+          -IdentityName "${{ vars.VERSELENS_MSIX_IDENTITY_NAME }}"
+          -Publisher "${{ vars.VERSELENS_MSIX_PUBLISHER }}"
+          -PublisherDisplayName "${{ vars.VERSELENS_MSIX_PUBLISHER_DISPLAY_NAME }}"
           -InstallDir build_msix/install
           -Version ${{ steps.version.outputs.version }}
           -Out msix/VerseLens.msix
 
       - name: Upload MSIX
-        if: vars.MSIX_IDENTITY_NAME != ''
+        if: vars.VERSELENS_MSIX_IDENTITY_NAME != ''
         uses: actions/upload-artifact@v4
         with:
           name: msix

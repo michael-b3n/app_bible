@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Manifest of the MSIX package published in the microsoft store, see tools/make_msix.ps1 which fills the placeholders.
+  Manifest of the MSIX package published in the microsoft store, see tools/make_msix_verselens.ps1 which fills the placeholders.
   Identity name, publisher and publisher display name are the values partner center shows for the reserved app name.
 -->
 <Package

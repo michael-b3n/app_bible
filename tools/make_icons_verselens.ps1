@@ -4,7 +4,7 @@
 # Needs rsvg-convert, the MSYS2 package mingw-w64-x86_64-librsvg holds it.
 #
 # Examples:
-#   tools/make_icons.ps1
+#   tools/make_icons_verselens.ps1
 #
 [CmdletBinding()]
 param()

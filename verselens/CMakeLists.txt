@@ -16,7 +16,7 @@ set(APP_EXE_NAME "verselens")
 set(APP_NAME "VerseLens")
 set(APP_REPOSITORY_URL "https://github.com/michael-b3n/biblia")
 set(APP_DATA_FOLDER_NAME "verselens")
-set(APP_FILE_DESCRIPTION "${APP_NAME} - Bible references on screen")
+set(APP_FILE_DESCRIPTION "${APP_NAME}")
 message(STATUS "project name: " ${APP_EXE_NAME})
 message(STATUS "project version: " ${APP_VERSION})
 
